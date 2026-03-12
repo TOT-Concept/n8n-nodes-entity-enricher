@@ -1,0 +1,42 @@
+{
+	"name": "n8n-nodes-entity-enricher",
+	"version": "0.1.0",
+	"description": "n8n community node for Entity Enricher — enrich entities using multiple LLM providers with schema-driven structured output",
+	"keywords": [
+		"n8n-community-node-package",
+		"n8n",
+		"entity-enricher",
+		"llm",
+		"enrichment",
+		"ai"
+	],
+	"license": "MIT",
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"credentials": [
+			"dist/credentials/EntityEnricherApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/EntityEnricher/EntityEnricher.node.js"
+		]
+	},
+	"scripts": {
+		"build": "tsc && gulp build:icons",
+		"dev": "n8n-node dev --external-n8n",
+		"lint": "tsc --noEmit",
+		"prepublishOnly": "npm run build"
+	},
+	"files": [
+		"dist"
+	],
+	"devDependencies": {
+		"@n8n/node-cli": "^0.23.0",
+		"@types/node": "^22.0.0",
+		"gulp": "^5.0.0",
+		"n8n-workflow": "^1.72.0",
+		"typescript": "^5.7.0"
+	},
+	"peerDependencies": {
+		"n8n-workflow": ">=1.0.0"
+	}
+}
