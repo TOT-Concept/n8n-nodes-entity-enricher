@@ -28,9 +28,14 @@ export class EntityEnricher implements INodeType {
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["resource"] + ": " + $parameter["operation"]}}',
-		description: 'Enrich entities using multiple LLM providers with schema-driven structured output',
+		description: 'Enrich entities with multi-model LLM fusion, multilingual output, and expertise-driven strategies',
 		documentationUrl: 'https://entityenricher.ai/docs',
 		codex: {
+			categories: ['AI'],
+			subcategories: {
+				AI: ['Agents & Tools'],
+			},
+			alias: ['enrichment', 'llm', 'data enrichment', 'multi-model', 'fusion'],
 			resources: {
 				primaryDocumentation: [
 					{ url: 'https://entityenricher.ai/docs' },

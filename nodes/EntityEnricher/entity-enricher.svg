@@ -1,8 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" fill="none">
-  <rect width="60" height="60" rx="12" fill="#F59E0B"/>
-  <path d="M15 18h20v4H19v8h14v4H19v8h16v4H15V18z" fill="#fff"/>
-  <circle cx="43" cy="22" r="3" fill="#fff" opacity="0.7"/>
-  <circle cx="43" cy="32" r="3" fill="#fff" opacity="0.85"/>
-  <circle cx="43" cy="42" r="3" fill="#fff"/>
-  <path d="M38 22h-2M38 32h-2M38 42h-2" stroke="#fff" stroke-width="1.5" opacity="0.6"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 44" fill="none">
+  <!-- Solid filled E with rounded corners (r=2.5) -->
+  <path d="M4 0H23.5Q26 0 26 2V3Q26 5 23.5 5H8Q6 5 6 7V17Q6 19 8 19H19.5Q22 19 22 21V22Q22 24 19.5 24H8Q6 24 6 26V37Q6 39 8 39H25.5Q28 39 28 41V42Q28 44 25.5 44H4Q0 44 0 40V4Q0 0 4 0Z" fill="#C87D2A"/>
+  <!-- Three enrichment dots -->
+  <circle cx="38" cy="7" r="4" fill="#C87D2A" opacity="0.55"/>
+  <circle cx="38" cy="22" r="4" fill="#C87D2A" opacity="0.75"/>
+  <circle cx="38" cy="37" r="4" fill="#C87D2A"/>
+  <!-- Connector lines -->
+  <path d="M26 3L34 7" stroke="#C87D2A" stroke-width="2" stroke-linecap="round" opacity="0.45"/>
+  <path d="M22 21H34" stroke="#C87D2A" stroke-width="2" stroke-linecap="round" opacity="0.65"/>
+  <path d="M28 41L34 37" stroke="#C87D2A" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
 </svg>
