@@ -24,7 +24,10 @@
 		"build": "tsc && gulp build:icons",
 		"dev": "n8n-node dev --external-n8n",
 		"lint": "tsc --noEmit",
-		"prepublishOnly": "npm run build"
+		"prepublishOnly": "npm run build",
+		"sync-workflows": "bash ../sync-workflows.sh push",
+		"sync-workflows:push": "bash ../sync-workflows.sh push",
+		"sync-workflows:pull": "bash ../sync-workflows.sh pull"
 	},
 	"files": [
 		"dist"

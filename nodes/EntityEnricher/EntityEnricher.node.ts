@@ -29,7 +29,7 @@ export class EntityEnricher implements INodeType {
 		version: 1,
 		subtitle: '={{$parameter["resource"] + ": " + $parameter["operation"]}}',
 		description: 'Enrich entities with multi-model LLM fusion, multilingual output, and expertise-driven strategies',
-		documentationUrl: 'https://entityenricher.ai/docs',
+		documentationUrl: 'https://entityenricher.ai/docs/integrations/n8n',
 		codex: {
 			categories: ['AI'],
 			subcategories: {
@@ -38,7 +38,7 @@ export class EntityEnricher implements INodeType {
 			alias: ['enrichment', 'llm', 'data enrichment', 'multi-model', 'fusion'],
 			resources: {
 				primaryDocumentation: [
-					{ url: 'https://entityenricher.ai/docs' },
+					{ url: 'https://entityenricher.ai/docs/integrations/n8n' },
 				],
 				credentialDocumentation: [
 					{ url: 'https://entityenricher.ai/docs/platform/api-keys' },
