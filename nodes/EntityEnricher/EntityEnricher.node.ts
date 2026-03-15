@@ -33,9 +33,9 @@ export class EntityEnricher implements INodeType {
 		codex: {
 			categories: ['AI'],
 			subcategories: {
-				AI: ['Agents & Tools'],
+				AI: ['Agents & Tools', 'Tools'],
 			},
-			alias: ['enrichment', 'llm', 'data enrichment', 'multi-model', 'fusion'],
+			alias: ['enrichment', 'translation', 'llm', 'data enrichment', 'multi-model', 'fusion', 'entity'],
 			resources: {
 				primaryDocumentation: [
 					{ url: 'https://entityenricher.ai/docs/integrations/n8n' },
@@ -398,7 +398,7 @@ export class EntityEnricher implements INodeType {
 				name: 'timeout',
 				type: 'number',
 				default: 300000,
-				description: 'Maximum time to wait for enrichment completion (in milliseconds)',
+				description: 'Inactivity timeout in milliseconds. The timer resets each time a progress event is received, so large batches won\'t time out as long as entities keep completing. The job is cancelled if no event arrives within this period.',
 				displayOptions: {
 					show: {
 						resource: ['enrichment'],

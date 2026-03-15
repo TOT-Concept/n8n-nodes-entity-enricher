@@ -8,6 +8,9 @@ const TERMINAL_EVENTS = new Set(['completed', 'error', 'cancelled']);
  * Connects to GET /api/llm/stream/{jobId}, parses SSE events (data: {JSON}\n\n format),
  * and collects all events until a terminal event is received.
  *
+ * The timeout is activity-based: it resets each time an event is received,
+ * so long-running batch jobs won't time out as long as progress continues.
+ *
  * Automatically resumes paused jobs (e.g., classification mismatch) since n8n is non-interactive.
  */
 export async function consumeSSEStream(
@@ -18,7 +21,12 @@ export async function consumeSSEStream(
 ): Promise<SSEEvent[]> {
 	const events: SSEEvent[] = [];
 	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+	let timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+	const resetTimeout = () => {
+		clearTimeout(timeoutId);
+		timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+	};
 
 	try {
 		const response = await fetch(`${baseUrl}/api/llm/stream/${jobId}`, {
@@ -60,6 +68,7 @@ export async function consumeSSEStream(
 				if (!event) continue;
 
 				events.push(event);
+				resetTimeout();
 
 				// Auto-continue on classification mismatch (n8n is non-interactive)
 				if (event.event === 'classification_mismatch_pause') {
@@ -80,7 +89,7 @@ export async function consumeSSEStream(
 			// Timeout — try to cancel the job
 			await cancelJob(baseUrl, apiKey, jobId);
 			throw new Error(
-				`Enrichment timed out after ${Math.round(timeoutMs / 1000)}s. Job ${jobId} has been cancelled.`,
+				`Enrichment timed out after ${Math.round(timeoutMs / 1000)}s of inactivity (no progress event received). Job ${jobId} has been cancelled.`,
 			);
 		}
 		throw error;

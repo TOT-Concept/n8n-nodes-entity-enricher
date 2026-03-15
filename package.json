@@ -11,6 +11,18 @@
 		"ai"
 	],
 	"license": "MIT",
+	"author": {
+		"name": "TOT Concept"
+	},
+	"homepage": "https://entityenricher.ai/docs/integrations/n8n",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/TOT-Concept/EntityEnricher.git",
+		"directory": "connectors/n8n/n8n-nodes-entity-enricher"
+	},
+	"bugs": {
+		"url": "https://github.com/TOT-Concept/EntityEnricher/issues"
+	},
 	"n8n": {
 		"n8nNodesApiVersion": 1,
 		"credentials": [
