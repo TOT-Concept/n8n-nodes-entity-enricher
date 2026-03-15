@@ -132,6 +132,23 @@ npm run build
 npm run lint
 ```
 
+### Releasing a New Version
+
+Publishing is automated via GitHub Actions. To release a new version:
+
+```bash
+git tag n8n-v1.2.0 && git push origin n8n-v1.2.0
+```
+
+This triggers the CI/CD pipeline which will:
+
+1. **Build & lint** the connector
+2. **Run integration tests** (module loading + n8n startup verification)
+3. **Publish to npm** with the version extracted from the tag
+4. **Create a GitHub Release** with an auto-generated changelog from commits touching the connector directory
+
+The tag name must follow the `n8n-v<semver>` format (e.g., `n8n-v1.0.0`, `n8n-v1.2.3`). The version in `package.json` is updated automatically during publish — no need to change it manually.
+
 ## License
 
 [MIT](LICENSE)
