@@ -161,6 +161,10 @@ This triggers the CI/CD pipeline which will:
 
 The tag name must follow the `n8n-v<semver>` format (e.g., `n8n-v1.0.0`, `n8n-v1.2.3`). The version in `package.json` is updated automatically during publish — no need to change it manually.
 
+## Changelog
+
+See [CHANGELOG.md](https://github.com/TOT-Concept/n8n-nodes-entity-enricher/blob/main/CHANGELOG.md) for a full list of changes in each version.
+
 ## License
 
 [MIT](LICENSE)
