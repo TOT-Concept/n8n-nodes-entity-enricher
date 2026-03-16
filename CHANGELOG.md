@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0 (2026-03-16)
+
+### Features
+
+- **Clean output by default** — enrichment operations now output only the enriched data fields at the top level (e.g., `{{ $json.company_name }}`), stripping `_arbitration_metadata` for cleaner downstream processing
+- **Include Enrichment Metadata** option — toggle to include cost, tokens, fusion details, record IDs, and source models alongside the result (previous default behavior)
+
 ## 0.1.0 (2025-03-13)
 
 Initial release of the Entity Enricher n8n community node.

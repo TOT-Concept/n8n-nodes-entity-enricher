@@ -65,7 +65,20 @@ Enrich a single entity against a schema with one or more LLM models.
 - **Arbitration Model** *(optional)*: LLM-based conflict resolution when using multiple models
 - **Timeout**: Max wait time (default: 5 minutes)
 
-**Output:**
+**Output (default):**
+
+By default, the output contains only the enriched data at the top level for direct field access:
+
+```json
+{
+  "company_name": "Pfizer",
+  "headquarters": "New York",
+  "revenue_usd": 58496000000,
+  "..."
+}
+```
+
+Toggle **Include Enrichment Metadata** to add cost, tokens, fusion details, and record IDs:
 
 ```json
 {
@@ -76,7 +89,6 @@ Enrich a single entity against a schema with one or more LLM models.
   "cost_usd": 0.0042,
   "input_tokens": 1250,
   "output_tokens": 890,
-  "processing_time_ms": 3200,
   "fusion": { "agreed_fields": 18, "conflicted_fields": 2, "total_fields": 20 },
   "source_models": ["anthropic::claude-sonnet-4-5", "openai::gpt-4o"]
 }
