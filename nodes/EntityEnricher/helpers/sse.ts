@@ -1,6 +1,5 @@
 import type { SSEEvent } from './types';
-
-const TERMINAL_EVENTS = new Set(['completed', 'error', 'cancelled']);
+import { TERMINAL_EVENTS } from './types';
 
 /**
  * Consume an SSE stream from Entity Enricher's job streaming endpoint.

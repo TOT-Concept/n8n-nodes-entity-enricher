@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-entity-enricher",
-	"version": "1.0.1",
+	"version": "1.1.0",
 	"description": "n8n community node for Entity Enricher — enrich entities with multi-model LLM fusion, multilingual output, and expertise-driven strategies",
 	"keywords": [
 		"n8n-community-node-package",
@@ -32,13 +32,18 @@
 		]
 	},
 	"scripts": {
+		"build-deploy": "tsc && gulp build:icons && docker restart common-n8n",
 		"build": "tsc && gulp build:icons",
 		"dev": "n8n-node dev --external-n8n",
 		"lint": "tsc --noEmit",
 		"prepublishOnly": "npm run build",
-		"sync-workflows": "bash ../sync-workflows.sh push",
+		"generate-api": "openapi-typescript http://localhost:18808/api/openapi.json -o nodes/EntityEnricher/helpers/generated/schema.ts --root-types --root-types-no-schema-prefix -t --alphabetize",
 		"sync-workflows:push": "bash ../sync-workflows.sh push",
-		"sync-workflows:pull": "bash ../sync-workflows.sh pull"
+		"sync-workflows:push:dry-run": "bash ../sync-workflows.sh push --dry-run",
+		"sync-workflows:push:activate": "bash ../sync-workflows.sh push --activate",
+		"sync-workflows:pull": "bash ../sync-workflows.sh pull",
+		"sync-workflows:pull:dry-run": "bash ../sync-workflows.sh pull --dry-run",
+		"sync-workflows:pull:only-existing": "bash ../sync-workflows.sh pull --only-existing"
 	},
 	"files": [
 		"dist"
@@ -48,6 +53,7 @@
 		"@types/node": "^22.0.0",
 		"gulp": "^5.0.0",
 		"n8n-workflow": "^1.72.0",
+		"openapi-typescript": "^7.10.1",
 		"typescript": "^5.7.0"
 	},
 	"peerDependencies": {

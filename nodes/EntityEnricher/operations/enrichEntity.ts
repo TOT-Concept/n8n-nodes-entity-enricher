@@ -1,13 +1,14 @@
-import type { IExecuteFunctions, INodeExecutionData } from 'n8n-workflow';
+import type { IDataObject, IExecuteFunctions, INodeExecutionData } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 import { apiRequest, getCredentialValues } from '../helpers/api';
 import { consumeSSEStream } from '../helpers/sse';
 import type {
 	JobStartResponse,
 	SSEEvent,
-	SingleEnrichmentResult,
-	FusionResult,
+	SseModelCompleted,
+	SseFusionCompleted,
 } from '../helpers/types';
+import { isModelCompleted, isFusionCompleted } from '../helpers/types';
 import { validateEntitySearchKeys } from '../helpers/validation';
 
 /**
@@ -37,6 +38,9 @@ export async function execute(
 	const timeout = context.getNodeParameter('timeout', itemIndex, 300000) as number;
 	const includePerModelResults = context.getNodeParameter(
 		'includePerModelResults', itemIndex, false,
+	) as boolean;
+	const includeEnrichmentMetadata = context.getNodeParameter(
+		'includeEnrichmentMetadata', itemIndex, false,
 	) as boolean;
 
 	// Entity data comes from input item JSON
@@ -87,7 +91,7 @@ export async function execute(
 	const events = await consumeSSEStream(baseUrl, apiKey, jobResponse.job_id, timeout);
 
 	// Extract results from events
-	return buildOutputItems(events, itemIndex, includePerModelResults);
+	return buildOutputItems(events, itemIndex, includePerModelResults, includeEnrichmentMetadata);
 }
 
 /**
@@ -100,17 +104,16 @@ function buildOutputItems(
 	events: SSEEvent[],
 	itemIndex: number,
 	includePerModelResults: boolean,
+	includeEnrichmentMetadata: boolean,
 ): INodeExecutionData[] {
-	const modelResults: SingleEnrichmentResult[] = [];
-	let fusionResult: FusionResult | null = null;
+	const modelResults: SseModelCompleted[] = [];
+	let fusionResult: SseFusionCompleted | null = null;
 
 	for (const event of events) {
-		if (event.event === 'model_completed') {
-			modelResults.push(event as unknown as SingleEnrichmentResult);
-		} else if (event.event === 'fusion_completed') {
-			fusionResult = event as unknown as FusionResult;
-		} else if (event.event === 'error') {
-			// If the stream ended with an error, still try to return partial results
+		if (isModelCompleted(event)) {
+			modelResults.push(event);
+		} else if (isFusionCompleted(event)) {
+			fusionResult = event;
 		}
 	}
 
@@ -118,42 +121,51 @@ function buildOutputItems(
 
 	// Primary output: fused result or best single model result
 	if (fusionResult?.success && fusionResult.merged_result) {
+		const { _arbitration_metadata, ...resultData } = fusionResult.merged_result as IDataObject;
 		outputItems.push({
-			json: {
-				result: fusionResult.merged_result,
-				record_id: fusionResult.record_id,
-				success: true,
-				is_fused: true,
-				cost_usd: fusionResult.cost_usd ?? sumCosts(modelResults),
-				input_tokens: fusionResult.input_tokens ?? sumTokens(modelResults, 'input_tokens'),
-				output_tokens: fusionResult.output_tokens ?? sumTokens(modelResults, 'output_tokens'),
-				fusion: fusionResult.conflict_report
-					? {
-						agreed_fields: fusionResult.conflict_report.agreed_fields,
-						conflicted_fields: fusionResult.conflict_report.conflicted_fields,
-						total_fields: fusionResult.conflict_report.total_fields,
-					}
-					: null,
-				source_models: modelResults.map((r) => r.model),
-			},
+			json: includeEnrichmentMetadata
+				? {
+					result: fusionResult.merged_result as IDataObject,
+					record_id: fusionResult.record_id,
+					success: true,
+					is_fused: true,
+					cost_usd: fusionResult.cost_usd ?? sumCosts(modelResults),
+					input_tokens: fusionResult.input_tokens ?? sumTokens(modelResults, 'input_tokens'),
+					output_tokens: fusionResult.output_tokens ?? sumTokens(modelResults, 'output_tokens'),
+					fusion: fusionResult.conflict_report
+						? {
+							agreed_fields: fusionResult.conflict_report.agreed_fields,
+							conflicted_fields: fusionResult.conflict_report.conflicted_fields,
+							total_fields: fusionResult.conflict_report.total_fields,
+						}
+						: null,
+					source_models: modelResults.map((r) => r.model),
+				}
+				: { ...resultData },
 			pairedItem: itemIndex,
 		});
 	} else if (modelResults.length > 0) {
-		// No fusion — return the first successful model result
+		// No fusion or fusion failed — return the first successful model result
 		const best = modelResults.find((r) => r.success) ?? modelResults[0];
+		const result = best.result as IDataObject;
 		outputItems.push({
-			json: {
-				result: best.result,
-				record_id: best.record_id,
-				model: best.model,
-				success: best.success,
-				is_fused: false,
-				cost_usd: best.cost_usd,
-				input_tokens: best.input_tokens,
-				output_tokens: best.output_tokens,
-				processing_time_ms: best.processing_time_ms,
-				error_message: best.error_message,
-			},
+			json: includeEnrichmentMetadata
+				? {
+					result,
+					record_id: best.record_id,
+					model: best.model,
+					success: best.success,
+					is_fused: false,
+					cost_usd: best.cost_usd,
+					input_tokens: best.input_tokens,
+					output_tokens: best.output_tokens,
+					processing_time_ms: best.processing_time_ms,
+					error_message: best.error_message,
+					...(fusionResult && !fusionResult.success ? {
+						fusion_error: fusionResult.error_message ?? 'Fusion failed',
+					} : {}),
+				}
+				: { ...result },
 			pairedItem: itemIndex,
 		});
 	} else {
@@ -194,14 +206,13 @@ function buildOutputItems(
 	return outputItems;
 }
 
-function sumCosts(results: SingleEnrichmentResult[]): number {
+function sumCosts(results: SseModelCompleted[]): number {
 	return results.reduce((sum, r) => sum + (r.cost_usd ?? 0), 0);
 }
 
 function sumTokens(
-	results: SingleEnrichmentResult[],
+	results: SseModelCompleted[],
 	field: 'input_tokens' | 'output_tokens',
 ): number {
 	return results.reduce((sum, r) => sum + (r[field] ?? 0), 0);
 }
-

@@ -1,7 +1,7 @@
 import type { IExecuteFunctions, INodeExecutionData } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 import { apiRequest } from '../helpers/api';
-import type { FusionResponse } from '../helpers/types';
+import type { FusionResponse } from '../helpers/generated/schema';
 
 /**
  * Merge multiple enrichment records using Entity Enricher's fusion engine.

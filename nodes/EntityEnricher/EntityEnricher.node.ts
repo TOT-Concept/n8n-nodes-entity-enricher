@@ -421,6 +421,21 @@ export class EntityEnricher implements INodeType {
 					},
 				},
 			},
+
+			// Include Enrichment Metadata
+			{
+				displayName: 'Include Enrichment Metadata',
+				name: 'includeEnrichmentMetadata',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to include enrichment metadata (cost, tokens, fusion details, record IDs) alongside the result. When off, output contains only the enriched data.',
+				displayOptions: {
+					show: {
+						resource: ['enrichment'],
+						operation: ['enrichEntity', 'batchEnrich'],
+					},
+				},
+			},
 		],
 	};
 
@@ -511,7 +526,7 @@ export class EntityEnricher implements INodeType {
 					this, '/api/enrichment/options',
 				) as EnrichmentOptionsResponse;
 
-				return options.strategies.map((s) => ({
+				return (options.strategies ?? []).map((s) => ({
 					name: s.name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
 					value: s.name,
 					description: s.description,
