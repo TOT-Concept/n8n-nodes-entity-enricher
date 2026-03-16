@@ -300,7 +300,13 @@ jobs:
           echo "Publishing version: $TAG"
 
       - name: Update package.json version
-        run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          if [ "$CURRENT" != "${{ steps.version.outputs.version }}" ]; then
+            npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
+          else
+            echo "Version already matches tag ($CURRENT), skipping"
+          fi
 
       - name: Publish to npm with provenance
         run: npm publish --access public --ignore-scripts
