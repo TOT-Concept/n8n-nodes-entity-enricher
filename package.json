@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-entity-enricher",
-	"version": "0.1.0",
+	"version": "1.0.1",
 	"description": "n8n community node for Entity Enricher — enrich entities with multi-model LLM fusion, multilingual output, and expertise-driven strategies",
 	"keywords": [
 		"n8n-community-node-package",
@@ -17,11 +17,10 @@
 	"homepage": "https://entityenricher.ai/docs/integrations/n8n",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/TOT-Concept/EntityEnricher.git",
-		"directory": "connectors/n8n/n8n-nodes-entity-enricher"
+		"url": "https://github.com/TOT-Concept/n8n-nodes-entity-enricher.git"
 	},
 	"bugs": {
-		"url": "https://github.com/TOT-Concept/EntityEnricher/issues"
+		"url": "https://github.com/TOT-Concept/n8n-nodes-entity-enricher/issues"
 	},
 	"n8n": {
 		"n8nNodesApiVersion": 1,
