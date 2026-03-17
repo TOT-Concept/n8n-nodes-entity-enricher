@@ -936,6 +936,130 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/global-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Global Keys
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     List all global provider API keys (organization_id IS NULL).
+         */
+        get: operations["list_global_keys_api_global_keys_get"];
+        put?: never;
+        /**
+         * Create Global Key
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     Create a global API key for a provider.
+         *
+         *     Multiple keys per provider are allowed for load balancing.
+         */
+        post: operations["create_global_key_api_global_keys_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/global-keys/{key_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Global Key
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     Delete a global API key.
+         */
+        delete: operations["delete_global_key_api_global_keys__key_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Global Key
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     Update a global API key.
+         */
+        patch: operations["update_global_key_api_global_keys__key_id__patch"];
+        trace?: never;
+    };
+    "/api/global-keys/{key_id}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enable Global Key
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     Re-enable a disabled global API key.
+         */
+        post: operations["enable_global_key_api_global_keys__key_id__enable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/global-keys/{key_id}/health-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Global Key Health
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     Test if a global API key is valid.
+         */
+        post: operations["check_global_key_health_api_global_keys__key_id__health_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/global-keys/test-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test All Global Keys
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     Test all global API keys and update their health status.
+         */
+        post: operations["test_all_global_keys_api_global_keys_test_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/llm/cancel/{job_id}": {
         parameters: {
             query?: never;
@@ -1043,14 +1167,14 @@ export type paths = {
         get: operations["list_org_keys_api_org_keys_get"];
         put?: never;
         /**
-         * Create Or Update Org Key
+         * Create Org Key
          * @description 🔒 **Requires: operator (level 1+)**
          *
-         *     Create or update an API key for a provider.
+         *     Create an API key for a provider in the user's organization.
          *
-         *     If a key already exists for this provider in the organization, it will be updated.
+         *     Multiple keys per provider are allowed for load balancing.
          */
-        post: operations["create_or_update_org_key_api_org_keys_post"];
+        post: operations["create_org_key_api_org_keys_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1085,6 +1209,28 @@ export type paths = {
         patch: operations["update_org_key_api_org_keys__key_id__patch"];
         trace?: never;
     };
+    "/api/org-keys/{key_id}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enable Org Key
+         * @description 🔒 **Requires: operator (level 1+)**
+         *
+         *     Re-enable a disabled organization API key.
+         */
+        post: operations["enable_org_key_api_org_keys__key_id__enable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/org-keys/{key_id}/health-check": {
         parameters: {
             query?: never;
@@ -1101,30 +1247,6 @@ export type paths = {
          *     Test if an organization API key is valid.
          */
         post: operations["check_org_key_health_api_org_keys__key_id__health_check_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/org-keys/provider/{provider_id}/health-check": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Check Effective Key Health
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Test the effective API key for a provider (org > global > env).
-         *
-         *     This tests whichever key would actually be used for enrichment.
-         */
-        post: operations["check_effective_key_health_api_org_keys_provider__provider_id__health_check_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3034,8 +3156,12 @@ export type components = {
          * @description Response from key health check.
          */
         KeyHealthCheckResponse: {
+            /** Key Id */
+            key_id?: string | null;
             /** Message */
             message: string;
+            /** Provider Name */
+            provider_name?: string | null;
             /** Response Time Ms */
             response_time_ms?: number | null;
             /** Success */
@@ -3537,110 +3663,6 @@ export type components = {
         OrganizationUpdateName: {
             /** Name */
             name: string;
-        };
-        /**
-         * OrgProviderKeyCreate
-         * @description Request model for creating/updating an organization provider key.
-         */
-        OrgProviderKeyCreate: {
-            /**
-             * Api Key
-             * @description API key value (will be encrypted)
-             */
-            api_key: string;
-            /**
-             * Expires At
-             * @description Optional expiration date for the key
-             */
-            expires_at?: string | null;
-            /**
-             * Provider Id
-             * @description ID of the provider to add key for
-             */
-            provider_id: number;
-        };
-        /**
-         * OrgProviderKeyResponse
-         * @description Response model for an organization provider key.
-         */
-        OrgProviderKeyResponse: {
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Expires At */
-            expires_at: string | null;
-            /**
-             * Expires Soon
-             * @description True if key expires within 7 days
-             * @default false
-             */
-            expires_soon: boolean;
-            /** Health Check Message */
-            health_check_message?: string | null;
-            /**
-             * Health Check Status
-             * @description 'valid', 'invalid', or 'unchecked'
-             */
-            health_check_status?: string | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /**
-             * Key Suffix
-             * @description Last 4 characters of the key for identification
-             */
-            key_suffix: string;
-            /** Last Health Check At */
-            last_health_check_at: string | null;
-            /**
-             * Organization Id
-             * Format: uuid
-             */
-            organization_id: string;
-            /**
-             * Provider Display Name
-             * @description Provider display name (e.g., 'Anthropic')
-             */
-            provider_display_name: string;
-            /** Provider Id */
-            provider_id: number;
-            /**
-             * Provider Name
-             * @description Provider slug (e.g., 'anthropic')
-             */
-            provider_name: string;
-            /**
-             * Total Cost Usd
-             * @default 0
-             */
-            total_cost_usd: number;
-            /**
-             * Total Requests
-             * @default 0
-             */
-            total_requests: number;
-            /** Updated At */
-            updated_at?: string | null;
-        };
-        /**
-         * OrgProviderKeyUpdate
-         * @description Request model for updating an organization provider key.
-         */
-        OrgProviderKeyUpdate: {
-            /**
-             * Api Key
-             * @description New API key (None = don't change)
-             */
-            api_key?: string | null;
-            /**
-             * Expires At
-             * @description New expiration date (None = don't change)
-             */
-            expires_at?: string | null;
         };
         /**
          * PendingUserResponse
@@ -4183,6 +4205,144 @@ export type components = {
             source: string;
             /** Specific Endpoint */
             specific_endpoint: string | null;
+        };
+        /**
+         * ProviderKeyCreate
+         * @description Request model for creating a provider key (org or global).
+         */
+        ProviderKeyCreate: {
+            /**
+             * Api Key
+             * @description API key value (will be encrypted)
+             */
+            api_key: string;
+            /**
+             * Expires At
+             * @description Optional expiration date for the key
+             */
+            expires_at?: string | null;
+            /**
+             * Name
+             * @description Human label for this key
+             */
+            name?: string | null;
+            /**
+             * Provider Id
+             * @description ID of the provider to add key for
+             */
+            provider_id: number;
+        };
+        /**
+         * ProviderKeyResponse
+         * @description Response model for a provider key.
+         */
+        ProviderKeyResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Disabled At */
+            disabled_at?: string | null;
+            /**
+             * Disabled Reason
+             * @description Reason for disabling: payment_required, invalid_key, quota_exhausted, manual
+             */
+            disabled_reason?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Expires Soon
+             * @description True if key expires within 7 days
+             * @default false
+             */
+            expires_soon: boolean;
+            /** Health Check Message */
+            health_check_message?: string | null;
+            /**
+             * Health Check Status
+             * @description 'valid', 'invalid', or 'unchecked'
+             */
+            health_check_status?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Is Enabled
+             * @default true
+             */
+            is_enabled: boolean;
+            /**
+             * Key Suffix
+             * @description Last 4 characters of the key for identification
+             */
+            key_suffix: string;
+            /** Last Health Check At */
+            last_health_check_at?: string | null;
+            /** Last Used At */
+            last_used_at?: string | null;
+            /**
+             * Name
+             * @description Human label for this key
+             */
+            name?: string | null;
+            /**
+             * Organization Id
+             * @description Organization ID (NULL = global key)
+             */
+            organization_id: string | null;
+            /**
+             * Provider Display Name
+             * @description Provider display name (e.g., 'Anthropic')
+             */
+            provider_display_name: string;
+            /** Provider Id */
+            provider_id: number;
+            /**
+             * Provider Name
+             * @description Provider slug (e.g., 'anthropic')
+             */
+            provider_name: string;
+            /**
+             * Total Cost Usd
+             * @default 0
+             */
+            total_cost_usd: number;
+            /**
+             * Total Requests
+             * @default 0
+             */
+            total_requests: number;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /**
+         * ProviderKeyUpdate
+         * @description Request model for updating a provider key.
+         */
+        ProviderKeyUpdate: {
+            /**
+             * Api Key
+             * @description New API key (None = don't change)
+             */
+            api_key?: string | null;
+            /**
+             * Expires At
+             * @description New expiration date (None = don't change)
+             */
+            expires_at?: string | null;
+            /**
+             * Is Enabled
+             * @description Enable or disable the key (None = don't change)
+             */
+            is_enabled?: boolean | null;
+            /**
+             * Name
+             * @description New label (None = don't change)
+             */
+            name?: string | null;
         };
         /**
          * ProviderResponse
@@ -5090,7 +5250,10 @@ export type components = {
             status: string;
             /** Total Entities */
             total_entities: number;
-            /** Total Models */
+            /**
+             * Total Models
+             * @default 0
+             */
             total_models: number;
         };
         /**
@@ -6500,9 +6663,6 @@ export type ModelValidationResponse = components['schemas']['ModelValidationResp
 export type OrganizationResponse = components['schemas']['OrganizationResponse'];
 export type OrganizationSearchResult = components['schemas']['OrganizationSearchResult'];
 export type OrganizationUpdateName = components['schemas']['OrganizationUpdateName'];
-export type OrgProviderKeyCreate = components['schemas']['OrgProviderKeyCreate'];
-export type OrgProviderKeyResponse = components['schemas']['OrgProviderKeyResponse'];
-export type OrgProviderKeyUpdate = components['schemas']['OrgProviderKeyUpdate'];
 export type PendingUserResponse = components['schemas']['PendingUserResponse'];
 export type PerformanceStatsByInputTokenRange = components['schemas']['PerformanceStatsByInputTokenRange'];
 export type PerformanceStatsByLanguageCount = components['schemas']['PerformanceStatsByLanguageCount'];
@@ -6518,6 +6678,9 @@ export type PropertySchemaOutput = components['schemas']['PropertySchema-Output'
 export type ProviderChange = components['schemas']['ProviderChange'];
 export type ProviderCreate = components['schemas']['ProviderCreate'];
 export type ProviderExport = components['schemas']['ProviderExport'];
+export type ProviderKeyCreate = components['schemas']['ProviderKeyCreate'];
+export type ProviderKeyResponse = components['schemas']['ProviderKeyResponse'];
+export type ProviderKeyUpdate = components['schemas']['ProviderKeyUpdate'];
 export type ProviderResponse = components['schemas']['ProviderResponse'];
 export type ProviderUpdate = components['schemas']['ProviderUpdate'];
 export type RecordDetail = components['schemas']['RecordDetail'];
@@ -8163,6 +8326,265 @@ export interface operations {
             };
         };
     };
+    list_global_keys_api_global_keys_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderKeyResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_global_key_api_global_keys_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderKeyCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderKeyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_global_key_api_global_keys__key_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                key_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_global_key_api_global_keys__key_id__patch: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                key_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderKeyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderKeyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    enable_global_key_api_global_keys__key_id__enable_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                key_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderKeyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_global_key_health_api_global_keys__key_id__health_check_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                key_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeyHealthCheckResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_all_global_keys_api_global_keys_test_all_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeyHealthCheckResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     cancel_job_api_llm_cancel__job_id__post: {
         parameters: {
             query?: {
@@ -8315,7 +8737,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrgProviderKeyResponse"][];
+                    "application/json": components["schemas"]["ProviderKeyResponse"][];
                 };
             };
             /** @description Validation Error */
@@ -8329,7 +8751,7 @@ export interface operations {
             };
         };
     };
-    create_or_update_org_key_api_org_keys_post: {
+    create_org_key_api_org_keys_post: {
         parameters: {
             query?: {
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
@@ -8344,7 +8766,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["OrgProviderKeyCreate"];
+                "application/json": components["schemas"]["ProviderKeyCreate"];
             };
         };
         responses: {
@@ -8354,7 +8776,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrgProviderKeyResponse"];
+                    "application/json": components["schemas"]["ProviderKeyResponse"];
                 };
             };
             /** @description Validation Error */
@@ -8420,7 +8842,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["OrgProviderKeyUpdate"];
+                "application/json": components["schemas"]["ProviderKeyUpdate"];
             };
         };
         responses: {
@@ -8430,7 +8852,44 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrgProviderKeyResponse"];
+                    "application/json": components["schemas"]["ProviderKeyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    enable_org_key_api_org_keys__key_id__enable_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                key_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderKeyResponse"];
                 };
             };
             /** @description Validation Error */
@@ -8456,43 +8915,6 @@ export interface operations {
             };
             path: {
                 key_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KeyHealthCheckResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    check_effective_key_health_api_org_keys_provider__provider_id__health_check_post: {
-        parameters: {
-            query?: {
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path: {
-                provider_id: number;
             };
             cookie?: never;
         };
