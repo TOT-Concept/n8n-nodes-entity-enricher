@@ -4,6 +4,7 @@ import { apiRequest, getCredentialValues } from '../helpers/api';
 import { consumeSSEStream } from '../helpers/sse';
 import type {
 	JobStartResponse,
+	ProfileLimits,
 	SSEEvent,
 	SseEntityCompleted,
 	SseFusionCompleted,
@@ -26,6 +27,7 @@ import { validateEntitySearchKeys } from '../helpers/validation';
 export async function execute(
 	context: IExecuteFunctions,
 	searchKeys?: string[],
+	profileLimits?: ProfileLimits | null,
 ): Promise<INodeExecutionData[]> {
 	const items = context.getInputData();
 
@@ -86,17 +88,30 @@ export async function execute(
 	if (arbitrationModel) body.arbitration_model = arbitrationModel;
 
 	// Start batch job
-	const jobResponse = await apiRequest(context, '/api/batch/start', {
-		method: 'POST',
-		body,
-	}) as JobStartResponse;
+	let jobResponse: JobStartResponse;
+	try {
+		jobResponse = await apiRequest(context, '/api/batch/start', {
+			method: 'POST',
+			body,
+		}) as JobStartResponse;
+	} catch (error) {
+		// Enhance error with search key context for 400 errors
+		if (searchKeys?.length && (error as Error).message?.includes('400')) {
+			const sampleKeys = Object.keys(entities[0] as Record<string, unknown>).join(', ');
+			throw new NodeOperationError(
+				context.getNode(),
+				`${(error as Error).message}. Schema expects search keys: [${searchKeys.join(', ')}]. First entity has: [${sampleKeys}]`,
+			);
+		}
+		throw error;
+	}
 
 	// Consume SSE stream
 	const { baseUrl, apiKey } = await getCredentialValues(context);
 	const events = await consumeSSEStream(baseUrl, apiKey, jobResponse.job_id, timeout);
 
 	// Extract entity_completed events and build output items
-	return buildBatchOutputItems(events, items.length, includeEnrichmentMetadata);
+	return buildBatchOutputItems(events, items.length, includeEnrichmentMetadata, profileLimits);
 }
 
 /**
@@ -110,6 +125,7 @@ function buildBatchOutputItems(
 	events: SSEEvent[],
 	inputCount: number,
 	includeEnrichmentMetadata: boolean,
+	profileLimits?: ProfileLimits | null,
 ): INodeExecutionData[] {
 	// Collect entity_completed events indexed by entity_index
 	const entityResults = new Map<number, SseEntityCompleted>();
@@ -168,6 +184,7 @@ function buildBatchOutputItems(
 						...(fusionResult && !fusionResult.success ? {
 							fusion_error: fusionResult.error_message ?? 'Fusion failed',
 						} : {}),
+						...(profileLimits ? { profile_limits: profileLimits } : {}),
 					}
 					: { ...resultData },
 				pairedItem: i,

@@ -1,4 +1,4 @@
-import type { SSEEvent } from './types';
+import type { SSEEvent, GenericSSEEvent } from './types';
 import { TERMINAL_EVENTS } from './types';
 
 /**
@@ -10,7 +10,7 @@ import { TERMINAL_EVENTS } from './types';
  * The timeout is activity-based: it resets each time an event is received,
  * so long-running batch jobs won't time out as long as progress continues.
  *
- * Automatically resumes paused jobs (e.g., classification mismatch) since n8n is non-interactive.
+ * Cancels paused jobs (e.g., classification mismatch/unknown/ambiguous) since n8n is non-interactive.
  */
 export async function consumeSSEStream(
 	baseUrl: string,
@@ -69,9 +69,19 @@ export async function consumeSSEStream(
 				events.push(event);
 				resetTimeout();
 
-				// Auto-continue on classification mismatch (n8n is non-interactive)
+				// Cancel on classification warning (n8n is non-interactive — don't enrich with hallucinated data)
 				if (event.event === 'classification_mismatch_pause') {
-					await continueJob(baseUrl, apiKey, jobId);
+					const classification = (event as GenericSSEEvent).classification as
+						| { status?: string; entity_description?: string; reasoning?: string }
+						| undefined;
+					await cancelJob(baseUrl, apiKey, jobId);
+					const status = classification?.status ?? 'unknown';
+					const description = classification?.entity_description ?? 'entity';
+					const reasoning = classification?.reasoning ?? '';
+					throw new Error(
+						`Classification ${status}: ${description}. ${reasoning}. ` +
+						`Job ${jobId} was cancelled to prevent hallucinated enrichment data.`,
+					);
 				}
 
 				// Stop on terminal events
@@ -123,19 +133,7 @@ function parseSSEMessage(message: string): SSEEvent | null {
 	}
 }
 
-/** Resume a paused job (e.g., after classification mismatch). */
-async function continueJob(baseUrl: string, apiKey: string, jobId: string): Promise<void> {
-	try {
-		await fetch(`${baseUrl}/api/llm/continue/${jobId}`, {
-			method: 'POST',
-			headers: { 'X-API-Key': apiKey },
-		});
-	} catch {
-		// Non-critical: job may complete anyway
-	}
-}
-
-/** Cancel a running job (used on timeout). */
+/** Cancel a running job (used on timeout or classification warning). */
 async function cancelJob(baseUrl: string, apiKey: string, jobId: string): Promise<void> {
 	try {
 		await fetch(`${baseUrl}/api/llm/cancel/${jobId}`, {

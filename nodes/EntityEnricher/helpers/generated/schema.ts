@@ -60,6 +60,28 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/organizations/{org_id}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Assign Organization Profile
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     Assign or unassign a feature profile to an organization.
+         */
+        patch: operations["assign_organization_profile_api_admin_organizations__org_id__profile_patch"];
+        trace?: never;
+    };
     "/api/admin/organizations/{org_id}/users": {
         parameters: {
             query?: never;
@@ -80,6 +102,68 @@ export type paths = {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/admin/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Feature Profiles
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     List all feature profiles with linked organization count.
+         */
+        get: operations["list_feature_profiles_api_admin_profiles_get"];
+        put?: never;
+        /**
+         * Create Feature Profile
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     Create a new feature profile.
+         */
+        post: operations["create_feature_profile_api_admin_profiles_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/profiles/{profile_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Feature Profile
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     Get a feature profile by ID.
+         */
+        get: operations["get_feature_profile_api_admin_profiles__profile_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Feature Profile
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     Delete a feature profile. Organizations referencing it become unrestricted.
+         */
+        delete: operations["delete_feature_profile_api_admin_profiles__profile_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Feature Profile
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     Update a feature profile (partial update).
+         */
+        patch: operations["update_feature_profile_api_admin_profiles__profile_id__patch"];
         trace?: never;
     };
     "/api/admin/users": {
@@ -142,6 +226,28 @@ export type paths = {
          *     Deactivate any user (system admin only).
          */
         post: operations["deactivate_user_admin_api_admin_users__user_id__deactivate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{user_id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reactivate User Admin
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     Reactivate a deactivated user (system admin only).
+         */
+        post: operations["reactivate_user_admin_api_admin_users__user_id__reactivate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1292,7 +1398,7 @@ export type paths = {
          *
          *     This endpoint scrapes model pricing data from pricepertoken.com and syncs it
          *     with the local database. It can:
-         *     - Add new providers (auto-generating api_key_env_var)
+         *     - Add new providers
          *     - Add new models for existing or new providers
          *     - Update prices for existing models
          *     - Deactivate models that are no longer on the source (only if source='pricepertoken')
@@ -1462,6 +1568,7 @@ export type paths = {
          *     Delete multiple providers and their models.
          *
          *     Skips synced providers with models and providers with linked enrichment records.
+         *     Non-admin users can only delete their own org providers.
          */
         post: operations["bulk_delete_providers_api_providers_bulk_delete_post"];
         delete?: never;
@@ -1828,6 +1935,28 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/records/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Jobs
+         * @description 🔒 **Requires: operator (level 1+)**
+         *
+         *     List enrichment jobs with pagination (grouped by job_id).
+         */
+        get: operations["list_jobs_api_records_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/records/stats": {
         parameters: {
             query?: never;
@@ -2150,6 +2279,16 @@ export type paths = {
 export type webhooks = Record<string, never>;
 export type components = {
     schemas: {
+        /**
+         * AllowedModel
+         * @description A model allowed in a feature profile, with optional display name override.
+         */
+        AllowedModel: {
+            /** Composite Key */
+            composite_key: string;
+            /** Display Name */
+            display_name?: string | null;
+        };
         /** ApiKeyCreate */
         ApiKeyCreate: {
             /** Expires In Days */
@@ -2594,6 +2733,11 @@ export type components = {
          */
         CostSummary: {
             /**
+             * Avg Cost Per Property
+             * @description Average cost per output property
+             */
+            avg_cost_per_property?: number | null;
+            /**
              * Avg Cost Per Request
              * @description Average cost per request
              */
@@ -2715,8 +2859,13 @@ export type components = {
          * @description Available options for enrichment.
          */
         EnrichmentOptionsResponse: {
-            /** Available Models */
-            available_models: string[];
+            /**
+             * Feature Flags
+             * @description Organization feature flags from assigned profile (null = unrestricted)
+             */
+            feature_flags?: {
+                [key: string]: boolean;
+            } | null;
             /** Languages */
             languages: {
                 [key: string]: string;
@@ -2884,6 +3033,184 @@ export type components = {
              * @description Well-formatted display name for this expertise domain
              */
             name: string;
+        };
+        /**
+         * FeatureFlags
+         * @description Per-feature access toggles, grouped by page. All default True (unrestricted).
+         */
+        FeatureFlags: {
+            /**
+             * Ai Schema Editing
+             * @default true
+             */
+            ai_schema_editing: boolean;
+            /**
+             * App Access Keys
+             * @default true
+             */
+            app_access_keys: boolean;
+            /**
+             * Batch Export
+             * @default true
+             */
+            batch_export: boolean;
+            /**
+             * Batch Processing
+             * @default true
+             */
+            batch_processing: boolean;
+            /**
+             * Bulk Operations
+             * @default true
+             */
+            bulk_operations: boolean;
+            /**
+             * Classification
+             * @default true
+             */
+            classification: boolean;
+            /**
+             * Cost Analytics
+             * @default true
+             */
+            cost_analytics: boolean;
+            /**
+             * Custom Prompt Testing
+             * @default true
+             */
+            custom_prompt_testing: boolean;
+            /**
+             * Enrichment
+             * @default true
+             */
+            enrichment: boolean;
+            /**
+             * Fusion Arbitration
+             * @default true
+             */
+            fusion_arbitration: boolean;
+            /**
+             * Health Checks
+             * @default true
+             */
+            health_checks: boolean;
+            /**
+             * Multi Model Enrichment
+             * @default true
+             */
+            multi_model_enrichment: boolean;
+            /**
+             * Multilingual
+             * @default true
+             */
+            multilingual: boolean;
+            /**
+             * Org Api Keys
+             * @default true
+             */
+            org_api_keys: boolean;
+            /**
+             * Performance Analysis
+             * @default true
+             */
+            performance_analysis: boolean;
+            /**
+             * Pricing Sync
+             * @default true
+             */
+            pricing_sync: boolean;
+            /**
+             * Provider Config
+             * @default true
+             */
+            provider_config: boolean;
+            /**
+             * Record Browsing
+             * @default true
+             */
+            record_browsing: boolean;
+            /**
+             * Retry Failed Expertise
+             * @default true
+             */
+            retry_failed_expertise: boolean;
+            /**
+             * Schema Generation
+             * @default true
+             */
+            schema_generation: boolean;
+            /**
+             * User Role Management
+             * @default true
+             */
+            user_role_management: boolean;
+        };
+        /** FeatureProfileAssign */
+        FeatureProfileAssign: {
+            /** Profile Id */
+            profile_id?: string | null;
+        };
+        /** FeatureProfileCreate */
+        FeatureProfileCreate: {
+            /** Description */
+            description?: string | null;
+            feature_flags?: components["schemas"]["FeatureFlags"];
+            global_model_access?: components["schemas"]["GlobalModelAccess"];
+            /**
+             * Is Default
+             * @default false
+             */
+            is_default: boolean;
+            /** Name */
+            name: string;
+            processing_type_models?: components["schemas"]["ProcessingTypeModels"];
+        };
+        /** FeatureProfileUpdate */
+        FeatureProfileUpdate: {
+            /** Description */
+            description?: string | null;
+            feature_flags?: components["schemas"]["FeatureFlags"] | null;
+            global_model_access?: components["schemas"]["GlobalModelAccess"] | null;
+            /** Is Default */
+            is_default?: boolean | null;
+            /** Name */
+            name?: string | null;
+            processing_type_models?: components["schemas"]["ProcessingTypeModels"] | null;
+        };
+        /** FeatureProfileWithOrgCount */
+        FeatureProfileWithOrgCount: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description?: string | null;
+            feature_flags: components["schemas"]["FeatureFlags"];
+            global_model_access: components["schemas"]["GlobalModelAccess"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Is Default
+             * @default false
+             */
+            is_default: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Organization Count
+             * @default 0
+             */
+            organization_count: number;
+            processing_type_models: components["schemas"]["ProcessingTypeModels"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /**
          * FieldConflict
@@ -3066,6 +3393,18 @@ export type components = {
             /** @description The root entity definition with its properties */
             root: components["schemas"]["EntityDefinition-Output"];
         };
+        /**
+         * GlobalModelAccess
+         * @description Controls which global models/providers an org can use via global keys.
+         *
+         *     None = unrestricted. List = allowlist.
+         */
+        GlobalModelAccess: {
+            /** Allowed Models */
+            allowed_models?: components["schemas"]["AllowedModel"][] | null;
+            /** Allowed Providers */
+            allowed_providers?: string[] | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -3122,6 +3461,54 @@ export type components = {
              * @default 0
              */
             providers_updated: number;
+        };
+        /**
+         * JobsListResponse
+         * @description Paginated list of job summaries.
+         */
+        JobsListResponse: {
+            /** Jobs */
+            jobs: components["schemas"]["JobSummary"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+            /** Total Pages */
+            total_pages: number;
+        };
+        /**
+         * JobSummary
+         * @description Summary of a job for the Records page grouping view.
+         */
+        JobSummary: {
+            /** Failed Count */
+            failed_count: number;
+            /**
+             * First Created At
+             * Format: date-time
+             */
+            first_created_at: string;
+            /** Job Id */
+            job_id: string;
+            /** Job Label */
+            job_label?: string | null;
+            /**
+             * Last Created At
+             * Format: date-time
+             */
+            last_created_at: string;
+            /** Models Used */
+            models_used?: string[];
+            /** Record Count */
+            record_count: number;
+            /** Record Types */
+            record_types?: string[];
+            /** Success Count */
+            success_count: number;
+            /** Total Cost Usd */
+            total_cost_usd: number;
         };
         /**
          * JoinOrganizationRequest
@@ -3196,6 +3583,10 @@ export type components = {
             key: string;
             /** Output Price */
             output_price?: number | null;
+            /** Processing Disabled */
+            processing_disabled?: {
+                [key: string]: boolean;
+            } | null;
             /**
              * Supports Audio Input
              * @default false
@@ -3248,6 +3639,13 @@ export type components = {
              * Format: date-time
              */
             expires_at: string;
+            /**
+             * Feature Flags
+             * @description Organization feature flags from assigned profile (null = unrestricted)
+             */
+            feature_flags?: {
+                [key: string]: boolean;
+            } | null;
             organization: components["schemas"]["OrganizationResponse"];
             /** Refresh Token */
             refresh_token: string;
@@ -3263,6 +3661,11 @@ export type components = {
              * @description 'add', 'update', or 'deactivate'
              */
             action: string;
+            /**
+             * Changes
+             * @description List of non-price changes
+             */
+            changes?: string[];
             /**
              * Model Name
              * @description Model name/identifier
@@ -3950,6 +4353,22 @@ export type components = {
             total_scraped: number;
         };
         /**
+         * ProcessingTypeModels
+         * @description Per-processing-type model restrictions.
+         *
+         *     None = all models allowed. List of composite keys = restricted set.
+         */
+        ProcessingTypeModels: {
+            /** Arbitration */
+            arbitration?: string[] | null;
+            /** Classification */
+            classification?: string[] | null;
+            /** Enrichment */
+            enrichment?: string[] | null;
+            /** Schema Generation */
+            schema_generation?: string[] | null;
+        };
+        /**
          * ProgressEvent
          * @description SSE progress event for enrichment jobs.
          */
@@ -4127,11 +4546,6 @@ export type components = {
              */
             action: string;
             /**
-             * Api Key Env Var
-             * @description Generated API key environment variable
-             */
-            api_key_env_var: string;
-            /**
              * Display Name
              * @description Provider display name
              */
@@ -4147,8 +4561,6 @@ export type components = {
          * @description Request model for creating a new provider.
          */
         ProviderCreate: {
-            /** Api Key Env Var */
-            api_key_env_var: string;
             /**
              * Api Key Override
              * @description Optional API key to store in DB (will be encrypted)
@@ -4166,6 +4578,11 @@ export type components = {
              * @description Unique provider slug (lowercase, no spaces)
              */
             name: string;
+            /**
+             * Organization Id
+             * @description Organization ID for org-scoped providers (admin only)
+             */
+            organization_id?: string | null;
             /**
              * Provider Type
              * @description Provider type: 'azure', 'ollama', or None for standard
@@ -4187,8 +4604,6 @@ export type components = {
          * @description Export format for a single provider.
          */
         ProviderExport: {
-            /** Api Key Env Var */
-            api_key_env_var: string;
             /** Api Version */
             api_version: string | null;
             /** Display Name */
@@ -4355,8 +4770,6 @@ export type components = {
              * @default 0
              */
             active_model_count: number;
-            /** Api Key Env Var */
-            api_key_env_var: string;
             /**
              * Api Key Masked
              * @description Masked global API key (****abcd) if override exists
@@ -4377,7 +4790,7 @@ export type components = {
              * @default missing
              * @enum {string}
              */
-            effective_key_source: "organization" | "global" | "environment" | "missing";
+            effective_key_source: "organization" | "global" | "missing";
             /**
              * Effective Key Suffix
              * @description Last 4 chars of effective key with mask (***xxxx)
@@ -4394,10 +4807,11 @@ export type components = {
              */
             has_api_key_override: boolean;
             /**
-             * Has Env Api Key
-             * @description Whether the env var is set
+             * Has Global Keys
+             * @description Whether global keys exist in provider_keys table
+             * @default false
              */
-            has_env_api_key: boolean;
+            has_global_keys: boolean;
             /**
              * Has Org Key
              * @description Whether org has a key for this provider
@@ -4411,6 +4825,18 @@ export type components = {
              * @description Computed: True if at least one model is active
              */
             is_active: boolean;
+            /**
+             * Is Editable
+             * @description Whether current user can edit
+             * @default true
+             */
+            is_editable: boolean;
+            /**
+             * Is Forkable
+             * @description Whether this global provider can be forked into user's org
+             * @default false
+             */
+            is_forkable: boolean;
             /**
              * Model Count
              * @description Number of models under this provider
@@ -4433,6 +4859,11 @@ export type components = {
              * @description Last 4 chars of org key for display
              */
             org_key_suffix?: string | null;
+            /**
+             * Organization Id
+             * @description Organization ID if org-scoped, null if global
+             */
+            organization_id?: string | null;
             /** Provider Type */
             provider_type: string | null;
             /**
@@ -4445,6 +4876,13 @@ export type components = {
              * @description Override value if set
              */
             rate_limit_override: number | null;
+            /**
+             * Scope
+             * @description Provider scope: global or organization
+             * @default global
+             * @enum {string}
+             */
+            scope: "global" | "organization";
             /**
              * Source
              * @description 'seed', 'pricepertoken', or 'manual'
@@ -4466,8 +4904,6 @@ export type components = {
          * @description Request model for updating a provider.
          */
         ProviderUpdate: {
-            /** Api Key Env Var */
-            api_key_env_var?: string | null;
             /**
              * Api Key Override
              * @description New API key (None = don't change, empty string = remove)
@@ -4535,6 +4971,10 @@ export type components = {
              * @default false
              */
             is_deleted: boolean;
+            /** Job Id */
+            job_id?: string | null;
+            /** Job Label */
+            job_label?: string | null;
             /** Llm Provider Name */
             llm_provider_name: string;
             /** Model Name */
@@ -4680,6 +5120,10 @@ export type components = {
              * @default false
              */
             is_deleted: boolean;
+            /** Job Id */
+            job_id?: string | null;
+            /** Job Label */
+            job_label?: string | null;
             /** Llm Provider Name */
             llm_provider_name: string;
             /** Model Name */
@@ -6466,6 +6910,8 @@ export type components = {
              * Format: date-time
              */
             created_at: string;
+            /** Deactivated At */
+            deactivated_at?: string | null;
             /** Display Name */
             display_name: string | null;
             /** Email */
@@ -6477,8 +6923,6 @@ export type components = {
              * Format: uuid
              */
             id: string;
-            /** Is Active */
-            is_active: boolean;
             /**
              * Role
              * @enum {string}
@@ -6517,6 +6961,8 @@ export type components = {
              * Format: date-time
              */
             created_at: string;
+            /** Deactivated At */
+            deactivated_at?: string | null;
             /** Display Name */
             display_name: string | null;
             /** Email */
@@ -6524,12 +6970,17 @@ export type components = {
             /** Email Verified */
             email_verified: boolean;
             /**
+             * Feature Flags
+             * @description Organization feature flags from assigned profile (null = unrestricted)
+             */
+            feature_flags?: {
+                [key: string]: boolean;
+            } | null;
+            /**
              * Id
              * Format: uuid
              */
             id: string;
-            /** Is Active */
-            is_active: boolean;
             organization?: components["schemas"]["OrganizationResponse"] | null;
             /**
              * Role
@@ -6551,6 +7002,8 @@ export type components = {
              * Format: date-time
              */
             created_at: string;
+            /** Deactivated At */
+            deactivated_at?: string | null;
             /** Display Name */
             display_name: string | null;
             /** Email */
@@ -6560,8 +7013,6 @@ export type components = {
              * Format: uuid
              */
             id: string;
-            /** Is Active */
-            is_active: boolean;
             /**
              * Organization Id
              * Format: uuid
@@ -6602,6 +7053,7 @@ export type components = {
     headers: never;
     pathItems: never;
 };
+export type AllowedModel = components['schemas']['AllowedModel'];
 export type ApiKeyCreate = components['schemas']['ApiKeyCreate'];
 export type ApiKeyCreateResponse = components['schemas']['ApiKeyCreateResponse'];
 export type ApiKeyResponse = components['schemas']['ApiKeyResponse'];
@@ -6635,15 +7087,23 @@ export type EntityDefinitionInput = components['schemas']['EntityDefinition-Inpu
 export type EntityDefinitionOutput = components['schemas']['EntityDefinition-Output'];
 export type ExpertiseBreakdown = components['schemas']['ExpertiseBreakdown'];
 export type ExpertiseDomain = components['schemas']['ExpertiseDomain'];
+export type FeatureFlags = components['schemas']['FeatureFlags'];
+export type FeatureProfileAssign = components['schemas']['FeatureProfileAssign'];
+export type FeatureProfileCreate = components['schemas']['FeatureProfileCreate'];
+export type FeatureProfileUpdate = components['schemas']['FeatureProfileUpdate'];
+export type FeatureProfileWithOrgCount = components['schemas']['FeatureProfileWithOrgCount'];
 export type FieldConflict = components['schemas']['FieldConflict'];
 export type FusionRequest = components['schemas']['FusionRequest'];
 export type FusionResponse = components['schemas']['FusionResponse'];
 export type FusionStreamResponse = components['schemas']['FusionStreamResponse'];
 export type GeneratedJsonSchemaInput = components['schemas']['GeneratedJsonSchema-Input'];
 export type GeneratedJsonSchemaOutput = components['schemas']['GeneratedJsonSchema-Output'];
+export type GlobalModelAccess = components['schemas']['GlobalModelAccess'];
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
 export type ImportRequest = components['schemas']['ImportRequest'];
 export type ImportResult = components['schemas']['ImportResult'];
+export type JobsListResponse = components['schemas']['JobsListResponse'];
+export type JobSummary = components['schemas']['JobSummary'];
 export type JoinOrganizationRequest = components['schemas']['JoinOrganizationRequest'];
 export type JoinOrganizationResponse = components['schemas']['JoinOrganizationResponse'];
 export type KeyHealthCheckResponse = components['schemas']['KeyHealthCheckResponse'];
@@ -6672,6 +7132,7 @@ export type PerformanceStatsResponse = components['schemas']['PerformanceStatsRe
 export type PricingSyncRequest = components['schemas']['PricingSyncRequest'];
 export type PricingSyncResponse = components['schemas']['PricingSyncResponse'];
 export type PricingSyncSummary = components['schemas']['PricingSyncSummary'];
+export type ProcessingTypeModels = components['schemas']['ProcessingTypeModels'];
 export type ProgressEvent = components['schemas']['ProgressEvent'];
 export type PropertySchemaInput = components['schemas']['PropertySchema-Input'];
 export type PropertySchemaOutput = components['schemas']['PropertySchema-Output'];
@@ -6820,10 +7281,51 @@ export interface operations {
             };
         };
     };
+    assign_organization_profile_api_admin_organizations__org_id__profile_patch: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeatureProfileAssign"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_organization_users_api_admin_organizations__org_id__users_get: {
         parameters: {
             query?: {
-                include_inactive?: boolean;
+                include_deactivated?: boolean;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
@@ -6858,10 +7360,199 @@ export interface operations {
             };
         };
     };
+    list_feature_profiles_api_admin_profiles_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeatureProfileWithOrgCount"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_feature_profile_api_admin_profiles_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeatureProfileCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_feature_profile_api_admin_profiles__profile_id__get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_feature_profile_api_admin_profiles__profile_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_feature_profile_api_admin_profiles__profile_id__patch: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeatureProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_all_users_api_admin_users_get: {
         parameters: {
             query?: {
-                include_inactive?: boolean;
+                include_deactivated?: boolean;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
@@ -6959,6 +7650,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reactivate_user_admin_api_admin_users__user_id__reactivate_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserWithOrganization"];
                 };
             };
             /** @description Validation Error */
@@ -9803,6 +10531,7 @@ export interface operations {
                 all_orgs?: boolean;
                 entity_id?: string | null;
                 include_deleted?: boolean;
+                job_id?: string | null;
                 organization_id_filter?: string | null;
                 page?: number;
                 page_size?: number;
@@ -9948,6 +10677,49 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_jobs_api_records_jobs_get: {
+        parameters: {
+            query?: {
+                all_orgs?: boolean;
+                include_deleted?: boolean;
+                organization_id_filter?: string | null;
+                page?: number;
+                page_size?: number;
+                search?: string | null;
+                success?: boolean | null;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+                type?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobsListResponse"];
                 };
             };
             /** @description Validation Error */

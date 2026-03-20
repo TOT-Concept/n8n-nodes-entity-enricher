@@ -4,6 +4,7 @@ import { apiRequest, getCredentialValues } from '../helpers/api';
 import { consumeSSEStream } from '../helpers/sse';
 import type {
 	JobStartResponse,
+	ProfileLimits,
 	SSEEvent,
 	SseModelCompleted,
 	SseFusionCompleted,
@@ -23,6 +24,7 @@ export async function execute(
 	context: IExecuteFunctions,
 	itemIndex: number,
 	searchKeys?: string[],
+	profileLimits?: ProfileLimits | null,
 ): Promise<INodeExecutionData[]> {
 	// Gather parameters
 	const schemaId = context.getNodeParameter('schemaId', itemIndex) as string;
@@ -81,17 +83,31 @@ export async function execute(
 	if (arbitrationModel) body.arbitration_model = arbitrationModel;
 
 	// Start enrichment job
-	const jobResponse = await apiRequest(context, '/api/single/enrich/stream', {
-		method: 'POST',
-		body,
-	}) as JobStartResponse;
+	let jobResponse: JobStartResponse;
+	try {
+		jobResponse = await apiRequest(context, '/api/single/enrich/stream', {
+			method: 'POST',
+			body,
+		}) as JobStartResponse;
+	} catch (error) {
+		// Enhance error with search key context for 400 errors
+		if (searchKeys?.length && (error as Error).message?.includes('400')) {
+			const inputKeys = Object.keys(parsedEntityData).join(', ');
+			throw new NodeOperationError(
+				context.getNode(),
+				`${(error as Error).message}. Schema expects search keys: [${searchKeys.join(', ')}]. Input has: [${inputKeys}]`,
+				{ itemIndex },
+			);
+		}
+		throw error;
+	}
 
 	// Consume SSE stream
 	const { baseUrl, apiKey } = await getCredentialValues(context);
 	const events = await consumeSSEStream(baseUrl, apiKey, jobResponse.job_id, timeout);
 
 	// Extract results from events
-	return buildOutputItems(events, itemIndex, includePerModelResults, includeEnrichmentMetadata);
+	return buildOutputItems(events, itemIndex, includePerModelResults, includeEnrichmentMetadata, profileLimits);
 }
 
 /**
@@ -105,6 +121,7 @@ function buildOutputItems(
 	itemIndex: number,
 	includePerModelResults: boolean,
 	includeEnrichmentMetadata: boolean,
+	profileLimits?: ProfileLimits | null,
 ): INodeExecutionData[] {
 	const modelResults: SseModelCompleted[] = [];
 	let fusionResult: SseFusionCompleted | null = null;
@@ -140,6 +157,7 @@ function buildOutputItems(
 						}
 						: null,
 					source_models: modelResults.map((r) => r.model),
+					...(profileLimits ? { profile_limits: profileLimits } : {}),
 				}
 				: { ...resultData },
 			pairedItem: itemIndex,
@@ -164,6 +182,7 @@ function buildOutputItems(
 					...(fusionResult && !fusionResult.success ? {
 						fusion_error: fusionResult.error_message ?? 'Fusion failed',
 					} : {}),
+					...(profileLimits ? { profile_limits: profileLimits } : {}),
 				}
 				: { ...result },
 			pairedItem: itemIndex,

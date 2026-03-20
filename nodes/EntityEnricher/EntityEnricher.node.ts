@@ -9,7 +9,7 @@ import type {
 import { NodeOperationError } from 'n8n-workflow';
 
 import { apiRequest } from './helpers/api';
-import type { EnrichmentOptionsResponse, SavedSchema } from './helpers/types';
+import type { EnrichmentOptionsResponse, ProfileLimits, SavedSchema } from './helpers/types';
 import { extractSearchKeys } from './helpers/validation';
 import * as batchEnrich from './operations/batchEnrich';
 import * as enrichEntity from './operations/enrichEntity';
@@ -329,7 +329,7 @@ export class EntityEnricher implements INodeType {
 					loadOptionsMethod: 'getLanguages',
 				},
 				default: ['en'],
-				description: 'Languages for multilingual fields. English is always included.',
+				description: 'Languages for multilingual fields. At least one language must be selected.',
 				displayOptions: {
 					show: {
 						resource: ['enrichment'],
@@ -362,7 +362,7 @@ export class EntityEnricher implements INodeType {
 				name: 'classificationModel',
 				type: 'options',
 				typeOptions: {
-					loadOptionsMethod: 'getModelsOptional',
+					loadOptionsMethod: 'getClassificationModels',
 				},
 				default: '',
 				description: 'Optional model for pre-flight entity type classification. Prevents hallucination on mismatched entities.',
@@ -380,7 +380,7 @@ export class EntityEnricher implements INodeType {
 				name: 'arbitrationModel',
 				type: 'options',
 				typeOptions: {
-					loadOptionsMethod: 'getModelsOptional',
+					loadOptionsMethod: 'getArbitrationModels',
 				},
 				default: '',
 				description: 'Model for LLM-based conflict resolution when merging multi-model results. Leave empty for rule-based merging.',
@@ -469,15 +469,29 @@ export class EntityEnricher implements INodeType {
 					this, '/api/enrichment/options',
 				) as EnrichmentOptionsResponse;
 
-				const available = options.models.filter((m) => m.is_available);
+				const available = options.models.filter(
+					(m) => m.is_available && !m.processing_disabled?.enrichment,
+				);
 
-				const modelOptions: INodePropertyOptions[] = available.map((m) => ({
+				const modelOptions: INodePropertyOptions[] = [];
+
+				// Show plan limit notice if applicable
+				const limits = extractProfileLimits(options);
+				if (limits?.max_models_per_enrichment != null) {
+					modelOptions.push({
+						name: `⚠ Plan limit: max ${limits.max_models_per_enrichment} model(s) per enrichment`,
+						value: '__plan_limit_notice__',
+						description: 'Selecting more models will be rejected by the server',
+					});
+				}
+
+				modelOptions.push(...available.map((m) => ({
 					name: m.display_name ?? m.key,
 					value: m.key,
 					description: m.input_price != null && m.output_price != null
 						? `$${m.input_price}/${m.output_price} per M tokens`
 						: undefined,
-				}));
+				})));
 
 				modelOptions.push({
 					name: '➕ Add more models (manage API keys)',
@@ -488,21 +502,43 @@ export class EntityEnricher implements INodeType {
 				return modelOptions;
 			},
 
-			async getModelsOptional(
+			async getClassificationModels(
 				this: ILoadOptionsFunctions,
 			): Promise<INodePropertyOptions[]> {
 				const options = await apiRequest(
 					this, '/api/enrichment/options',
 				) as EnrichmentOptionsResponse;
 
+				const available = options.models.filter(
+					(m) => m.is_available && !m.processing_disabled?.classification,
+				);
+
 				return [
 					{ name: '(None)', value: '' },
-					...options.models
-						.filter((m) => m.is_available)
-						.map((m) => ({
-							name: m.display_name ?? m.key,
-							value: m.key,
-						})),
+					...available.map((m) => ({
+						name: m.display_name ?? m.key,
+						value: m.key,
+					})),
+				];
+			},
+
+			async getArbitrationModels(
+				this: ILoadOptionsFunctions,
+			): Promise<INodePropertyOptions[]> {
+				const options = await apiRequest(
+					this, '/api/enrichment/options',
+				) as EnrichmentOptionsResponse;
+
+				const available = options.models.filter(
+					(m) => m.is_available && !m.processing_disabled?.arbitration,
+				);
+
+				return [
+					{ name: '(None)', value: '' },
+					...available.map((m) => ({
+						name: m.display_name ?? m.key,
+						value: m.key,
+					})),
 				];
 			},
 
@@ -513,10 +549,24 @@ export class EntityEnricher implements INodeType {
 					this, '/api/enrichment/options',
 				) as EnrichmentOptionsResponse;
 
-				return Object.entries(options.languages).map(([code, name]) => ({
+				const langOptions: INodePropertyOptions[] = [];
+
+				// Show plan limit notice if applicable
+				const limits = extractProfileLimits(options);
+				if (limits?.max_languages != null) {
+					langOptions.push({
+						name: `⚠ Plan limit: max ${limits.max_languages} language(s)`,
+						value: '__plan_limit_notice__',
+						description: 'Selecting more languages will be rejected by the server',
+					});
+				}
+
+				langOptions.push(...Object.entries(options.languages).map(([code, name]) => ({
 					name: `${name} (${code})`,
 					value: code,
-				}));
+				})));
+
+				return langOptions;
 			},
 
 			async getStrategies(
@@ -555,8 +605,9 @@ export class EntityEnricher implements INodeType {
 			return [returnData];
 		}
 
-		// Pre-fetch search keys for enrichment operations (once per execution, not per item)
+		// Pre-fetch search keys and profile limits for enrichment operations (once per execution, not per item)
 		let searchKeys: string[] | undefined;
+		let profileLimits: ProfileLimits | null = null;
 		if (resource === 'enrichment') {
 			const schemaId = this.getNodeParameter('schemaId', 0) as string;
 			if (schemaId) {
@@ -571,11 +622,18 @@ export class EntityEnricher implements INodeType {
 					?? {};
 				searchKeys = extractSearchKeys(rootProps, '');
 			}
+
+			// Fetch profile limits for metadata output (reuses the options endpoint)
+			const includeMetadata = this.getNodeParameter('includeEnrichmentMetadata', 0, false) as boolean;
+			if (includeMetadata) {
+				const options = await apiRequest(this, '/api/enrichment/options') as EnrichmentOptionsResponse;
+				profileLimits = extractProfileLimits(options);
+			}
 		}
 
 		// Batch Enrich processes all items at once
 		if (resource === 'enrichment' && operation === 'batchEnrich') {
-			returnData = await batchEnrich.execute(this, searchKeys);
+			returnData = await batchEnrich.execute(this, searchKeys, profileLimits);
 			return [returnData];
 		}
 
@@ -585,7 +643,7 @@ export class EntityEnricher implements INodeType {
 				let results: INodeExecutionData[] = [];
 
 				if (resource === 'enrichment' && operation === 'enrichEntity') {
-					results = await enrichEntity.execute(this, i, searchKeys);
+					results = await enrichEntity.execute(this, i, searchKeys, profileLimits);
 				} else if (resource === 'record' && operation === 'getRecord') {
 					results = await getRecord.execute(this, i);
 				} else if (resource === 'schema' && operation === 'getSchemaDetails') {
@@ -614,4 +672,19 @@ export class EntityEnricher implements INodeType {
 
 		return [returnData];
 	}
+}
+
+/**
+ * Extract profile limits from the enrichment options response.
+ *
+ * The backend returns limits as `profile_limits` (new) or `feature_flags` (legacy).
+ * Both are top-level fields on EnrichmentOptionsResponse.
+ */
+function extractProfileLimits(
+	options: EnrichmentOptionsResponse,
+): ProfileLimits | null {
+	const raw = (options as Record<string, unknown>).profile_limits
+		?? (options as Record<string, unknown>).feature_flags;
+	if (!raw || typeof raw !== 'object') return null;
+	return raw as ProfileLimits;
 }

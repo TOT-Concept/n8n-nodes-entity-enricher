@@ -40,6 +40,8 @@ export function flattenKeys(data: Record<string, unknown>, prefix = ''): string[
  * Recursively extract search key paths from schema properties.
  * Skips into nested objects but bypasses arrays of objects.
  * Returns dot-separated paths (e.g. "engine.manufacturer.name").
+ *
+ * Supports both current (`is_key: true`) and legacy (`search_key: "search"`) formats.
  */
 export function extractSearchKeys(
 	properties: Record<string, unknown>,
@@ -50,7 +52,7 @@ export function extractSearchKeys(
 		const prop = rawProp as Record<string, unknown>;
 		const path = prefix ? `${prefix}.${name}` : name;
 
-		if (prop.search_key === 'search') {
+		if (prop.is_key === true || prop.search_key === 'search') {
 			keys.push(path);
 		}
 

@@ -59,7 +59,7 @@ Enrich a single entity against a schema with one or more LLM models.
 
 - **Schema**: Select from saved schemas (dynamic dropdown, pinned schemas shown first)
 - **Models**: Choose one or more models (pricing displayed per model)
-- **Languages**: Output languages (English always included)
+- **Languages**: Output languages (at least one required)
 - **Strategy**: `multi_expertise` (parallel per-domain) or `single_pass`
 - **Classification Model** *(optional)*: Pre-flight entity type verification to prevent hallucination
 - **Arbitration Model** *(optional)*: LLM-based conflict resolution when using multiple models

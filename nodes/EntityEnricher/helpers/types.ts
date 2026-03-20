@@ -42,6 +42,25 @@ import type {
 // Types not in OpenAPI schema (connector-only or simplified)
 // ---------------------------------------------------------------------------
 
+/**
+ * Profile limits from the organization's feature profile.
+ * Null fields mean unrestricted. Returned by GET /api/enrichment/options.
+ *
+ * NOTE: The generated schema still uses the old `feature_flags` field name.
+ * Once the backend types are regenerated, this can be replaced by the
+ * generated `ProfileLimits` type from `EnrichmentOptionsResponse`.
+ */
+export interface ProfileLimits {
+	can_view_prompts?: boolean;
+	daily_prompt_limit?: number | null;
+	weekly_prompt_limit?: number | null;
+	monthly_prompt_limit?: number | null;
+	max_record_results?: number | null;
+	max_concurrent_jobs?: number | null;
+	max_models_per_enrichment?: number | null;
+	max_languages?: number | null;
+}
+
 /** Response from POST /api/single/enrich/stream or /api/batch/start */
 export interface JobStartResponse {
 	job_id: string;
