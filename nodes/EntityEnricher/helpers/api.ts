@@ -2,6 +2,7 @@ import type {
 	IExecuteFunctions,
 	IHttpRequestOptions,
 	ILoadOptionsFunctions,
+	IHttpRequestMethods,
 } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
@@ -67,55 +68,11 @@ function formatApiError(
 }
 
 /**
- * Extract status code, response body, and fallback message from n8n httpRequest errors.
- *
- * n8n's httpRequest helper wraps errors in various structures depending on version:
- * - `err.statusCode` or parsed from `err.message` ("Request failed with status code 400")
- * - `err.response.body` (parsed JSON body)
- * - `err.cause.response.body` (newer n8n versions)
- * - `err.description` (sometimes set by n8n)
- */
-function extractErrorInfo(error: unknown): {
-	statusCode: number;
-	body?: { detail?: unknown };
-	fallbackMessage?: string;
-} {
-	const err = error as Record<string, unknown>;
-
-	// Status code: try multiple paths
-	let statusCode = (err.statusCode ?? err.httpCode ?? 0) as number;
-
-	// Parse status from message as fallback: "Request failed with status code 400"
-	if (!statusCode && typeof err.message === 'string') {
-		const match = err.message.match(/status code (\d+)/);
-		if (match) statusCode = parseInt(match[1], 10);
-	}
-
-	// Response body: try multiple paths (n8n structures vary)
-	const response = err.response as Record<string, unknown> | undefined;
-	const cause = err.cause as Record<string, unknown> | undefined;
-	const causeResponse = cause?.response as Record<string, unknown> | undefined;
-
-	let body = (response?.body ?? causeResponse?.body) as { detail?: unknown } | undefined;
-
-	// Some n8n versions put parsed JSON directly on the error
-	if (!body && err.detail) {
-		body = { detail: err.detail };
-	}
-
-	// Try to parse body if it's a string (raw JSON)
-	if (typeof body === 'string') {
-		try { body = JSON.parse(body) as { detail?: unknown }; } catch { /* ignore */ }
-	}
-
-	const fallbackMessage = (err.description ?? err.message ?? 'Unknown error') as string;
-
-	return { statusCode, body, fallbackMessage };
-}
-
-/**
  * Make an authenticated API request to Entity Enricher.
  * Works in both execute and loadOptions contexts.
+ *
+ * Uses returnFullResponse to reliably access status codes and error bodies,
+ * since n8n's default error handling strips the response body on non-2xx.
  */
 export async function apiRequest(
 	context: IExecuteFunctions | ILoadOptionsFunctions,
@@ -127,33 +84,47 @@ export async function apiRequest(
 	const apiKey = credentials.apiKey as string;
 
 	const requestOptions: IHttpRequestOptions = {
-		method: (options.method ?? 'GET') as IHttpRequestOptions['method'],
+		method: (options.method ?? 'GET') as IHttpRequestMethods,
 		url: `${baseUrl}${path}`,
 		headers: {
 			'X-API-Key': apiKey,
 			'Content-Type': 'application/json',
 		},
-		json: true,
+		returnFullResponse: true,
+		ignoreHttpStatusErrors: true,
 	};
 
 	if (options.body !== undefined) {
-		requestOptions.body = options.body as string;
+		requestOptions.body = JSON.stringify(options.body);
 	}
 
-	try {
-		return await context.helpers.httpRequest(requestOptions);
-	} catch (error: unknown) {
-		const { statusCode, body, fallbackMessage } = extractErrorInfo(error);
-		const message = formatApiError(statusCode, body, fallbackMessage);
+	const response = await context.helpers.httpRequest(requestOptions) as {
+		statusCode: number;
+		body: unknown;
+		headers: Record<string, string>;
+	};
 
-		if ('getNode' in context) {
-			throw new NodeOperationError(
-				(context as IExecuteFunctions).getNode(),
-				message,
-			);
-		}
-		throw new Error(message);
+	if (response.statusCode >= 200 && response.statusCode < 300) {
+		return response.body;
 	}
+
+	// Parse body — it may be a string (raw JSON) or already parsed
+	let body: { detail?: unknown } | undefined;
+	if (typeof response.body === 'string') {
+		try { body = JSON.parse(response.body) as { detail?: unknown }; } catch { /* ignore */ }
+	} else if (typeof response.body === 'object' && response.body !== null) {
+		body = response.body as { detail?: unknown };
+	}
+
+	const message = formatApiError(response.statusCode, body);
+
+	if ('getNode' in context) {
+		throw new NodeOperationError(
+			(context as IExecuteFunctions).getNode(),
+			message,
+		);
+	}
+	throw new Error(message);
 }
 
 /**

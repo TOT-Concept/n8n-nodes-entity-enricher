@@ -57,6 +57,17 @@ export class EntityEnricher implements INodeType {
 			},
 		],
 		properties: [
+			// ─── Connection Info ───
+			{
+				displayName: 'Connected To',
+				name: 'connectionInfo',
+				type: 'options',
+				typeOptions: { loadOptionsMethod: 'getConnectionInfo' },
+				default: '',
+				noDataExpression: true,
+				description: 'Shows the organization and API key linked to the configured credentials',
+			},
+
 			// ─── Resource ───
 			{
 				displayName: 'Resource',
@@ -441,6 +452,24 @@ export class EntityEnricher implements INodeType {
 
 	methods = {
 		loadOptions: {
+			async getConnectionInfo(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const options = await apiRequest(
+					this, '/api/enrichment/options',
+				) as EnrichmentOptionsResponse;
+
+				const parts: string[] = [];
+				if (options.organization_name) {
+					parts.push(options.organization_name);
+				}
+				if (options.api_key_name && options.api_key_role) {
+					parts.push(`Key "${options.api_key_name}" (${options.api_key_role})`);
+				}
+				const modelCount = options.models?.length ?? 0;
+				parts.push(`${modelCount} model(s)`);
+
+				return [{ name: parts.join(' · '), value: 'connected' }];
+			},
+
 			async getSchemas(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const credentials = await this.getCredentials('entityEnricherApi');
 				const baseUrl = (credentials.baseUrl as string).replace(/\/$/, '');

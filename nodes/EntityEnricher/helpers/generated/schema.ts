@@ -691,6 +691,278 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/billing/admin/allocate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Allocate Credits
+         * @description 🔒 **Requires: admin (level 5+)**
+         */
+        post: operations["allocate_credits_api_billing_admin_allocate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/admin/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Plans Admin
+         * @description 🔒 **Requires: admin (level 5+)**
+         */
+        get: operations["list_plans_admin_api_billing_admin_plans_get"];
+        put?: never;
+        /**
+         * Create Plan
+         * @description 🔒 **Requires: admin (level 5+)**
+         */
+        post: operations["create_plan_api_billing_admin_plans_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/admin/plans/{plan_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Plan
+         * @description 🔒 **Requires: admin (level 5+)**
+         */
+        delete: operations["delete_plan_api_billing_admin_plans__plan_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Plan
+         * @description 🔒 **Requires: admin (level 5+)**
+         */
+        patch: operations["update_plan_api_billing_admin_plans__plan_id__patch"];
+        trace?: never;
+    };
+    "/api/billing/balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Credit Balance
+         * @description 🔒 **Requires: operator (level 1+)**
+         */
+        get: operations["get_credit_balance_api_billing_balance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/credits/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Credit Checkout
+         * @description 🔒 **Requires: owner (level 4+)**
+         */
+        post: operations["create_credit_checkout_api_billing_credits_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Billing Overview
+         * @description 🔒 **Requires: operator (level 1+)**
+         */
+        get: operations["get_billing_overview_api_billing_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Plans
+         * @description 🔒 **Requires: operator (level 1+)**
+         *
+         *     List active subscription plans with org context for the upgrade modal.
+         *
+         *     Not billing-gated: all authenticated users can view plans (needed for upgrade modal).
+         */
+        get: operations["get_plans_api_billing_plans_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/portal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Billing Portal
+         * @description 🔒 **Requires: owner (level 4+)**
+         */
+        post: operations["create_billing_portal_api_billing_portal_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Billing Settings
+         * @description 🔒 **Requires: owner (level 4+)**
+         */
+        patch: operations["update_billing_settings_api_billing_settings_patch"];
+        trace?: never;
+    };
+    "/api/billing/subscription/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Subscription
+         * @description 🔒 **Requires: owner (level 4+)**
+         */
+        post: operations["cancel_subscription_api_billing_subscription_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/subscription/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Subscription Checkout
+         * @description 🔒 **Requires: owner (level 4+)**
+         */
+        post: operations["create_subscription_checkout_api_billing_subscription_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Transactions
+         * @description 🔒 **Requires: operator (level 1+)**
+         */
+        get: operations["list_transactions_api_billing_transactions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/vat/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate Vat
+         * @description 🔒 **Requires: owner (level 4+)**
+         */
+        post: operations["validate_vat_api_billing_vat_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/costs/by-model": {
         parameters: {
             query?: never;
@@ -2080,7 +2352,7 @@ export type paths = {
          * Duplicate Saved Schema
          * @description 🔒 **Requires: editor (level 2+)**
          *
-         *     Duplicate a schema with a new name.
+         *     Duplicate a schema into the user's organization.
          */
         post: operations["duplicate_saved_schema_api_schema_saved__schema_id__duplicate_post"];
         delete?: never;
@@ -2258,6 +2530,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/webhooks/stripe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stripe Webhook */
+        post: operations["stripe_webhook_api_webhooks_stripe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -2279,6 +2568,18 @@ export type paths = {
 export type webhooks = Record<string, never>;
 export type components = {
     schemas: {
+        /** AllocateCreditsRequest */
+        AllocateCreditsRequest: {
+            /** Amount */
+            amount: number | string;
+            /** Description */
+            description: string;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+        };
         /**
          * AllowedModel
          * @description A model allowed in a feature profile, with optional display name override.
@@ -2521,6 +2822,31 @@ export type components = {
             /** Ids */
             ids: string[];
         };
+        /** BillingOverview */
+        BillingOverview: {
+            /** Available Plans */
+            available_plans: components["schemas"]["SubscriptionPlan"][];
+            credit_balance: components["schemas"]["CreditBalance"];
+            /** Credit Packs */
+            credit_packs: components["schemas"]["CreditPack"][];
+            subscription?: components["schemas"]["OrganizationSubscription"] | null;
+        };
+        /** BillingPortalResponse */
+        BillingPortalResponse: {
+            /** Portal Url */
+            portal_url: string;
+        };
+        /** BillingSettingsUpdate */
+        BillingSettingsUpdate: {
+            /** Billing Company Name */
+            billing_company_name?: string | null;
+            /** Billing Country */
+            billing_country?: string | null;
+            /** Low Balance Threshold */
+            low_balance_threshold?: number | string | null;
+            /** Vat Id */
+            vat_id?: string | null;
+        };
         /**
          * BulkDeleteRequest
          * @description Request model for bulk-deleting providers.
@@ -2585,6 +2911,13 @@ export type components = {
              * @default 0
              */
             models_toggled: number;
+        };
+        /** CheckoutSessionResponse */
+        CheckoutSessionResponse: {
+            /** Checkout Url */
+            checkout_url: string;
+            /** Session Id */
+            session_id: string;
         };
         /**
          * ClassificationContext
@@ -2773,6 +3106,83 @@ export type components = {
              */
             total_requests: number;
         };
+        /** CreditBalance */
+        CreditBalance: {
+            /** Balance */
+            balance: string;
+            /** Lifetime Consumed */
+            lifetime_consumed: string;
+            /** Lifetime Granted */
+            lifetime_granted: string;
+            /** Lifetime Purchased */
+            lifetime_purchased: string;
+            /** Low Balance Threshold */
+            low_balance_threshold: string;
+        };
+        /** CreditCheckoutRequest */
+        CreditCheckoutRequest: {
+            /**
+             * Amount Usd
+             * @description Amount in USD (min $20)
+             */
+            amount_usd: number | string;
+        };
+        /** CreditPack */
+        CreditPack: {
+            /** Bonus Percent */
+            bonus_percent: string;
+            /** Credits */
+            credits: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Name */
+            name: string;
+            /** Price Usd */
+            price_usd: string;
+        };
+        /** CreditTransaction */
+        CreditTransaction: {
+            /** Amount */
+            amount: string;
+            /** Balance After */
+            balance_after: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description?: string | null;
+            /** Enrichment Record Id */
+            enrichment_record_id?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /** Type */
+            type: string;
+        };
+        /** CreditTransactionList */
+        CreditTransactionList: {
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+            /** Transactions */
+            transactions: components["schemas"]["CreditTransaction"][];
+        };
         /**
          * CustomPromptRequest
          * @description Request for custom prompt execution.
@@ -2860,12 +3270,15 @@ export type components = {
          */
         EnrichmentOptionsResponse: {
             /**
-             * Feature Flags
-             * @description Organization feature flags from assigned profile (null = unrestricted)
+             * Api Key Name
+             * @description Name of the API key used (for service accounts)
              */
-            feature_flags?: {
-                [key: string]: boolean;
-            } | null;
+            api_key_name?: string | null;
+            /**
+             * Api Key Role
+             * @description Role of the API key used (for service accounts)
+             */
+            api_key_role?: string | null;
             /** Languages */
             languages: {
                 [key: string]: string;
@@ -2877,6 +3290,18 @@ export type components = {
              * @description Timestamp of the last models update (sync or auto-deactivation)
              */
             models_last_updated?: string | null;
+            /**
+             * Organization Name
+             * @description Name of the authenticated organization
+             */
+            organization_name?: string | null;
+            /**
+             * Profile Limits
+             * @description Organization profile limits from assigned profile (null = unrestricted)
+             */
+            profile_limits?: {
+                [key: string]: unknown;
+            } | null;
             /** Strategies */
             strategies?: components["schemas"]["StrategyInfo"][];
             /** Total Companies */
@@ -3034,117 +3459,6 @@ export type components = {
              */
             name: string;
         };
-        /**
-         * FeatureFlags
-         * @description Per-feature access toggles, grouped by page. All default True (unrestricted).
-         */
-        FeatureFlags: {
-            /**
-             * Ai Schema Editing
-             * @default true
-             */
-            ai_schema_editing: boolean;
-            /**
-             * App Access Keys
-             * @default true
-             */
-            app_access_keys: boolean;
-            /**
-             * Batch Export
-             * @default true
-             */
-            batch_export: boolean;
-            /**
-             * Batch Processing
-             * @default true
-             */
-            batch_processing: boolean;
-            /**
-             * Bulk Operations
-             * @default true
-             */
-            bulk_operations: boolean;
-            /**
-             * Classification
-             * @default true
-             */
-            classification: boolean;
-            /**
-             * Cost Analytics
-             * @default true
-             */
-            cost_analytics: boolean;
-            /**
-             * Custom Prompt Testing
-             * @default true
-             */
-            custom_prompt_testing: boolean;
-            /**
-             * Enrichment
-             * @default true
-             */
-            enrichment: boolean;
-            /**
-             * Fusion Arbitration
-             * @default true
-             */
-            fusion_arbitration: boolean;
-            /**
-             * Health Checks
-             * @default true
-             */
-            health_checks: boolean;
-            /**
-             * Multi Model Enrichment
-             * @default true
-             */
-            multi_model_enrichment: boolean;
-            /**
-             * Multilingual
-             * @default true
-             */
-            multilingual: boolean;
-            /**
-             * Org Api Keys
-             * @default true
-             */
-            org_api_keys: boolean;
-            /**
-             * Performance Analysis
-             * @default true
-             */
-            performance_analysis: boolean;
-            /**
-             * Pricing Sync
-             * @default true
-             */
-            pricing_sync: boolean;
-            /**
-             * Provider Config
-             * @default true
-             */
-            provider_config: boolean;
-            /**
-             * Record Browsing
-             * @default true
-             */
-            record_browsing: boolean;
-            /**
-             * Retry Failed Expertise
-             * @default true
-             */
-            retry_failed_expertise: boolean;
-            /**
-             * Schema Generation
-             * @default true
-             */
-            schema_generation: boolean;
-            /**
-             * User Role Management
-             * @default true
-             */
-            user_role_management: boolean;
-        };
         /** FeatureProfileAssign */
         FeatureProfileAssign: {
             /** Profile Id */
@@ -3154,7 +3468,6 @@ export type components = {
         FeatureProfileCreate: {
             /** Description */
             description?: string | null;
-            feature_flags?: components["schemas"]["FeatureFlags"];
             global_model_access?: components["schemas"]["GlobalModelAccess"];
             /**
              * Is Default
@@ -3164,18 +3477,19 @@ export type components = {
             /** Name */
             name: string;
             processing_type_models?: components["schemas"]["ProcessingTypeModels"];
+            profile_limits?: components["schemas"]["ProfileLimits"];
         };
         /** FeatureProfileUpdate */
         FeatureProfileUpdate: {
             /** Description */
             description?: string | null;
-            feature_flags?: components["schemas"]["FeatureFlags"] | null;
             global_model_access?: components["schemas"]["GlobalModelAccess"] | null;
             /** Is Default */
             is_default?: boolean | null;
             /** Name */
             name?: string | null;
             processing_type_models?: components["schemas"]["ProcessingTypeModels"] | null;
+            profile_limits?: components["schemas"]["ProfileLimits"] | null;
         };
         /** FeatureProfileWithOrgCount */
         FeatureProfileWithOrgCount: {
@@ -3186,7 +3500,6 @@ export type components = {
             created_at: string;
             /** Description */
             description?: string | null;
-            feature_flags: components["schemas"]["FeatureFlags"];
             global_model_access: components["schemas"]["GlobalModelAccess"];
             /**
              * Id
@@ -3206,6 +3519,7 @@ export type components = {
              */
             organization_count: number;
             processing_type_models: components["schemas"]["ProcessingTypeModels"];
+            profile_limits: components["schemas"]["ProfileLimits"];
             /**
              * Updated At
              * Format: date-time
@@ -3639,14 +3953,14 @@ export type components = {
              * Format: date-time
              */
             expires_at: string;
-            /**
-             * Feature Flags
-             * @description Organization feature flags from assigned profile (null = unrestricted)
-             */
-            feature_flags?: {
-                [key: string]: boolean;
-            } | null;
             organization: components["schemas"]["OrganizationResponse"];
+            /**
+             * Profile Limits
+             * @description Organization profile limits from assigned profile (null = unrestricted)
+             */
+            profile_limits?: {
+                [key: string]: unknown;
+            } | null;
             /** Refresh Token */
             refresh_token: string;
             user: components["schemas"]["UserResponse"];
@@ -4029,10 +4343,17 @@ export type components = {
         /** OrganizationResponse */
         OrganizationResponse: {
             /**
+             * Billing Page Access
+             * @default false
+             */
+            billing_page_access: boolean;
+            /**
              * Created At
              * Format: date-time
              */
             created_at: string;
+            /** Current Plan Sort Order */
+            current_plan_sort_order?: number | null;
             /**
              * Id
              * Format: uuid
@@ -4061,6 +4382,47 @@ export type components = {
             name: string;
             /** Slug */
             slug: string;
+        };
+        /** OrganizationSubscription */
+        OrganizationSubscription: {
+            /** Billing Company Name */
+            billing_company_name?: string | null;
+            /** Billing Country */
+            billing_country?: string | null;
+            /**
+             * Cancel At Period End
+             * @default false
+             */
+            cancel_at_period_end: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Current Period End */
+            current_period_end?: string | null;
+            /** Current Period Start */
+            current_period_start?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            plan: components["schemas"]["SubscriptionPlan"];
+            /** Status */
+            status: string;
+            /** Vat Id */
+            vat_id?: string | null;
+            /**
+             * Vat Verified
+             * @default false
+             */
+            vat_verified: boolean;
         };
         /** OrganizationUpdateName */
         OrganizationUpdateName: {
@@ -4280,6 +4642,20 @@ export type components = {
             total_records: number;
         };
         /**
+         * PlansWithContext
+         * @description Plans list enriched with org-specific context for the upgrade modal.
+         */
+        PlansWithContext: {
+            /** Credit Balance */
+            credit_balance?: string | null;
+            /** Current Plan Id */
+            current_plan_id?: string | null;
+            /** Plans */
+            plans: components["schemas"]["SubscriptionPlanWithLimits"][];
+            /** Subscription Period End */
+            subscription_period_end?: string | null;
+        };
+        /**
          * PricingSyncRequest
          * @description Request for pricing sync
          */
@@ -4367,6 +4743,41 @@ export type components = {
             enrichment?: string[] | null;
             /** Schema Generation */
             schema_generation?: string[] | null;
+        };
+        /**
+         * ProfileLimits
+         * @description Operational limits for tier-based access control. None = unlimited.
+         */
+        ProfileLimits: {
+            /**
+             * Billing Enabled
+             * @default false
+             */
+            billing_enabled: boolean;
+            /**
+             * Can View Prompts
+             * @default true
+             */
+            can_view_prompts: boolean;
+            /** Daily Prompt Limit */
+            daily_prompt_limit?: number | null;
+            /**
+             * Max Api Keys
+             * @default 10
+             */
+            max_api_keys: number;
+            /** Max Concurrent Jobs */
+            max_concurrent_jobs?: number | null;
+            /** Max Languages */
+            max_languages?: number | null;
+            /** Max Models Per Enrichment */
+            max_models_per_enrichment?: number | null;
+            /** Max Record Results */
+            max_record_results?: number | null;
+            /** Monthly Prompt Limit */
+            monthly_prompt_limit?: number | null;
+            /** Weekly Prompt Limit */
+            weekly_prompt_limit?: number | null;
         };
         /**
          * ProgressEvent
@@ -5776,7 +6187,7 @@ export type components = {
         };
         /**
          * SSEClassificationMismatchPause
-         * @description Emitted when classification detects a mismatch and pauses for user decision.
+         * @description Emitted when classification detects a warning (mismatch, unknown, or ambiguous) and pauses for user decision.
          */
         SSEClassificationMismatchPause: {
             classification: components["schemas"]["ClassificationContext"];
@@ -6876,6 +7287,213 @@ export type components = {
             /** Message */
             message: string;
         };
+        /** SubscriptionCheckoutRequest */
+        SubscriptionCheckoutRequest: {
+            /**
+             * Plan Id
+             * Format: uuid
+             */
+            plan_id: string;
+        };
+        /** SubscriptionPlan */
+        SubscriptionPlan: {
+            /** Commission Percent */
+            commission_percent: string;
+            /** Description */
+            description?: string | null;
+            /** Display Name */
+            display_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Included Credits */
+            included_credits: string;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Is Recommended
+             * @default false
+             */
+            is_recommended: boolean;
+            /** Monthly Price Usd */
+            monthly_price_usd: string;
+            /** Name */
+            name: string;
+            /** Sort Order */
+            sort_order: number;
+        };
+        /**
+         * SubscriptionPlanAdmin
+         * @description Full plan details for admin management, including linked profile data.
+         */
+        SubscriptionPlanAdmin: {
+            /** Commission Percent */
+            commission_percent: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description?: string | null;
+            /** Display Name */
+            display_name: string;
+            /** Feature Profile Id */
+            feature_profile_id?: string | null;
+            /** Feature Profile Name */
+            feature_profile_name?: string | null;
+            /** Global Model Access */
+            global_model_access?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Included Credits */
+            included_credits: string;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Is Default Profile
+             * @default false
+             */
+            is_default_profile: boolean;
+            /**
+             * Is Recommended
+             * @default false
+             */
+            is_recommended: boolean;
+            /** Monthly Price Usd */
+            monthly_price_usd: string;
+            /** Name */
+            name: string;
+            /** Processing Type Models */
+            processing_type_models?: {
+                [key: string]: unknown;
+            } | null;
+            /** Profile Limits */
+            profile_limits?: {
+                [key: string]: unknown;
+            } | null;
+            /** Sort Order */
+            sort_order: number;
+            /** Stripe Credit Product Id */
+            stripe_credit_product_id?: string | null;
+            /** Stripe Price Id */
+            stripe_price_id?: string | null;
+            /**
+             * Subscriber Count
+             * @default 0
+             */
+            subscriber_count: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** SubscriptionPlanInput */
+        SubscriptionPlanInput: {
+            /**
+             * Commission Percent
+             * @default 0
+             */
+            commission_percent: number | string;
+            /** Description */
+            description?: string | null;
+            /** Display Name */
+            display_name: string;
+            /** Feature Profile Id */
+            feature_profile_id?: string | null;
+            /** Global Model Access */
+            global_model_access?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Included Credits
+             * @default 0
+             */
+            included_credits: number | string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /**
+             * Is Default Profile
+             * @default false
+             */
+            is_default_profile: boolean;
+            /**
+             * Is Recommended
+             * @default false
+             */
+            is_recommended: boolean;
+            /**
+             * Monthly Price Usd
+             * @default 0
+             */
+            monthly_price_usd: number | string;
+            /** Name */
+            name: string;
+            /** Processing Type Models */
+            processing_type_models?: {
+                [key: string]: unknown;
+            } | null;
+            /** Profile Limits */
+            profile_limits?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+            /** Stripe Credit Product Id */
+            stripe_credit_product_id?: string | null;
+            /** Stripe Price Id */
+            stripe_price_id?: string | null;
+        };
+        /**
+         * SubscriptionPlanWithLimits
+         * @description Plan with its linked feature profile limits for the upgrade modal.
+         */
+        SubscriptionPlanWithLimits: {
+            /** Commission Percent */
+            commission_percent: string;
+            /** Description */
+            description?: string | null;
+            /** Display Name */
+            display_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Included Credits */
+            included_credits: string;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Is Recommended
+             * @default false
+             */
+            is_recommended: boolean;
+            /** Monthly Price Usd */
+            monthly_price_usd: string;
+            /** Name */
+            name: string;
+            /** Profile Limits */
+            profile_limits?: {
+                [key: string]: unknown;
+            } | null;
+            /** Sort Order */
+            sort_order: number;
+        };
         /**
          * TestConnectionResponse
          * @description Response model for connection test.
@@ -6970,18 +7588,18 @@ export type components = {
             /** Email Verified */
             email_verified: boolean;
             /**
-             * Feature Flags
-             * @description Organization feature flags from assigned profile (null = unrestricted)
-             */
-            feature_flags?: {
-                [key: string]: boolean;
-            } | null;
-            /**
              * Id
              * Format: uuid
              */
             id: string;
             organization?: components["schemas"]["OrganizationResponse"] | null;
+            /**
+             * Profile Limits
+             * @description Organization profile limits from assigned profile (null = unrestricted)
+             */
+            profile_limits?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Role
              * @enum {string}
@@ -7046,6 +7664,22 @@ export type components = {
             /** Error Type */
             type: string;
         };
+        /** VatValidationRequest */
+        VatValidationRequest: {
+            /** Country Code */
+            country_code: string;
+            /** Vat Id */
+            vat_id: string;
+        };
+        /** VatValidationResult */
+        VatValidationResult: {
+            /** Company Name */
+            company_name?: string | null;
+            /** Country Code */
+            country_code?: string | null;
+            /** Valid */
+            valid: boolean;
+        };
     };
     responses: never;
     parameters: never;
@@ -7053,6 +7687,7 @@ export type components = {
     headers: never;
     pathItems: never;
 };
+export type AllocateCreditsRequest = components['schemas']['AllocateCreditsRequest'];
 export type AllowedModel = components['schemas']['AllowedModel'];
 export type ApiKeyCreate = components['schemas']['ApiKeyCreate'];
 export type ApiKeyCreateResponse = components['schemas']['ApiKeyCreateResponse'];
@@ -7065,18 +7700,27 @@ export type BatchEnrichmentRequest = components['schemas']['BatchEnrichmentReque
 export type BatchFetchRequest = components['schemas']['BatchFetchRequest'];
 export type BatchFetchResponse = components['schemas']['BatchFetchResponse'];
 export type BatchRestoreRequest = components['schemas']['BatchRestoreRequest'];
+export type BillingOverview = components['schemas']['BillingOverview'];
+export type BillingPortalResponse = components['schemas']['BillingPortalResponse'];
+export type BillingSettingsUpdate = components['schemas']['BillingSettingsUpdate'];
 export type BulkDeleteRequest = components['schemas']['BulkDeleteRequest'];
 export type BulkDeleteResult = components['schemas']['BulkDeleteResult'];
 export type BulkModelDeleteRequest = components['schemas']['BulkModelDeleteRequest'];
 export type BulkModelToggleRequest = components['schemas']['BulkModelToggleRequest'];
 export type BulkToggleRequest = components['schemas']['BulkToggleRequest'];
 export type BulkToggleResult = components['schemas']['BulkToggleResult'];
+export type CheckoutSessionResponse = components['schemas']['CheckoutSessionResponse'];
 export type ClassificationContext = components['schemas']['ClassificationContext'];
 export type ConfigExportInput = components['schemas']['ConfigExport-Input'];
 export type ConfigExportOutput = components['schemas']['ConfigExport-Output'];
 export type ConflictReport = components['schemas']['ConflictReport'];
 export type CostStatsRow = components['schemas']['CostStatsRow'];
 export type CostSummary = components['schemas']['CostSummary'];
+export type CreditBalance = components['schemas']['CreditBalance'];
+export type CreditCheckoutRequest = components['schemas']['CreditCheckoutRequest'];
+export type CreditPack = components['schemas']['CreditPack'];
+export type CreditTransaction = components['schemas']['CreditTransaction'];
+export type CreditTransactionList = components['schemas']['CreditTransactionList'];
 export type CustomPromptRequest = components['schemas']['CustomPromptRequest'];
 export type CustomPromptResponse = components['schemas']['CustomPromptResponse'];
 export type DiscoveredModel = components['schemas']['DiscoveredModel'];
@@ -7087,7 +7731,6 @@ export type EntityDefinitionInput = components['schemas']['EntityDefinition-Inpu
 export type EntityDefinitionOutput = components['schemas']['EntityDefinition-Output'];
 export type ExpertiseBreakdown = components['schemas']['ExpertiseBreakdown'];
 export type ExpertiseDomain = components['schemas']['ExpertiseDomain'];
-export type FeatureFlags = components['schemas']['FeatureFlags'];
 export type FeatureProfileAssign = components['schemas']['FeatureProfileAssign'];
 export type FeatureProfileCreate = components['schemas']['FeatureProfileCreate'];
 export type FeatureProfileUpdate = components['schemas']['FeatureProfileUpdate'];
@@ -7122,6 +7765,7 @@ export type ModelValidationRequest = components['schemas']['ModelValidationReque
 export type ModelValidationResponse = components['schemas']['ModelValidationResponse'];
 export type OrganizationResponse = components['schemas']['OrganizationResponse'];
 export type OrganizationSearchResult = components['schemas']['OrganizationSearchResult'];
+export type OrganizationSubscription = components['schemas']['OrganizationSubscription'];
 export type OrganizationUpdateName = components['schemas']['OrganizationUpdateName'];
 export type PendingUserResponse = components['schemas']['PendingUserResponse'];
 export type PerformanceStatsByInputTokenRange = components['schemas']['PerformanceStatsByInputTokenRange'];
@@ -7129,10 +7773,12 @@ export type PerformanceStatsByLanguageCount = components['schemas']['Performance
 export type PerformanceStatsByModel = components['schemas']['PerformanceStatsByModel'];
 export type PerformanceStatsByPropertyCount = components['schemas']['PerformanceStatsByPropertyCount'];
 export type PerformanceStatsResponse = components['schemas']['PerformanceStatsResponse'];
+export type PlansWithContext = components['schemas']['PlansWithContext'];
 export type PricingSyncRequest = components['schemas']['PricingSyncRequest'];
 export type PricingSyncResponse = components['schemas']['PricingSyncResponse'];
 export type PricingSyncSummary = components['schemas']['PricingSyncSummary'];
 export type ProcessingTypeModels = components['schemas']['ProcessingTypeModels'];
+export type ProfileLimits = components['schemas']['ProfileLimits'];
 export type ProgressEvent = components['schemas']['ProgressEvent'];
 export type PropertySchemaInput = components['schemas']['PropertySchema-Input'];
 export type PropertySchemaOutput = components['schemas']['PropertySchema-Output'];
@@ -7185,6 +7831,11 @@ export type StreamEnrichRequest = components['schemas']['StreamEnrichRequest'];
 export type StreamEnrichResponse = components['schemas']['StreamEnrichResponse'];
 export type StreamGenerateRequest = components['schemas']['StreamGenerateRequest'];
 export type StreamGenerateResponse = components['schemas']['StreamGenerateResponse'];
+export type SubscriptionCheckoutRequest = components['schemas']['SubscriptionCheckoutRequest'];
+export type SubscriptionPlan = components['schemas']['SubscriptionPlan'];
+export type SubscriptionPlanAdmin = components['schemas']['SubscriptionPlanAdmin'];
+export type SubscriptionPlanInput = components['schemas']['SubscriptionPlanInput'];
+export type SubscriptionPlanWithLimits = components['schemas']['SubscriptionPlanWithLimits'];
 export type TestConnectionResponse = components['schemas']['TestConnectionResponse'];
 export type UserApprovalRequest = components['schemas']['UserApprovalRequest'];
 export type UserResponse = components['schemas']['UserResponse'];
@@ -7192,6 +7843,8 @@ export type UserRoleUpdate = components['schemas']['UserRoleUpdate'];
 export type UserSessionResponse = components['schemas']['UserSessionResponse'];
 export type UserWithOrganization = components['schemas']['UserWithOrganization'];
 export type ValidationError = components['schemas']['ValidationError'];
+export type VatValidationRequest = components['schemas']['VatValidationRequest'];
+export type VatValidationResult = components['schemas']['VatValidationResult'];
 export type $defs = Record<string, never>;
 export interface operations {
     serve_index__get: {
@@ -8469,6 +9122,582 @@ export interface operations {
             };
         };
     };
+    allocate_credits_api_billing_admin_allocate_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AllocateCreditsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_plans_admin_api_billing_admin_plans_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionPlanAdmin"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_plan_api_billing_admin_plans_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubscriptionPlanInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionPlanAdmin"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_plan_api_billing_admin_plans__plan_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_plan_api_billing_admin_plans__plan_id__patch: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubscriptionPlanInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionPlanAdmin"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_credit_balance_api_billing_balance_get: {
+        parameters: {
+            query?: {
+                /** @description View another org (admin only) */
+                organization_id?: string | null;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditBalance"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_credit_checkout_api_billing_credits_checkout_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreditCheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_billing_overview_api_billing_overview_get: {
+        parameters: {
+            query?: {
+                /** @description View another org (admin only) */
+                organization_id?: string | null;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_plans_api_billing_plans_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlansWithContext"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_billing_portal_api_billing_portal_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingPortalResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_billing_settings_api_billing_settings_patch: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BillingSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_subscription_api_billing_subscription_cancel_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_subscription_checkout_api_billing_subscription_checkout_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubscriptionCheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutSessionResponse"] | {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_transactions_api_billing_transactions_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                /** @description View another org (admin only) */
+                organization_id?: string | null;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+                type?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditTransactionList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_vat_api_billing_vat_validate_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VatValidationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VatValidationResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_cost_by_model_api_costs_by_model_get: {
         parameters: {
             query?: {
@@ -8476,6 +9705,8 @@ export interface operations {
                 all_orgs?: boolean;
                 /** @description End date (exclusive) */
                 end_date?: string | null;
+                /** @description Filter to specific org (admin only) */
+                organization_id?: string | null;
                 /** @description Start date (inclusive) */
                 start_date?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
@@ -8517,6 +9748,8 @@ export interface operations {
                 all_orgs?: boolean;
                 /** @description End date (exclusive) */
                 end_date?: string | null;
+                /** @description Filter to specific org (admin only) */
+                organization_id?: string | null;
                 /** @description Filter by record type */
                 record_type?: string | null;
                 /** @description Start date (inclusive) */
@@ -8558,6 +9791,8 @@ export interface operations {
             query?: {
                 /** @description Show all organizations (admin/owner only) */
                 all_orgs?: boolean;
+                /** @description Filter to specific org (admin only) */
+                organization_id?: string | null;
                 /** @description Filter by record type */
                 record_type?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
@@ -8599,6 +9834,8 @@ export interface operations {
             query?: {
                 /** @description Show all organizations (admin/owner only) */
                 all_orgs?: boolean;
+                /** @description Filter to specific org (admin only) */
+                organization_id?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
@@ -8642,6 +9879,8 @@ export interface operations {
                 end_date?: string | null;
                 /** @description Group by: day, week, or month */
                 group_by?: string;
+                /** @description Filter to specific org (admin only) */
+                organization_id?: string | null;
                 /** @description Start date (inclusive) */
                 start_date?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
@@ -8683,6 +9922,8 @@ export interface operations {
                 all_orgs?: boolean;
                 /** @description End date (exclusive) */
                 end_date?: string | null;
+                /** @description Filter to specific org (admin only) */
+                organization_id?: string | null;
                 /** @description Start date (inclusive) */
                 start_date?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
@@ -11284,6 +12525,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stripe_webhook_api_webhooks_stripe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

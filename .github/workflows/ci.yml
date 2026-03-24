@@ -394,3 +394,57 @@ jobs:
           echo "| Version | \`${VERSION}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| npm | [npmjs.com/package/n8n-nodes-entity-enricher](https://www.npmjs.com/package/n8n-nodes-entity-enricher) |" >> $GITHUB_STEP_SUMMARY
           echo "| Provenance | Enabled |" >> $GITHUB_STEP_SUMMARY
+
+  # ---------------------------------------------------------------------------
+  # Deploy to n8n.entityenricher.ai
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy to n8n server
+    runs-on: ubuntu-latest
+    needs: [publish, auto-tag]
+    if: needs.auto-tag.outputs.should_publish == 'true'
+    environment: production
+
+    steps:
+      - name: Deploy connector to production n8n
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HETZNER_SERVER_IP }}
+          username: deploy
+          key: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          script: |
+            VERSION="${{ needs.auto-tag.outputs.version }}"
+            echo "Installing n8n-nodes-entity-enricher@${VERSION}..."
+
+            # Install the new version inside the n8n container
+            docker exec n8n sh -c "cd /home/node/.n8n/nodes && npm install n8n-nodes-entity-enricher@${VERSION}"
+
+            # Restart n8n to load the new version
+            cd /opt/entity-enricher && docker compose -f docker-compose.prod.yml restart n8n
+
+            # Wait for n8n to be healthy
+            echo "Waiting for n8n to be ready..."
+            for i in $(seq 1 60); do
+              if docker exec n8n wget -q -O /dev/null http://localhost:5678/healthz 2>/dev/null; then
+                echo "n8n is ready after ${i}s"
+                break
+              fi
+              if [ $i -eq 60 ]; then
+                echo "WARNING: n8n did not become healthy within 60s"
+                exit 1
+              fi
+              sleep 1
+            done
+
+            echo "Deployed n8n-nodes-entity-enricher v${VERSION} to n8n.entityenricher.ai"
+
+      - name: Deploy summary
+        run: |
+          VERSION="${{ needs.auto-tag.outputs.version }}"
+          echo "## Deploy Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | \`${VERSION}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Server | \`n8n.entityenricher.ai\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | Deployed |" >> $GITHUB_STEP_SUMMARY

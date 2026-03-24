@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-entity-enricher",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"description": "n8n community node for Entity Enricher — enrich entities with multi-model LLM fusion, multilingual output, and expertise-driven strategies",
 	"keywords": [
 		"n8n-community-node-package",
@@ -41,9 +41,16 @@
 		"sync-workflows:push": "bash ../sync-workflows.sh push",
 		"sync-workflows:push:dry-run": "bash ../sync-workflows.sh push --dry-run",
 		"sync-workflows:push:activate": "bash ../sync-workflows.sh push --activate",
+		"sync-workflows:push:prod": "bash ../sync-workflows.sh push --prod",
+		"sync-workflows:push:prod:dry-run": "bash ../sync-workflows.sh push --prod --dry-run",
+		"sync-workflows:push:prod:activate": "bash ../sync-workflows.sh push --prod --activate",
 		"sync-workflows:pull": "bash ../sync-workflows.sh pull",
 		"sync-workflows:pull:dry-run": "bash ../sync-workflows.sh pull --dry-run",
-		"sync-workflows:pull:only-existing": "bash ../sync-workflows.sh pull --only-existing"
+		"sync-workflows:pull:only-existing": "bash ../sync-workflows.sh pull --only-existing",
+		"sync-workflows:pull:prod": "bash ../sync-workflows.sh pull --prod",
+		"sync-workflows:pull:prod:dry-run": "bash ../sync-workflows.sh pull --prod --dry-run",
+		"sync-workflows:pull:prod:only-existing": "bash ../sync-workflows.sh pull --prod --only-existing",
+		"prod:install-connector": "ssh hetzner-prod 'docker exec n8n sh -c \"cd /home/node/.n8n/nodes && npm install n8n-nodes-entity-enricher\"' && ssh hetzner-prod 'cd /opt/entity-enricher && docker compose -f docker-compose.prod.yml up -d n8n'"
 	},
 	"files": [
 		"dist"
