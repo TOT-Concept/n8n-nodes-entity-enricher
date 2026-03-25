@@ -60,7 +60,7 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/organizations/{org_id}/profile": {
+    "/api/admin/organizations/{org_id}/plan": {
         parameters: {
             query?: never;
             header?: never;
@@ -74,12 +74,12 @@ export type paths = {
         options?: never;
         head?: never;
         /**
-         * Assign Organization Profile
+         * Assign Organization Plan
          * @description 🔒 **Requires: admin (level 5+)**
          *
-         *     Assign or unassign a feature profile to an organization.
+         *     Assign or remove a subscription plan for an organization.
          */
-        patch: operations["assign_organization_profile_api_admin_organizations__org_id__profile_patch"];
+        patch: operations["assign_organization_plan_api_admin_organizations__org_id__plan_patch"];
         trace?: never;
     };
     "/api/admin/organizations/{org_id}/users": {
@@ -102,68 +102,6 @@ export type paths = {
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/api/admin/profiles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Feature Profiles
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     List all feature profiles with linked organization count.
-         */
-        get: operations["list_feature_profiles_api_admin_profiles_get"];
-        put?: never;
-        /**
-         * Create Feature Profile
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Create a new feature profile.
-         */
-        post: operations["create_feature_profile_api_admin_profiles_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/profiles/{profile_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Feature Profile
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Get a feature profile by ID.
-         */
-        get: operations["get_feature_profile_api_admin_profiles__profile_id__get"];
-        put?: never;
-        post?: never;
-        /**
-         * Delete Feature Profile
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Delete a feature profile. Organizations referencing it become unrestricted.
-         */
-        delete: operations["delete_feature_profile_api_admin_profiles__profile_id__delete"];
-        options?: never;
-        head?: never;
-        /**
-         * Update Feature Profile
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Update a feature profile (partial update).
-         */
-        patch: operations["update_feature_profile_api_admin_profiles__profile_id__patch"];
         trace?: never;
     };
     "/api/admin/users": {
@@ -799,6 +737,28 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/billing/credits/verify-checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Checkout
+         * @description 🔒 **Requires: operator (level 1+)**
+         *
+         *     Verify a Stripe checkout session was fulfilled. Self-heals if webhook was missed.
+         */
+        post: operations["verify_checkout_api_billing_credits_verify_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/billing/overview": {
         parameters: {
             query?: never;
@@ -832,6 +792,7 @@ export type paths = {
          *
          *     List active subscription plans with org context for the upgrade modal.
          *
+         *     Non-admin users see only public plans + their current plan.
          *     Not billing-gated: all authenticated users can view plans (needed for upgrade modal).
          */
         get: operations["get_plans_api_billing_plans_get"];
@@ -2580,16 +2541,6 @@ export type components = {
              */
             organization_id: string;
         };
-        /**
-         * AllowedModel
-         * @description A model allowed in a feature profile, with optional display name override.
-         */
-        AllowedModel: {
-            /** Composite Key */
-            composite_key: string;
-            /** Display Name */
-            display_name?: string | null;
-        };
         /** ApiKeyCreate */
         ApiKeyCreate: {
             /** Expires In Days */
@@ -2675,6 +2626,11 @@ export type components = {
              * @enum {string}
              */
             role: "admin" | "owner" | "editor" | "operator";
+        };
+        /** AssignPlanRequest */
+        AssignPlanRequest: {
+            /** Plan Id */
+            plan_id?: string | null;
         };
         /**
          * AuthConfig
@@ -3459,73 +3415,6 @@ export type components = {
              */
             name: string;
         };
-        /** FeatureProfileAssign */
-        FeatureProfileAssign: {
-            /** Profile Id */
-            profile_id?: string | null;
-        };
-        /** FeatureProfileCreate */
-        FeatureProfileCreate: {
-            /** Description */
-            description?: string | null;
-            global_model_access?: components["schemas"]["GlobalModelAccess"];
-            /**
-             * Is Default
-             * @default false
-             */
-            is_default: boolean;
-            /** Name */
-            name: string;
-            processing_type_models?: components["schemas"]["ProcessingTypeModels"];
-            profile_limits?: components["schemas"]["ProfileLimits"];
-        };
-        /** FeatureProfileUpdate */
-        FeatureProfileUpdate: {
-            /** Description */
-            description?: string | null;
-            global_model_access?: components["schemas"]["GlobalModelAccess"] | null;
-            /** Is Default */
-            is_default?: boolean | null;
-            /** Name */
-            name?: string | null;
-            processing_type_models?: components["schemas"]["ProcessingTypeModels"] | null;
-            profile_limits?: components["schemas"]["ProfileLimits"] | null;
-        };
-        /** FeatureProfileWithOrgCount */
-        FeatureProfileWithOrgCount: {
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Description */
-            description?: string | null;
-            global_model_access: components["schemas"]["GlobalModelAccess"];
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /**
-             * Is Default
-             * @default false
-             */
-            is_default: boolean;
-            /** Name */
-            name: string;
-            /**
-             * Organization Count
-             * @default 0
-             */
-            organization_count: number;
-            processing_type_models: components["schemas"]["ProcessingTypeModels"];
-            profile_limits: components["schemas"]["ProfileLimits"];
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-        };
         /**
          * FieldConflict
          * @description Represents a conflict at a specific field path.
@@ -3706,18 +3595,6 @@ export type components = {
             identification_notes?: string | null;
             /** @description The root entity definition with its properties */
             root: components["schemas"]["EntityDefinition-Output"];
-        };
-        /**
-         * GlobalModelAccess
-         * @description Controls which global models/providers an org can use via global keys.
-         *
-         *     None = unrestricted. List = allowlist.
-         */
-        GlobalModelAccess: {
-            /** Allowed Models */
-            allowed_models?: components["schemas"]["AllowedModel"][] | null;
-            /** Allowed Providers */
-            allowed_providers?: string[] | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -4727,57 +4604,6 @@ export type components = {
              * @default 0
              */
             total_scraped: number;
-        };
-        /**
-         * ProcessingTypeModels
-         * @description Per-processing-type model restrictions.
-         *
-         *     None = all models allowed. List of composite keys = restricted set.
-         */
-        ProcessingTypeModels: {
-            /** Arbitration */
-            arbitration?: string[] | null;
-            /** Classification */
-            classification?: string[] | null;
-            /** Enrichment */
-            enrichment?: string[] | null;
-            /** Schema Generation */
-            schema_generation?: string[] | null;
-        };
-        /**
-         * ProfileLimits
-         * @description Operational limits for tier-based access control. None = unlimited.
-         */
-        ProfileLimits: {
-            /**
-             * Billing Enabled
-             * @default false
-             */
-            billing_enabled: boolean;
-            /**
-             * Can View Prompts
-             * @default true
-             */
-            can_view_prompts: boolean;
-            /** Daily Prompt Limit */
-            daily_prompt_limit?: number | null;
-            /**
-             * Max Api Keys
-             * @default 10
-             */
-            max_api_keys: number;
-            /** Max Concurrent Jobs */
-            max_concurrent_jobs?: number | null;
-            /** Max Languages */
-            max_languages?: number | null;
-            /** Max Models Per Enrichment */
-            max_models_per_enrichment?: number | null;
-            /** Max Record Results */
-            max_record_results?: number | null;
-            /** Monthly Prompt Limit */
-            monthly_prompt_limit?: number | null;
-            /** Weekly Prompt Limit */
-            weekly_prompt_limit?: number | null;
         };
         /**
          * ProgressEvent
@@ -7297,6 +7123,11 @@ export type components = {
         };
         /** SubscriptionPlan */
         SubscriptionPlan: {
+            /**
+             * Billing Enabled
+             * @default false
+             */
+            billing_enabled: boolean;
             /** Commission Percent */
             commission_percent: string;
             /** Description */
@@ -7313,6 +7144,11 @@ export type components = {
             /** Is Active */
             is_active: boolean;
             /**
+             * Is Public
+             * @default true
+             */
+            is_public: boolean;
+            /**
              * Is Recommended
              * @default false
              */
@@ -7321,6 +7157,11 @@ export type components = {
             monthly_price_usd: string;
             /** Name */
             name: string;
+            /**
+             * Org Commission Percent
+             * @default 0
+             */
+            org_commission_percent: string;
             /** Sort Order */
             sort_order: number;
         };
@@ -7329,6 +7170,11 @@ export type components = {
          * @description Full plan details for admin management, including linked profile data.
          */
         SubscriptionPlanAdmin: {
+            /**
+             * Billing Enabled
+             * @default false
+             */
+            billing_enabled: boolean;
             /** Commission Percent */
             commission_percent: string;
             /**
@@ -7363,6 +7209,11 @@ export type components = {
              */
             is_default_profile: boolean;
             /**
+             * Is Public
+             * @default true
+             */
+            is_public: boolean;
+            /**
              * Is Recommended
              * @default false
              */
@@ -7371,6 +7222,11 @@ export type components = {
             monthly_price_usd: string;
             /** Name */
             name: string;
+            /**
+             * Org Commission Percent
+             * @default 0
+             */
+            org_commission_percent: string;
             /** Processing Type Models */
             processing_type_models?: {
                 [key: string]: unknown;
@@ -7398,6 +7254,11 @@ export type components = {
         };
         /** SubscriptionPlanInput */
         SubscriptionPlanInput: {
+            /**
+             * Billing Enabled
+             * @default false
+             */
+            billing_enabled: boolean;
             /**
              * Commission Percent
              * @default 0
@@ -7429,6 +7290,11 @@ export type components = {
              */
             is_default_profile: boolean;
             /**
+             * Is Public
+             * @default true
+             */
+            is_public: boolean;
+            /**
              * Is Recommended
              * @default false
              */
@@ -7440,6 +7306,11 @@ export type components = {
             monthly_price_usd: number | string;
             /** Name */
             name: string;
+            /**
+             * Org Commission Percent
+             * @default 0
+             */
+            org_commission_percent: number | string;
             /** Processing Type Models */
             processing_type_models?: {
                 [key: string]: unknown;
@@ -7463,6 +7334,11 @@ export type components = {
          * @description Plan with its linked feature profile limits for the upgrade modal.
          */
         SubscriptionPlanWithLimits: {
+            /**
+             * Billing Enabled
+             * @default false
+             */
+            billing_enabled: boolean;
             /** Commission Percent */
             commission_percent: string;
             /** Description */
@@ -7479,6 +7355,11 @@ export type components = {
             /** Is Active */
             is_active: boolean;
             /**
+             * Is Public
+             * @default true
+             */
+            is_public: boolean;
+            /**
              * Is Recommended
              * @default false
              */
@@ -7487,6 +7368,11 @@ export type components = {
             monthly_price_usd: string;
             /** Name */
             name: string;
+            /**
+             * Org Commission Percent
+             * @default 0
+             */
+            org_commission_percent: string;
             /** Profile Limits */
             profile_limits?: {
                 [key: string]: unknown;
@@ -7680,6 +7566,18 @@ export type components = {
             /** Valid */
             valid: boolean;
         };
+        /** VerifyCheckoutRequest */
+        VerifyCheckoutRequest: {
+            /** Session Id */
+            session_id: string;
+        };
+        /** VerifyCheckoutResponse */
+        VerifyCheckoutResponse: {
+            /** Credits Added */
+            credits_added?: string | null;
+            /** Status */
+            status: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -7688,11 +7586,11 @@ export type components = {
     pathItems: never;
 };
 export type AllocateCreditsRequest = components['schemas']['AllocateCreditsRequest'];
-export type AllowedModel = components['schemas']['AllowedModel'];
 export type ApiKeyCreate = components['schemas']['ApiKeyCreate'];
 export type ApiKeyCreateResponse = components['schemas']['ApiKeyCreateResponse'];
 export type ApiKeyResponse = components['schemas']['ApiKeyResponse'];
 export type ApiKeyUpdate = components['schemas']['ApiKeyUpdate'];
+export type AssignPlanRequest = components['schemas']['AssignPlanRequest'];
 export type AuthConfig = components['schemas']['AuthConfig'];
 export type BatchDeleteRequest = components['schemas']['BatchDeleteRequest'];
 export type BatchEnrichmentJobResponse = components['schemas']['BatchEnrichmentJobResponse'];
@@ -7731,17 +7629,12 @@ export type EntityDefinitionInput = components['schemas']['EntityDefinition-Inpu
 export type EntityDefinitionOutput = components['schemas']['EntityDefinition-Output'];
 export type ExpertiseBreakdown = components['schemas']['ExpertiseBreakdown'];
 export type ExpertiseDomain = components['schemas']['ExpertiseDomain'];
-export type FeatureProfileAssign = components['schemas']['FeatureProfileAssign'];
-export type FeatureProfileCreate = components['schemas']['FeatureProfileCreate'];
-export type FeatureProfileUpdate = components['schemas']['FeatureProfileUpdate'];
-export type FeatureProfileWithOrgCount = components['schemas']['FeatureProfileWithOrgCount'];
 export type FieldConflict = components['schemas']['FieldConflict'];
 export type FusionRequest = components['schemas']['FusionRequest'];
 export type FusionResponse = components['schemas']['FusionResponse'];
 export type FusionStreamResponse = components['schemas']['FusionStreamResponse'];
 export type GeneratedJsonSchemaInput = components['schemas']['GeneratedJsonSchema-Input'];
 export type GeneratedJsonSchemaOutput = components['schemas']['GeneratedJsonSchema-Output'];
-export type GlobalModelAccess = components['schemas']['GlobalModelAccess'];
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
 export type ImportRequest = components['schemas']['ImportRequest'];
 export type ImportResult = components['schemas']['ImportResult'];
@@ -7777,8 +7670,6 @@ export type PlansWithContext = components['schemas']['PlansWithContext'];
 export type PricingSyncRequest = components['schemas']['PricingSyncRequest'];
 export type PricingSyncResponse = components['schemas']['PricingSyncResponse'];
 export type PricingSyncSummary = components['schemas']['PricingSyncSummary'];
-export type ProcessingTypeModels = components['schemas']['ProcessingTypeModels'];
-export type ProfileLimits = components['schemas']['ProfileLimits'];
 export type ProgressEvent = components['schemas']['ProgressEvent'];
 export type PropertySchemaInput = components['schemas']['PropertySchema-Input'];
 export type PropertySchemaOutput = components['schemas']['PropertySchema-Output'];
@@ -7845,6 +7736,8 @@ export type UserWithOrganization = components['schemas']['UserWithOrganization']
 export type ValidationError = components['schemas']['ValidationError'];
 export type VatValidationRequest = components['schemas']['VatValidationRequest'];
 export type VatValidationResult = components['schemas']['VatValidationResult'];
+export type VerifyCheckoutRequest = components['schemas']['VerifyCheckoutRequest'];
+export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
     serve_index__get: {
@@ -7934,7 +7827,7 @@ export interface operations {
             };
         };
     };
-    assign_organization_profile_api_admin_organizations__org_id__profile_patch: {
+    assign_organization_plan_api_admin_organizations__org_id__plan_patch: {
         parameters: {
             query?: {
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
@@ -7951,7 +7844,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["FeatureProfileAssign"];
+                "application/json": components["schemas"]["AssignPlanRequest"];
             };
         };
         responses: {
@@ -8000,195 +7893,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserWithOrganization"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_feature_profiles_api_admin_profiles_get: {
-        parameters: {
-            query?: {
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeatureProfileWithOrgCount"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_feature_profile_api_admin_profiles_post: {
-        parameters: {
-            query?: {
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FeatureProfileCreate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_feature_profile_api_admin_profiles__profile_id__get: {
-        parameters: {
-            query?: {
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path: {
-                profile_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_feature_profile_api_admin_profiles__profile_id__delete: {
-        parameters: {
-            query?: {
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path: {
-                profile_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_feature_profile_api_admin_profiles__profile_id__patch: {
-        parameters: {
-            query?: {
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path: {
-                profile_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FeatureProfileUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -9380,6 +9084,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CheckoutSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_checkout_api_billing_credits_verify_checkout_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyCheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifyCheckoutResponse"];
                 };
             };
             /** @description Validation Error */
