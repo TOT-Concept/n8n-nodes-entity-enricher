@@ -50,7 +50,7 @@
 		"sync-workflows:pull:prod": "bash ../sync-workflows.sh pull --prod",
 		"sync-workflows:pull:prod:dry-run": "bash ../sync-workflows.sh pull --prod --dry-run",
 		"sync-workflows:pull:prod:only-existing": "bash ../sync-workflows.sh pull --prod --only-existing",
-		"prod:install-connector": "ssh hetzner-prod 'docker exec n8n sh -c \"cd /home/node/.n8n/nodes && npm install n8n-nodes-entity-enricher\"' && ssh hetzner-prod 'cd /opt/entity-enricher && docker compose -f docker-compose.prod.yml up -d n8n'"
+		"prod:install-connector": "ssh hetzner-prod 'docker exec n8n sh -c \"cd /home/node/.n8n/nodes && pnpm install n8n-nodes-entity-enricher\"' && ssh hetzner-prod 'cd /opt/entity-enricher && docker compose -f docker-compose.prod.yml up -d n8n'"
 	},
 	"files": [
 		"dist"

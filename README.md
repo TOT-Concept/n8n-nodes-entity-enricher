@@ -19,7 +19,7 @@ An [n8n](https://n8n.io/) community node that integrates with [Entity Enricher](
 ### From the command line
 
 ```bash
-npm install n8n-nodes-entity-enricher
+pnpm install n8n-nodes-entity-enricher
 ```
 
 ## Prerequisites
@@ -135,7 +135,7 @@ Each input item is treated as one entity. The node outputs one item per entity w
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Build
 npm run build
