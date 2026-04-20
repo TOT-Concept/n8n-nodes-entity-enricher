@@ -11,25 +11,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Serve Index */
-        get: operations["serve_index__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/{path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve Spa */
-        get: operations["serve_spa__path__get"];
+        /** No Frontend */
+        get: operations["no_frontend__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2238,6 +2221,55 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/schema/sample/generate/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Sample Generation Stream
+         * @description 🔒 **Requires: editor (level 2+)**
+         *
+         *     Start sample JSON generation with streaming progress.
+         *
+         *     Returns a job_id for SSE streaming via GET /api/llm/stream/{job_id}.
+         */
+        post: operations["start_sample_generation_stream_api_schema_sample_generate_stream_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schema/sample/suggest-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suggest Fields
+         * @description 🔒 **Requires: editor (level 2+)**
+         *
+         *     Suggest common data fields for an entity type.
+         *
+         *     Returns a list of field names and labels based on LLM knowledge.
+         *     This is a synchronous (non-streaming) endpoint for fast autocomplete.
+         */
+        post: operations["suggest_fields_api_schema_sample_suggest_fields_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schema/saved": {
         parameters: {
             query?: never;
@@ -3444,6 +3476,13 @@ export type components = {
                 [key: string]: unknown;
             };
         };
+        /** FieldSuggestionItem */
+        FieldSuggestionItem: {
+            /** Label */
+            label: string;
+            /** Name */
+            name: string;
+        };
         /**
          * FusionRequest
          * @description Request to merge multiple model results.
@@ -3595,6 +3634,33 @@ export type components = {
             identification_notes?: string | null;
             /** @description The root entity definition with its properties */
             root: components["schemas"]["EntityDefinition-Output"];
+        };
+        /** GenerateSampleRequest */
+        GenerateSampleRequest: {
+            /** Entity Type */
+            entity_type: string;
+            /** Fields */
+            fields?: string[];
+            /**
+             * Model
+             * @description Model composite key
+             */
+            model: string;
+            /**
+             * Naming Convention
+             * @description Field naming convention: 'auto', 'snake_case', or 'camelCase'
+             * @default auto
+             */
+            naming_convention: string;
+            /** Typical Object */
+            typical_object?: string | null;
+        };
+        /** GenerateSampleStreamResponse */
+        GenerateSampleStreamResponse: {
+            /** Job Id */
+            job_id: string;
+            /** Message */
+            message: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -4311,6 +4377,8 @@ export type components = {
          * @description Response for pending user list.
          */
         PendingUserResponse: {
+            /** Auth Provider */
+            auth_provider?: string | null;
             /** Avatar Url */
             avatar_url: string | null;
             /**
@@ -7380,6 +7448,31 @@ export type components = {
             /** Sort Order */
             sort_order: number;
         };
+        /** SuggestFieldsRequest */
+        SuggestFieldsRequest: {
+            /** Entity Type */
+            entity_type: string;
+            /**
+             * Model
+             * @description Model composite key
+             */
+            model: string;
+            /**
+             * Naming Convention
+             * @description Field naming convention: 'auto', 'snake_case', or 'camelCase'
+             * @default auto
+             */
+            naming_convention: string;
+        };
+        /** SuggestFieldsResponse */
+        SuggestFieldsResponse: {
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /** Fields */
+            fields: components["schemas"]["FieldSuggestionItem"][];
+            /** Processing Time Ms */
+            processing_time_ms?: number | null;
+        };
         /**
          * TestConnectionResponse
          * @description Response model for connection test.
@@ -7407,6 +7500,8 @@ export type components = {
         };
         /** UserResponse */
         UserResponse: {
+            /** Auth Provider */
+            auth_provider?: ("google" | "github" | "email") | null;
             /** Avatar Url */
             avatar_url: string | null;
             /**
@@ -7451,6 +7546,8 @@ export type components = {
          * @description User info + chunk manifest, returned from GET /auth/me.
          */
         UserSessionResponse: {
+            /** Auth Provider */
+            auth_provider?: string | null;
             /** Avatar Url */
             avatar_url: string | null;
             /**
@@ -7499,6 +7596,8 @@ export type components = {
          * @description User response with organization info (for admin cross-org views).
          */
         UserWithOrganization: {
+            /** Auth Provider */
+            auth_provider?: ("google" | "github" | "email") | null;
             /** Avatar Url */
             avatar_url: string | null;
             /**
@@ -7630,11 +7729,14 @@ export type EntityDefinitionOutput = components['schemas']['EntityDefinition-Out
 export type ExpertiseBreakdown = components['schemas']['ExpertiseBreakdown'];
 export type ExpertiseDomain = components['schemas']['ExpertiseDomain'];
 export type FieldConflict = components['schemas']['FieldConflict'];
+export type FieldSuggestionItem = components['schemas']['FieldSuggestionItem'];
 export type FusionRequest = components['schemas']['FusionRequest'];
 export type FusionResponse = components['schemas']['FusionResponse'];
 export type FusionStreamResponse = components['schemas']['FusionStreamResponse'];
 export type GeneratedJsonSchemaInput = components['schemas']['GeneratedJsonSchema-Input'];
 export type GeneratedJsonSchemaOutput = components['schemas']['GeneratedJsonSchema-Output'];
+export type GenerateSampleRequest = components['schemas']['GenerateSampleRequest'];
+export type GenerateSampleStreamResponse = components['schemas']['GenerateSampleStreamResponse'];
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
 export type ImportRequest = components['schemas']['ImportRequest'];
 export type ImportResult = components['schemas']['ImportResult'];
@@ -7727,6 +7829,8 @@ export type SubscriptionPlan = components['schemas']['SubscriptionPlan'];
 export type SubscriptionPlanAdmin = components['schemas']['SubscriptionPlanAdmin'];
 export type SubscriptionPlanInput = components['schemas']['SubscriptionPlanInput'];
 export type SubscriptionPlanWithLimits = components['schemas']['SubscriptionPlanWithLimits'];
+export type SuggestFieldsRequest = components['schemas']['SuggestFieldsRequest'];
+export type SuggestFieldsResponse = components['schemas']['SuggestFieldsResponse'];
 export type TestConnectionResponse = components['schemas']['TestConnectionResponse'];
 export type UserApprovalRequest = components['schemas']['UserApprovalRequest'];
 export type UserResponse = components['schemas']['UserResponse'];
@@ -7740,7 +7844,7 @@ export type VerifyCheckoutRequest = components['schemas']['VerifyCheckoutRequest
 export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
-    serve_index__get: {
+    no_frontend__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -7756,37 +7860,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    serve_spa__path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -11778,6 +11851,84 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StreamGenerateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_sample_generation_stream_api_schema_sample_generate_stream_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateSampleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateSampleStreamResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    suggest_fields_api_schema_sample_suggest_fields_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuggestFieldsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestFieldsResponse"];
                 };
             };
             /** @description Validation Error */
