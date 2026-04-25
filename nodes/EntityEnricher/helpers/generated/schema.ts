@@ -3114,6 +3114,11 @@ export type components = {
              * @description Amount in USD (min $20)
              */
             amount_usd: number | string;
+            /**
+             * Plan Id
+             * @description When set, switches org to this plan after payment is confirmed via webhook
+             */
+            plan_id?: string | null;
         };
         /** CreditPack */
         CreditPack: {
@@ -7472,6 +7477,8 @@ export type components = {
             fields: components["schemas"]["FieldSuggestionItem"][];
             /** Processing Time Ms */
             processing_time_ms?: number | null;
+            /** Typical Examples */
+            typical_examples?: string[];
         };
         /**
          * TestConnectionResponse
