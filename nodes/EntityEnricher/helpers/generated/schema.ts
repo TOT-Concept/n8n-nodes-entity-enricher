@@ -1575,6 +1575,82 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/org-keys/tunnels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Tunnels
+         * @description 🔒 **Requires: operator (level 1+)**
+         */
+        get: operations["list_tunnels_api_org_keys_tunnels_get"];
+        put?: never;
+        /**
+         * Create Tunnel
+         * @description 🔒 **Requires: owner (level 4+)**
+         *
+         *     Allocate a new tunnel for the caller's org.
+         *
+         *     Returns the secret refresh token exactly once — store it securely on the
+         *     laptop. The CLI presents it on every (re)connection to mint short-lived
+         *     access tokens.
+         */
+        post: operations["create_tunnel_api_org_keys_tunnels_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/org-keys/tunnels/{tunnel_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tunnel
+         * @description 🔒 **Requires: operator (level 1+)**
+         */
+        get: operations["get_tunnel_api_org_keys_tunnels__tunnel_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Tunnel
+         * @description 🔒 **Requires: owner (level 4+)**
+         */
+        delete: operations["revoke_tunnel_api_org_keys_tunnels__tunnel_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/org-keys/tunnels/{tunnel_id}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate Tunnel
+         * @description 🔒 **Requires: owner (level 4+)**
+         *
+         *     Generate a new refresh token; the old one stops working immediately.
+         */
+        post: operations["rotate_tunnel_api_org_keys_tunnels__tunnel_id__rotate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pricing/providers": {
         parameters: {
             query?: never;
@@ -1712,7 +1788,13 @@ export type paths = {
          * Discover Provider Models
          * @description 🔒 **Requires: operator (level 1+)**
          *
-         *     Discover available models from a provider (Ollama only).
+         *     Discover available models from a provider and auto-import the new ones.
+         *
+         *     For Ollama providers, lists models via /api/tags, fetches per-model details
+         *     via /api/show in parallel, then INSERTs each new chat-capable model into
+         *     llm_models with the metadata Ollama reports (context_length, vision/tool
+         *     capabilities, parameter size, family). Embedding-only models are skipped.
+         *     Existing rows that were previously auto-deactivated get reactivated.
          */
         post: operations["discover_provider_models_api_providers__provider_id__discover_models_post"];
         delete?: never;
@@ -2523,6 +2605,119 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/tunnel/cancel/{user_code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Device Code
+         * @description User clicked 'Cancel' on the confirmation page. The CLI's next poll
+         *     will return status='cancelled'.
+         */
+        post: operations["cancel_device_code_api_tunnel_cancel__user_code__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tunnel/confirm/{user_code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Device Code
+         * @description 🔒 **Requires: owner (level 4+)**
+         *
+         *     Browser-side: the logged-in user confirms a pairing.
+         *
+         *     Same effect as POST /api/org-keys/tunnels except the resulting refresh
+         *     token is delivered out-of-band to the CLI via the polling channel rather
+         *     than to the browser. The browser only sees the tunnel metadata.
+         */
+        post: operations["confirm_device_code_api_tunnel_confirm__user_code__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tunnel/device-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Device Code
+         * @description CLI calls this to start a pairing flow.
+         *
+         *     Public — no authentication required (the device_code is the secret).
+         *     Returns a short user_code the user types into a browser.
+         */
+        post: operations["start_device_code_api_tunnel_device_code_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tunnel/exchange": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Exchange Tunnel Token
+         * @description Exchange a long-lived refresh token for a short-lived access token.
+         *
+         *     The CLI calls this immediately before opening the WSS connection.
+         */
+        post: operations["exchange_tunnel_token_api_tunnel_exchange_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tunnel/poll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Poll Device Code
+         * @description CLI polls this until status="ok" with credentials, or one of the terminal
+         *     error statuses.
+         */
+        post: operations["poll_device_code_api_tunnel_poll_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/webhooks/stripe": {
         parameters: {
             query?: never;
@@ -3233,27 +3428,134 @@ export type components = {
             /** Success */
             success: boolean;
         };
+        /** DeviceCodeConfirmRequest */
+        DeviceCodeConfirmRequest: {
+            /** Label */
+            label: string;
+        };
+        /** DeviceCodePollRequest */
+        DeviceCodePollRequest: {
+            /** Device Code */
+            device_code: string;
+        };
+        /** DeviceCodePollResponse */
+        DeviceCodePollResponse: {
+            /** Refresh Token */
+            refresh_token?: string | null;
+            /** Server Url */
+            server_url?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "ok" | "expired" | "cancelled" | "not_found";
+            /** Tunnel Id */
+            tunnel_id?: string | null;
+        };
+        /** DeviceCodeRequest */
+        DeviceCodeRequest: {
+            /**
+             * Label Hint
+             * @description Optional default label the browser confirmation page should pre-fill.
+             */
+            label_hint?: string | null;
+        };
+        /** DeviceCodeResponse */
+        DeviceCodeResponse: {
+            /**
+             * Device Code
+             * @description Opaque code the CLI uses to poll.
+             */
+            device_code: string;
+            /**
+             * Expires In
+             * @description Seconds until the pairing expires.
+             */
+            expires_in: number;
+            /**
+             * Interval
+             * @description Recommended poll interval in seconds.
+             */
+            interval: number;
+            /**
+             * User Code
+             * @description Short human-readable code shown to the user.
+             */
+            user_code: string;
+            /**
+             * Verification Uri
+             * @description URL the user must open in a browser to confirm pairing.
+             */
+            verification_uri: string;
+            /**
+             * Verification Uri Complete
+             * @description verification_uri with user_code embedded as ?code=...
+             */
+            verification_uri_complete: string;
+        };
         /**
          * DiscoveredModel
          * @description A model discovered from a provider.
          */
         DiscoveredModel: {
+            /** Context Length */
+            context_length?: number | null;
+            /** Display Name */
+            display_name?: string | null;
             /** Exists In Db */
             exists_in_db: boolean;
+            /** Family */
+            family?: string | null;
+            /**
+             * Is Chat Capable
+             * @default true
+             */
+            is_chat_capable: boolean;
+            /**
+             * Is Cloud
+             * @default false
+             */
+            is_cloud: boolean;
             /** Model */
             model: string;
+            /** Parameter Size */
+            parameter_size?: string | null;
+            /** Quantization */
+            quantization?: string | null;
             /** Size */
             size?: string | null;
+            /**
+             * Supports Tool Calls
+             * @default false
+             */
+            supports_tool_calls: boolean;
+            /**
+             * Supports Vision
+             * @default false
+             */
+            supports_vision: boolean;
         };
         /**
          * DiscoverModelsResponse
          * @description Response model for model discovery.
          */
         DiscoverModelsResponse: {
+            /**
+             * Added Count
+             * @description Number of new models inserted into llm_models on this call
+             * @default 0
+             */
+            added_count: number;
             /** Message */
             message: string;
             /** Models */
             models?: components["schemas"]["DiscoveredModel"][];
+            /**
+             * Reactivated Count
+             * @description Number of previously auto-deactivated models reactivated
+             * @default 0
+             */
+            reactivated_count: number;
             /** Success */
             success: boolean;
         };
@@ -7494,6 +7796,92 @@ export type components = {
             /** Success */
             success: boolean;
         };
+        /** TunnelAccessTokenResponse */
+        TunnelAccessTokenResponse: {
+            /** Access Token */
+            access_token: string;
+            /** Expires In */
+            expires_in: number;
+        };
+        /** TunnelCredentialCreate */
+        TunnelCredentialCreate: {
+            /** Label */
+            label: string;
+        };
+        /**
+         * TunnelCredentialCreateResponse
+         * @description One-time response on creation — carries the secret refresh token.
+         *
+         *     The CLI receives this once during the device-code pairing flow. The server
+         *     only stores the SHA256 hash of the refresh_token; this is the only opportunity
+         *     to obtain the plaintext.
+         */
+        TunnelCredentialCreateResponse: {
+            /**
+             * Refresh Token
+             * @description JWT refresh token. Store mode-600 in ~/.config/ee-tunnel/token.
+             */
+            refresh_token: string;
+            /**
+             * Server Url
+             * @description WSS endpoint base URL (e.g. wss://entityenricher.ai).
+             */
+            server_url: string;
+            tunnel: components["schemas"]["TunnelCredentialResponse"];
+        };
+        /**
+         * TunnelCredentialResponse
+         * @description Tunnel credential as listed in the UI (no secret material).
+         */
+        TunnelCredentialResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By Id */
+            created_by_id: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Is Connected
+             * @description Whether a WebSocket session is currently active for this tunnel (derived from the in-process session registry; never persisted).
+             * @default false
+             */
+            is_connected: boolean;
+            /** Label */
+            label: string;
+            /** Last Seen At */
+            last_seen_at: string | null;
+            /** Last Seen Ip */
+            last_seen_ip: string | null;
+            /** Last Seen User Agent */
+            last_seen_user_agent: string | null;
+            /** Org Slug At Creation */
+            org_slug_at_creation: string;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** Provider Id */
+            provider_id: number | null;
+            /** Revoked At */
+            revoked_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "revoked";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /**
          * UserApprovalRequest
          * @description Request to approve or reject a pending user.
@@ -7727,6 +8115,11 @@ export type CreditTransaction = components['schemas']['CreditTransaction'];
 export type CreditTransactionList = components['schemas']['CreditTransactionList'];
 export type CustomPromptRequest = components['schemas']['CustomPromptRequest'];
 export type CustomPromptResponse = components['schemas']['CustomPromptResponse'];
+export type DeviceCodeConfirmRequest = components['schemas']['DeviceCodeConfirmRequest'];
+export type DeviceCodePollRequest = components['schemas']['DeviceCodePollRequest'];
+export type DeviceCodePollResponse = components['schemas']['DeviceCodePollResponse'];
+export type DeviceCodeRequest = components['schemas']['DeviceCodeRequest'];
+export type DeviceCodeResponse = components['schemas']['DeviceCodeResponse'];
 export type DiscoveredModel = components['schemas']['DiscoveredModel'];
 export type DiscoverModelsResponse = components['schemas']['DiscoverModelsResponse'];
 export type EnrichmentOptionsResponse = components['schemas']['EnrichmentOptionsResponse'];
@@ -7839,6 +8232,10 @@ export type SubscriptionPlanWithLimits = components['schemas']['SubscriptionPlan
 export type SuggestFieldsRequest = components['schemas']['SuggestFieldsRequest'];
 export type SuggestFieldsResponse = components['schemas']['SuggestFieldsResponse'];
 export type TestConnectionResponse = components['schemas']['TestConnectionResponse'];
+export type TunnelAccessTokenResponse = components['schemas']['TunnelAccessTokenResponse'];
+export type TunnelCredentialCreate = components['schemas']['TunnelCredentialCreate'];
+export type TunnelCredentialCreateResponse = components['schemas']['TunnelCredentialCreateResponse'];
+export type TunnelCredentialResponse = components['schemas']['TunnelCredentialResponse'];
 export type UserApprovalRequest = components['schemas']['UserApprovalRequest'];
 export type UserResponse = components['schemas']['UserResponse'];
 export type UserRoleUpdate = components['schemas']['UserRoleUpdate'];
@@ -10732,6 +11129,190 @@ export interface operations {
             };
         };
     };
+    list_tunnels_api_org_keys_tunnels_get: {
+        parameters: {
+            query?: {
+                include_revoked?: boolean;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TunnelCredentialResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_tunnel_api_org_keys_tunnels_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TunnelCredentialCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TunnelCredentialCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tunnel_api_org_keys_tunnels__tunnel_id__get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                tunnel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TunnelCredentialResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_tunnel_api_org_keys_tunnels__tunnel_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                tunnel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rotate_tunnel_api_org_keys_tunnels__tunnel_id__rotate_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                tunnel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TunnelCredentialCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_provider_mappings_api_pricing_providers_get: {
         parameters: {
             query?: never;
@@ -12417,6 +12998,174 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StreamEnrichResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_device_code_api_tunnel_cancel__user_code__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_device_code_api_tunnel_confirm__user_code__post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                user_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceCodeConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TunnelCredentialResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_device_code_api_tunnel_device_code_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceCodeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    exchange_tunnel_token_api_tunnel_exchange_post: {
+        parameters: {
+            query: {
+                /** @description Refresh token from create/rotate response */
+                refresh_token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TunnelAccessTokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    poll_device_code_api_tunnel_poll_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceCodePollRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceCodePollResponse"];
                 };
             };
             /** @description Validation Error */
