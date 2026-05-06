@@ -69,20 +69,22 @@ jobs:
         # publishing. The scanner itself runs as a post-publish gate in the publish job.
         run: |
           npx --yes --package=eslint --package=fast-glob --package=@n8n/eslint-plugin-community-nodes node -e "
+          const path = require('path');
           const { ESLint } = require('eslint');
           const { defineConfig } = require('eslint/config');
           const glob = require('fast-glob');
           (async () => {
+            const distDir = path.resolve('dist');
             const { n8nCommunityNodesPlugin } = await import('@n8n/eslint-plugin-community-nodes');
             const eslint = new ESLint({
-              cwd: 'dist',
+              cwd: distDir,
               allowInlineConfig: false,
               overrideConfigFile: true,
               overrideConfig: defineConfig(n8nCommunityNodesPlugin.configs.recommended, {
                 rules: { 'no-console': 'error' },
               }),
             });
-            const files = glob.sync('**/*.js', { cwd: 'dist', absolute: true, ignore: ['node_modules/**'] });
+            const files = glob.sync('**/*.js', { cwd: distDir, absolute: true, ignore: ['node_modules/**'] });
             const results = await eslint.lintFiles(files);
             const violations = results.filter((r) => r.errorCount > 0);
             if (violations.length === 0) { console.log('OK: 0 violations'); return; }
