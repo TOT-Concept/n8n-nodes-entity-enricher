@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.3 (2026-05-06)
+
+### Fixed
+
+- Add `email` to `author` field in package.json (required by n8n Creator Portal submission — verification was failing with "Error getting author email from npm")
+
 ## 1.2.2 (2026-05-06)
 
 ### n8n Cloud Verification Compliance
