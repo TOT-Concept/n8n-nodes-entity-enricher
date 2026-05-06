@@ -1,6 +1,6 @@
 import type { IDataObject, IExecuteFunctions, INodeExecutionData } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
-import { apiRequest, getCredentialValues } from '../helpers/api';
+import { apiRequest } from '../helpers/api';
 import { consumeSSEStream } from '../helpers/sse';
 import type {
 	JobStartResponse,
@@ -107,8 +107,7 @@ export async function execute(
 	}
 
 	// Consume SSE stream
-	const { baseUrl, apiKey } = await getCredentialValues(context);
-	const events = await consumeSSEStream(baseUrl, apiKey, jobResponse.job_id, timeout);
+	const events = await consumeSSEStream(context, jobResponse.job_id, timeout);
 
 	// Extract entity_completed events and build output items
 	return buildBatchOutputItems(events, items.length, includeEnrichmentMetadata, profileLimits);

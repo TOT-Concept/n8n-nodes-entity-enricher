@@ -63,6 +63,35 @@ jobs:
           test -f dist/credentials/EntityEnricherApi.credentials.js || (echo "ERROR: Missing credentials JS" && exit 1)
           test -f dist/nodes/EntityEnricher/entity-enricher.svg || (echo "ERROR: Missing icon SVG" && exit 1)
 
+      - name: n8n verification lint (mirrors @n8n/scan-community-package)
+        # The official scanner only accepts npm-registry package specifiers, so we mirror its
+        # ESLint check here (same plugin + recommended config) against the local dist before
+        # publishing. The scanner itself runs as a post-publish gate in the publish job.
+        run: |
+          npx --yes --package=eslint --package=fast-glob --package=@n8n/eslint-plugin-community-nodes node -e "
+          const { ESLint } = require('eslint');
+          const { defineConfig } = require('eslint/config');
+          const glob = require('fast-glob');
+          (async () => {
+            const { n8nCommunityNodesPlugin } = await import('@n8n/eslint-plugin-community-nodes');
+            const eslint = new ESLint({
+              cwd: 'dist',
+              allowInlineConfig: false,
+              overrideConfigFile: true,
+              overrideConfig: defineConfig(n8nCommunityNodesPlugin.configs.recommended, {
+                rules: { 'no-console': 'error' },
+              }),
+            });
+            const files = glob.sync('**/*.js', { cwd: 'dist', absolute: true, ignore: ['node_modules/**'] });
+            const results = await eslint.lintFiles(files);
+            const violations = results.filter((r) => r.errorCount > 0);
+            if (violations.length === 0) { console.log('OK: 0 violations'); return; }
+            const fmt = await eslint.loadFormatter('stylish');
+            console.log(await fmt.format(results));
+            process.exit(1);
+          })();
+          "
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
@@ -333,9 +362,24 @@ jobs:
           path: dist
 
       - name: Publish to npm with provenance
-        run: npm publish --access public --ignore-scripts
+        run: npm publish --access public --ignore-scripts --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify published package with @n8n/scan-community-package
+        # Wait briefly for npm CDN propagation, then run the official n8n verification
+        # scanner against the just-published version. Same check n8n reviewers run.
+        run: |
+          VERSION="${{ needs.auto-tag.outputs.version }}"
+          for i in 1 2 3 4 5; do
+            if npm view "n8n-nodes-entity-enricher@${VERSION}" version >/dev/null 2>&1; then
+              echo "Package ${VERSION} is available on npm registry"
+              break
+            fi
+            echo "Waiting for npm propagation (attempt $i/5)..."
+            sleep 10
+          done
+          npx --yes @n8n/scan-community-package@latest "n8n-nodes-entity-enricher@${VERSION}"
 
       - name: Generate changelog
         id: changelog

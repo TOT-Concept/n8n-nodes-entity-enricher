@@ -1,59 +1,68 @@
+import type { IExecuteFunctions } from 'n8n-workflow';
 import type { SSEEvent, GenericSSEEvent } from './types';
 import { TERMINAL_EVENTS } from './types';
 
 /**
+ * Structural type for the streaming response body returned by n8n's
+ * `helpers.httpRequest` with `encoding: 'stream'`. The body is a Node Readable,
+ * but importing `node:stream` is forbidden by the n8n verified-community-node
+ * scanner so we describe only the surface we use.
+ */
+type StreamBody = AsyncIterable<Uint8Array> & { destroy: (error?: Error) => void };
+
+/**
  * Consume an SSE stream from Entity Enricher's job streaming endpoint.
  *
- * Connects to GET /api/llm/stream/{jobId}, parses SSE events (data: {JSON}\n\n format),
- * and collects all events until a terminal event is received.
+ * Connects to GET /api/llm/stream/{jobId} via n8n's HTTP helper (required for
+ * verified community nodes — direct fetch/axios usage is rejected by the scanner),
+ * parses SSE messages (`data: {JSON}\n\n`), and collects events until a terminal
+ * event is received.
  *
- * The timeout is activity-based: it resets each time an event is received,
- * so long-running batch jobs won't time out as long as progress continues.
+ * The `timeoutMs` parameter is passed through as the HTTP-level request timeout.
+ * Verified nodes cannot use `setTimeout`, so the previous activity-based reset
+ * is replaced by an absolute upper bound; the server-side job manager already
+ * terminates jobs that go inactive, so this is the correct trade-off.
  *
- * Cancels paused jobs (e.g., classification mismatch/unknown/ambiguous) since n8n is non-interactive.
+ * Cancels paused jobs (e.g., classification mismatch/unknown/ambiguous) since
+ * n8n is non-interactive and we must not enrich with hallucinated data.
  */
 export async function consumeSSEStream(
-	baseUrl: string,
-	apiKey: string,
+	context: IExecuteFunctions,
 	jobId: string,
 	timeoutMs: number,
 ): Promise<SSEEvent[]> {
+	const credentials = await context.getCredentials('entityEnricherApi');
+	const baseUrl = (credentials.baseUrl as string).replace(/\/$/, '');
+	const apiKey = credentials.apiKey as string;
+
 	const events: SSEEvent[] = [];
 	const controller = new AbortController();
-	let timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-	const resetTimeout = () => {
-		clearTimeout(timeoutId);
-		timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-	};
+	let stream: StreamBody | undefined;
 
 	try {
-		const response = await fetch(`${baseUrl}/api/llm/stream/${jobId}`, {
+		const response = await context.helpers.httpRequest({
 			method: 'GET',
+			url: `${baseUrl}/api/llm/stream/${jobId}`,
 			headers: {
 				'X-API-Key': apiKey,
-				'Accept': 'text/event-stream',
+				Accept: 'text/event-stream',
 			},
-			signal: controller.signal,
-		});
+			encoding: 'stream',
+			returnFullResponse: true,
+			timeout: timeoutMs,
+			abortSignal: controller.signal,
+		}) as { statusCode: number; body: StreamBody };
 
-		if (!response.ok) {
-			throw new Error(`SSE stream failed (${response.status}): ${await response.text()}`);
+		if (response.statusCode < 200 || response.statusCode >= 300) {
+			throw new Error(`SSE stream failed (${response.statusCode})`);
 		}
 
-		const reader = response.body?.getReader();
-		if (!reader) {
-			throw new Error('No response body for SSE stream');
-		}
-
+		stream = response.body;
 		const decoder = new TextDecoder();
 		let buffer = '';
 
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
-
-			buffer += decoder.decode(value, { stream: true });
+		for await (const chunk of stream) {
+			buffer += decoder.decode(chunk, { stream: true });
 
 			// Parse SSE messages: each message ends with \n\n or \r\n\r\n
 			// Normalize \r\n to \n before splitting (sse-starlette uses \r\n)
@@ -67,14 +76,13 @@ export async function consumeSSEStream(
 				if (!event) continue;
 
 				events.push(event);
-				resetTimeout();
 
 				// Cancel on classification warning (n8n is non-interactive — don't enrich with hallucinated data)
 				if (event.event === 'classification_mismatch_pause') {
 					const classification = (event as GenericSSEEvent).classification as
 						| { status?: string; entity_description?: string; reasoning?: string }
 						| undefined;
-					await cancelJob(baseUrl, apiKey, jobId);
+					await cancelJob(context, baseUrl, apiKey, jobId);
 					const status = classification?.status ?? 'unknown';
 					const description = classification?.entity_description ?? 'entity';
 					const reasoning = classification?.reasoning ?? '';
@@ -86,7 +94,7 @@ export async function consumeSSEStream(
 
 				// Stop on terminal events
 				if (TERMINAL_EVENTS.has(event.event)) {
-					reader.cancel();
+					stream.destroy();
 					return events;
 				}
 			}
@@ -94,16 +102,22 @@ export async function consumeSSEStream(
 
 		return events;
 	} catch (error: unknown) {
-		if ((error as Error).name === 'AbortError') {
-			// Timeout — try to cancel the job
-			await cancelJob(baseUrl, apiKey, jobId);
+		const err = error as Error & { code?: string };
+		const message = err.message ?? '';
+		const aborted =
+			err.name === 'AbortError' ||
+			err.code === 'ABORT_ERR' ||
+			err.code === 'ECONNABORTED' ||
+			/abort|timeout/i.test(message);
+		if (aborted) {
+			await cancelJob(context, baseUrl, apiKey, jobId);
 			throw new Error(
-				`Enrichment timed out after ${Math.round(timeoutMs / 1000)}s of inactivity (no progress event received). Job ${jobId} has been cancelled.`,
+				`Enrichment timed out after ${Math.round(timeoutMs / 1000)}s. Job ${jobId} has been cancelled.`,
 			);
 		}
 		throw error;
 	} finally {
-		clearTimeout(timeoutId);
+		stream?.destroy();
 	}
 }
 
@@ -134,11 +148,18 @@ function parseSSEMessage(message: string): SSEEvent | null {
 }
 
 /** Cancel a running job (used on timeout or classification warning). */
-async function cancelJob(baseUrl: string, apiKey: string, jobId: string): Promise<void> {
+async function cancelJob(
+	context: IExecuteFunctions,
+	baseUrl: string,
+	apiKey: string,
+	jobId: string,
+): Promise<void> {
 	try {
-		await fetch(`${baseUrl}/api/llm/cancel/${jobId}`, {
+		await context.helpers.httpRequest({
 			method: 'POST',
+			url: `${baseUrl}/api/llm/cancel/${jobId}`,
 			headers: { 'X-API-Key': apiKey },
+			ignoreHttpStatusErrors: true,
 		});
 	} catch {
 		// Best-effort cancellation

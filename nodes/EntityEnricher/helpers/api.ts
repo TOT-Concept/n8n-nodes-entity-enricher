@@ -127,15 +127,3 @@ export async function apiRequest(
 	throw new Error(message);
 }
 
-/**
- * Get resolved credentials (baseUrl + apiKey) for direct use (e.g., SSE streaming).
- */
-export async function getCredentialValues(
-	context: IExecuteFunctions,
-): Promise<{ baseUrl: string; apiKey: string }> {
-	const credentials = await context.getCredentials('entityEnricherApi');
-	return {
-		baseUrl: (credentials.baseUrl as string).replace(/\/$/, ''),
-		apiKey: credentials.apiKey as string,
-	};
-}
