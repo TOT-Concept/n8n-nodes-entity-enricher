@@ -2935,6 +2935,12 @@ export type components = {
              */
             classification_model?: string | null;
             /**
+             * Enable Web Search
+             * @description Enable provider builtin web search for selected models that support it
+             * @default false
+             */
+            enable_web_search: boolean;
+            /**
              * Entities
              * @description List of entities to enrich (max 100)
              */
@@ -3149,25 +3155,7 @@ export type components = {
          * ConfigExport
          * @description Full export format for providers and models.
          */
-        "ConfigExport-Input": {
-            /**
-             * Exported At
-             * Format: date-time
-             */
-            exported_at: string;
-            /** Providers */
-            providers?: components["schemas"]["ProviderExport"][];
-            /**
-             * Version
-             * @default 1.0
-             */
-            version: string;
-        };
-        /**
-         * ConfigExport
-         * @description Full export format for providers and models.
-         */
-        "ConfigExport-Output": {
+        ConfigExport: {
             /**
              * Exported At
              * Format: date-time
@@ -3608,6 +3596,18 @@ export type components = {
          */
         EnrichmentPromptSummary: {
             /**
+             * Agent Metadata
+             * @description Snapshot of what was sent to pydantic-ai for this call: model_string, output_channel, web_search_enabled, retries, model_settings.
+             */
+            agent_metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Api Key Source
+             * @description Key source: 'organization' or 'global'
+             */
+            api_key_source?: string | null;
+            /**
              * Attempts
              * @default 1
              */
@@ -3657,6 +3657,13 @@ export type components = {
             system_prompt_used?: string | null;
             /** Validation Errors */
             validation_errors?: string[];
+            /**
+             * Web Search Calls
+             * @default 0
+             */
+            web_search_calls: number;
+            /** Web Search Cost Usd */
+            web_search_cost_usd?: number | null;
         };
         /**
          * EntityDefinition
@@ -3979,7 +3986,7 @@ export type components = {
          * @description Request model for importing configuration.
          */
         ImportRequest: {
-            config: components["schemas"]["ConfigExport-Input"];
+            config: components["schemas"]["ConfigExport"];
             /**
              * Mode
              * @description merge: add new, update existing; replace: delete all, import fresh
@@ -4135,8 +4142,20 @@ export type components = {
          * @description LLM model option for UI display.
          */
         LLMModel: {
+            /** Benchmark Intelligence */
+            benchmark_intelligence?: number | null;
+            /** Benchmark Intelligence Reasoning */
+            benchmark_intelligence_reasoning?: number | null;
+            /** Benchmarks Extra */
+            benchmarks_extra?: {
+                [key: string]: number;
+            } | null;
+            /** Cache Creation Price Per Million 1Hr */
+            cache_creation_price_per_million_1hr?: number | null;
             /** Context Length */
             context_length?: number | null;
+            /** Deprecation Date */
+            deprecation_date?: string | null;
             /** Display Name */
             display_name?: string | null;
             /** Input Price */
@@ -4145,17 +4164,37 @@ export type components = {
             is_available: boolean;
             /** Key */
             key: string;
+            /** Max Input Tokens */
+            max_input_tokens?: number | null;
+            /** Max Output Tokens */
+            max_output_tokens?: number | null;
             /** Output Price */
             output_price?: number | null;
+            /** Output Reasoning Token Price Per Million */
+            output_reasoning_token_price_per_million?: number | null;
             /** Processing Disabled */
             processing_disabled?: {
                 [key: string]: boolean;
             } | null;
+            /** Rpm */
+            rpm?: number | null;
+            /** Supported Reasoning Efforts */
+            supported_reasoning_efforts?: string[] | null;
             /**
              * Supports Audio Input
              * @default false
              */
             supports_audio_input: boolean;
+            /**
+             * Supports Audio Output
+             * @default false
+             */
+            supports_audio_output: boolean;
+            /**
+             * Supports Native Structured Output
+             * @default false
+             */
+            supports_native_structured_output: boolean;
             /**
              * Supports Pdf Input
              * @default false
@@ -4172,15 +4211,49 @@ export type components = {
              */
             supports_reasoning: boolean;
             /**
+             * Supports Response Schema
+             * @default false
+             */
+            supports_response_schema: boolean;
+            /**
              * Supports Tool Calls
              * @default false
              */
             supports_tool_calls: boolean;
             /**
+             * Supports Tool Choice
+             * @default false
+             */
+            supports_tool_choice: boolean;
+            /**
+             * Supports Video Input
+             * @default false
+             */
+            supports_video_input: boolean;
+            /**
              * Supports Vision
              * @default false
              */
             supports_vision: boolean;
+            /**
+             * Supports Web Search
+             * @default false
+             */
+            supports_web_search: boolean;
+            /** Time To First Answer Token Ms */
+            time_to_first_answer_token_ms?: number | null;
+            /** Time To First Token Ms */
+            time_to_first_token_ms?: number | null;
+            /** Tpm */
+            tpm?: number | null;
+            /** Web Search Billing Unit */
+            web_search_billing_unit?: string | null;
+            /** Web Search Price Per Query */
+            web_search_price_per_query?: number | null;
+            /** Web Search Pricing Details */
+            web_search_pricing_details?: {
+                [key: string]: number;
+            } | null;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -4310,14 +4383,26 @@ export type components = {
         ModelCreate: {
             /** Benchmark Coding */
             benchmark_coding?: number | null;
+            /** Benchmark Intelligence */
+            benchmark_intelligence?: number | null;
+            /** Benchmark Intelligence Reasoning */
+            benchmark_intelligence_reasoning?: number | null;
             /** Benchmark Math */
             benchmark_math?: number | null;
+            /** Benchmarks Extra */
+            benchmarks_extra?: {
+                [key: string]: number;
+            } | null;
+            /** Cache Creation Price Per Million 1Hr */
+            cache_creation_price_per_million_1hr?: number | null;
             /** Cache Read Price Per Million */
             cache_read_price_per_million?: number | null;
             /** Cache Write Price Per Million */
             cache_write_price_per_million?: number | null;
             /** Context Length */
             context_length?: number | null;
+            /** Deprecation Date */
+            deprecation_date?: string | null;
             /**
              * Display Name
              * @description Human-readable model name
@@ -4325,6 +4410,10 @@ export type components = {
             display_name?: string | null;
             /** Input Price Per Million */
             input_price_per_million?: number | null;
+            /** Max Input Tokens */
+            max_input_tokens?: number | null;
+            /** Max Output Tokens */
+            max_output_tokens?: number | null;
             /**
              * Model
              * @description Model identifier for API
@@ -4337,11 +4426,27 @@ export type components = {
             organization_id?: string | null;
             /** Output Price Per Million */
             output_price_per_million?: number | null;
+            /** Output Reasoning Token Price Per Million */
+            output_reasoning_token_price_per_million?: number | null;
+            /** Rpm */
+            rpm?: number | null;
+            /** Supported Reasoning Efforts */
+            supported_reasoning_efforts?: string[] | null;
             /**
              * Supports Audio Input
              * @default false
              */
             supports_audio_input: boolean;
+            /**
+             * Supports Audio Output
+             * @default false
+             */
+            supports_audio_output: boolean;
+            /**
+             * Supports Native Structured Output
+             * @default false
+             */
+            supports_native_structured_output: boolean;
             /**
              * Supports Pdf Input
              * @default false
@@ -4358,17 +4463,51 @@ export type components = {
              */
             supports_reasoning: boolean;
             /**
+             * Supports Response Schema
+             * @default false
+             */
+            supports_response_schema: boolean;
+            /**
              * Supports Tool Calls
              * @default false
              */
             supports_tool_calls: boolean;
             /**
+             * Supports Tool Choice
+             * @default false
+             */
+            supports_tool_choice: boolean;
+            /**
+             * Supports Video Input
+             * @default false
+             */
+            supports_video_input: boolean;
+            /**
              * Supports Vision
              * @default false
              */
             supports_vision: boolean;
+            /**
+             * Supports Web Search
+             * @default false
+             */
+            supports_web_search: boolean;
+            /** Time To First Answer Token Ms */
+            time_to_first_answer_token_ms?: number | null;
+            /** Time To First Token Ms */
+            time_to_first_token_ms?: number | null;
             /** Tokens Per Second */
             tokens_per_second?: number | null;
+            /** Tpm */
+            tpm?: number | null;
+            /** Web Search Billing Unit */
+            web_search_billing_unit?: string | null;
+            /** Web Search Price Per Query */
+            web_search_price_per_query?: number | null;
+            /** Web Search Pricing Details */
+            web_search_pricing_details?: {
+                [key: string]: number;
+            } | null;
         };
         /**
          * ModelExport
@@ -4376,41 +4515,131 @@ export type components = {
          */
         ModelExport: {
             /** Benchmark Coding */
-            benchmark_coding: number | null;
+            benchmark_coding?: number | null;
+            /** Benchmark Intelligence */
+            benchmark_intelligence?: number | null;
+            /** Benchmark Intelligence Reasoning */
+            benchmark_intelligence_reasoning?: number | null;
             /** Benchmark Math */
-            benchmark_math: number | null;
+            benchmark_math?: number | null;
+            /** Benchmarks Extra */
+            benchmarks_extra?: {
+                [key: string]: number;
+            } | null;
+            /** Cache Creation Price Per Million 1Hr */
+            cache_creation_price_per_million_1hr?: number | null;
             /** Cache Read Price Per Million */
-            cache_read_price_per_million: number | null;
+            cache_read_price_per_million?: number | null;
             /** Cache Write Price Per Million */
-            cache_write_price_per_million: number | null;
+            cache_write_price_per_million?: number | null;
             /** Context Length */
-            context_length: number | null;
-            /** Display Name */
+            context_length?: number | null;
+            /** Deprecation Date */
+            deprecation_date?: string | null;
+            /**
+             * Display Name
+             * @description Human-readable model name
+             */
             display_name?: string | null;
             /** Input Price Per Million */
-            input_price_per_million: number | null;
+            input_price_per_million?: number | null;
             /** Is Active */
             is_active: boolean;
-            /** Model */
+            /** Max Input Tokens */
+            max_input_tokens?: number | null;
+            /** Max Output Tokens */
+            max_output_tokens?: number | null;
+            /**
+             * Model
+             * @description Model identifier for API
+             */
             model: string;
             /** Output Price Per Million */
-            output_price_per_million: number | null;
+            output_price_per_million?: number | null;
+            /** Output Reasoning Token Price Per Million */
+            output_reasoning_token_price_per_million?: number | null;
+            /** Rpm */
+            rpm?: number | null;
             /** Source */
             source: string;
-            /** Supports Audio Input */
+            /** Supported Reasoning Efforts */
+            supported_reasoning_efforts?: string[] | null;
+            /**
+             * Supports Audio Input
+             * @default false
+             */
             supports_audio_input: boolean;
-            /** Supports Pdf Input */
+            /**
+             * Supports Audio Output
+             * @default false
+             */
+            supports_audio_output: boolean;
+            /**
+             * Supports Native Structured Output
+             * @default false
+             */
+            supports_native_structured_output: boolean;
+            /**
+             * Supports Pdf Input
+             * @default false
+             */
             supports_pdf_input: boolean;
-            /** Supports Prompt Caching */
+            /**
+             * Supports Prompt Caching
+             * @default false
+             */
             supports_prompt_caching: boolean;
-            /** Supports Reasoning */
+            /**
+             * Supports Reasoning
+             * @default false
+             */
             supports_reasoning: boolean;
-            /** Supports Tool Calls */
+            /**
+             * Supports Response Schema
+             * @default false
+             */
+            supports_response_schema: boolean;
+            /**
+             * Supports Tool Calls
+             * @default false
+             */
             supports_tool_calls: boolean;
-            /** Supports Vision */
+            /**
+             * Supports Tool Choice
+             * @default false
+             */
+            supports_tool_choice: boolean;
+            /**
+             * Supports Video Input
+             * @default false
+             */
+            supports_video_input: boolean;
+            /**
+             * Supports Vision
+             * @default false
+             */
             supports_vision: boolean;
+            /**
+             * Supports Web Search
+             * @default false
+             */
+            supports_web_search: boolean;
+            /** Time To First Answer Token Ms */
+            time_to_first_answer_token_ms?: number | null;
+            /** Time To First Token Ms */
+            time_to_first_token_ms?: number | null;
             /** Tokens Per Second */
-            tokens_per_second: number | null;
+            tokens_per_second?: number | null;
+            /** Tpm */
+            tpm?: number | null;
+            /** Web Search Billing Unit */
+            web_search_billing_unit?: string | null;
+            /** Web Search Price Per Query */
+            web_search_price_per_query?: number | null;
+            /** Web Search Pricing Details */
+            web_search_pricing_details?: {
+                [key: string]: number;
+            } | null;
         };
         /**
          * ModelResponse
@@ -4424,29 +4653,41 @@ export type components = {
              */
             available: boolean;
             /** Benchmark Coding */
-            benchmark_coding: number | null;
+            benchmark_coding?: number | null;
+            /** Benchmark Intelligence */
+            benchmark_intelligence?: number | null;
+            /** Benchmark Intelligence Reasoning */
+            benchmark_intelligence_reasoning?: number | null;
             /** Benchmark Math */
-            benchmark_math: number | null;
+            benchmark_math?: number | null;
+            /** Benchmarks Extra */
+            benchmarks_extra?: {
+                [key: string]: number;
+            } | null;
+            /** Cache Creation Price Per Million 1Hr */
+            cache_creation_price_per_million_1hr?: number | null;
             /** Cache Read Price Per Million */
-            cache_read_price_per_million: number | null;
+            cache_read_price_per_million?: number | null;
             /** Cache Write Price Per Million */
-            cache_write_price_per_million: number | null;
+            cache_write_price_per_million?: number | null;
             /** Context Length */
-            context_length: number | null;
+            context_length?: number | null;
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
+            /** Deprecation Date */
+            deprecation_date?: string | null;
             /**
              * Display Name
-             * @description Human-readable model name for UI display
+             * @description Human-readable model name
              */
-            display_name: string | null;
+            display_name?: string | null;
             /** Id */
             id: number;
             /** Input Price Per Million */
-            input_price_per_million: number | null;
+            input_price_per_million?: number | null;
             /** Is Active */
             is_active: boolean;
             /**
@@ -4455,7 +4696,14 @@ export type components = {
              * @default true
              */
             is_editable: boolean;
-            /** Model */
+            /** Max Input Tokens */
+            max_input_tokens?: number | null;
+            /** Max Output Tokens */
+            max_output_tokens?: number | null;
+            /**
+             * Model
+             * @description Model identifier for API
+             */
             model: string;
             /**
              * Organization Id
@@ -4463,13 +4711,17 @@ export type components = {
              */
             organization_id?: string | null;
             /** Output Price Per Million */
-            output_price_per_million: number | null;
+            output_price_per_million?: number | null;
+            /** Output Reasoning Token Price Per Million */
+            output_reasoning_token_price_per_million?: number | null;
             /** Provider Display Name */
             provider_display_name: string;
             /** Provider Id */
             provider_id: number;
             /** Provider Name */
             provider_name: string;
+            /** Rpm */
+            rpm?: number | null;
             /**
              * Scope
              * @description Whether model is global or org-scoped
@@ -4487,26 +4739,82 @@ export type components = {
              * @description Stable identifier from pricepertoken.com (e.g., anthropic:claude-haiku-4.5)
              */
             source_identifier?: string | null;
-            /** Supports Audio Input */
+            /** Supported Reasoning Efforts */
+            supported_reasoning_efforts?: string[] | null;
+            /**
+             * Supports Audio Input
+             * @default false
+             */
             supports_audio_input: boolean;
-            /** Supports Pdf Input */
+            /**
+             * Supports Audio Output
+             * @default false
+             */
+            supports_audio_output: boolean;
+            /**
+             * Supports Native Structured Output
+             * @default false
+             */
+            supports_native_structured_output: boolean;
+            /**
+             * Supports Pdf Input
+             * @default false
+             */
             supports_pdf_input: boolean;
-            /** Supports Prompt Caching */
+            /**
+             * Supports Prompt Caching
+             * @default false
+             */
             supports_prompt_caching: boolean;
-            /** Supports Reasoning */
+            /**
+             * Supports Reasoning
+             * @default false
+             */
             supports_reasoning: boolean;
-            /** Supports Tool Calls */
+            /**
+             * Supports Response Schema
+             * @default false
+             */
+            supports_response_schema: boolean;
+            /**
+             * Supports Tool Calls
+             * @default false
+             */
             supports_tool_calls: boolean;
-            /** Supports Vision */
+            /**
+             * Supports Tool Choice
+             * @default false
+             */
+            supports_tool_choice: boolean;
+            /**
+             * Supports Video Input
+             * @default false
+             */
+            supports_video_input: boolean;
+            /**
+             * Supports Vision
+             * @default false
+             */
             supports_vision: boolean;
+            /**
+             * Supports Web Search
+             * @default false
+             */
+            supports_web_search: boolean;
+            /** Time To First Answer Token Ms */
+            time_to_first_answer_token_ms?: number | null;
+            /** Time To First Token Ms */
+            time_to_first_token_ms?: number | null;
             /** Tokens Per Second */
-            tokens_per_second: number | null;
+            tokens_per_second?: number | null;
             /** Total Cost Usd */
             total_cost_usd: number;
             /** Total Input Tokens */
             total_input_tokens: number;
             /** Total Output Tokens */
             total_output_tokens: number;
+            /** Tpm */
+            tpm?: number | null;
             /**
              * Unavailable Reason
              * @description Reason model is unavailable (if available=false)
@@ -4515,6 +4823,14 @@ export type components = {
             unavailable_reason?: "no_api_key" | "model_not_found" | "unsupported" | null;
             /** Updated At */
             updated_at: string | null;
+            /** Web Search Billing Unit */
+            web_search_billing_unit?: string | null;
+            /** Web Search Price Per Query */
+            web_search_price_per_query?: number | null;
+            /** Web Search Pricing Details */
+            web_search_pricing_details?: {
+                [key: string]: number;
+            } | null;
         };
         /**
          * ModelUpdate
@@ -4523,38 +4839,86 @@ export type components = {
         ModelUpdate: {
             /** Benchmark Coding */
             benchmark_coding?: number | null;
+            /** Benchmark Intelligence */
+            benchmark_intelligence?: number | null;
+            /** Benchmark Intelligence Reasoning */
+            benchmark_intelligence_reasoning?: number | null;
             /** Benchmark Math */
             benchmark_math?: number | null;
+            /** Benchmarks Extra */
+            benchmarks_extra?: {
+                [key: string]: number;
+            } | null;
+            /** Cache Creation Price Per Million 1Hr */
+            cache_creation_price_per_million_1hr?: number | null;
             /** Cache Read Price Per Million */
             cache_read_price_per_million?: number | null;
             /** Cache Write Price Per Million */
             cache_write_price_per_million?: number | null;
             /** Context Length */
             context_length?: number | null;
+            /** Deprecation Date */
+            deprecation_date?: string | null;
             /** Display Name */
             display_name?: string | null;
             /** Input Price Per Million */
             input_price_per_million?: number | null;
             /** Is Active */
             is_active?: boolean | null;
+            /** Max Input Tokens */
+            max_input_tokens?: number | null;
+            /** Max Output Tokens */
+            max_output_tokens?: number | null;
             /** Model */
             model?: string | null;
             /** Output Price Per Million */
             output_price_per_million?: number | null;
+            /** Output Reasoning Token Price Per Million */
+            output_reasoning_token_price_per_million?: number | null;
+            /** Rpm */
+            rpm?: number | null;
+            /** Supported Reasoning Efforts */
+            supported_reasoning_efforts?: string[] | null;
             /** Supports Audio Input */
             supports_audio_input?: boolean | null;
+            /** Supports Audio Output */
+            supports_audio_output?: boolean | null;
+            /** Supports Native Structured Output */
+            supports_native_structured_output?: boolean | null;
             /** Supports Pdf Input */
             supports_pdf_input?: boolean | null;
             /** Supports Prompt Caching */
             supports_prompt_caching?: boolean | null;
             /** Supports Reasoning */
             supports_reasoning?: boolean | null;
+            /** Supports Response Schema */
+            supports_response_schema?: boolean | null;
             /** Supports Tool Calls */
             supports_tool_calls?: boolean | null;
+            /** Supports Tool Choice */
+            supports_tool_choice?: boolean | null;
+            /** Supports Video Input */
+            supports_video_input?: boolean | null;
             /** Supports Vision */
             supports_vision?: boolean | null;
+            /** Supports Web Search */
+            supports_web_search?: boolean | null;
+            /** Time To First Answer Token Ms */
+            time_to_first_answer_token_ms?: number | null;
+            /** Time To First Token Ms */
+            time_to_first_token_ms?: number | null;
             /** Tokens Per Second */
             tokens_per_second?: number | null;
+            /** Tpm */
+            tpm?: number | null;
+            /** Web Search Billing Unit */
+            web_search_billing_unit?: string | null;
+            /** Web Search Price Per Query */
+            web_search_price_per_query?: number | null;
+            /** Web Search Pricing Details */
+            web_search_pricing_details?: {
+                [key: string]: number;
+            } | null;
         };
         /**
          * ModelValidationRequest
@@ -5815,6 +6179,12 @@ export type components = {
          * @description Request to retry failed expertises for an existing enrichment record.
          */
         RetryExpertisesRequest: {
+            /**
+             * Enable Web Search
+             * @description Enable provider builtin web search for the model if supported
+             * @default false
+             */
+            enable_web_search: boolean;
             /**
              * Entity Data
              * @description Entity data for enrichment
@@ -7423,6 +7793,12 @@ export type components = {
              */
             classification_model?: string | null;
             /**
+             * Enable Web Search
+             * @description Enable provider builtin web search for selected models that support it
+             * @default false
+             */
+            enable_web_search: boolean;
+            /**
              * Entity Data
              * @description Entity data to enrich
              */
@@ -8103,8 +8479,7 @@ export type BulkToggleRequest = components['schemas']['BulkToggleRequest'];
 export type BulkToggleResult = components['schemas']['BulkToggleResult'];
 export type CheckoutSessionResponse = components['schemas']['CheckoutSessionResponse'];
 export type ClassificationContext = components['schemas']['ClassificationContext'];
-export type ConfigExportInput = components['schemas']['ConfigExport-Input'];
-export type ConfigExportOutput = components['schemas']['ConfigExport-Output'];
+export type ConfigExport = components['schemas']['ConfigExport'];
 export type ConflictReport = components['schemas']['ConflictReport'];
 export type CostStatsRow = components['schemas']['CostStatsRow'];
 export type CostSummary = components['schemas']['CostSummary'];
@@ -11813,7 +12188,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConfigExport-Output"];
+                    "application/json": components["schemas"]["ConfigExport"];
                 };
             };
             /** @description Validation Error */

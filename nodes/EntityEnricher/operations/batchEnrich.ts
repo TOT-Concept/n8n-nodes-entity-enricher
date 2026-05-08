@@ -42,6 +42,9 @@ export async function execute(
 	const arbitrationModel = context.getNodeParameter(
 		'arbitrationModel', 0, '',
 	) as string;
+	const enableWebSearch = context.getNodeParameter(
+		'enableWebSearch', 0, 'off',
+	) as 'on' | 'off';
 	const timeout = context.getNodeParameter('timeout', 0, 300000) as number;
 	const includeEnrichmentMetadata = context.getNodeParameter(
 		'includeEnrichmentMetadata', 0, false,
@@ -86,6 +89,7 @@ export async function execute(
 	};
 	if (classificationModel) body.classification_model = classificationModel;
 	if (arbitrationModel) body.arbitration_model = arbitrationModel;
+	if (enableWebSearch === 'on') body.enable_web_search = true;
 
 	// Start batch job
 	let jobResponse: JobStartResponse;

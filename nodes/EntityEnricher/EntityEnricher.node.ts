@@ -403,6 +403,25 @@ export class EntityEnricher implements INodeType {
 				},
 			},
 
+			// Web Search (auto-disabled when no selected model supports it)
+			{
+				displayName: 'Web Search',
+				name: 'enableWebSearch',
+				type: 'options',
+				typeOptions: {
+					loadOptionsMethod: 'getWebSearchOptions',
+					loadOptionsDependsOn: ['models'],
+				},
+				default: 'off',
+				description: 'Enable provider builtin web search for models that support it. Locked off when no selected model supports web search.',
+				displayOptions: {
+					show: {
+						resource: ['enrichment'],
+						operation: ['enrichEntity', 'batchEnrich'],
+					},
+				},
+			},
+
 			// Timeout
 			{
 				displayName: 'Timeout (ms)',
@@ -568,6 +587,50 @@ export class EntityEnricher implements INodeType {
 						name: m.display_name ?? m.key,
 						value: m.key,
 					})),
+				];
+			},
+
+			async getWebSearchOptions(
+				this: ILoadOptionsFunctions,
+			): Promise<INodePropertyOptions[]> {
+				// Read currently-selected models from sibling parameter and intersect
+				// with API-reported web-search capability. Lock the dropdown to "Off"
+				// when no selected model supports web search.
+				let selectedModels: string[] = [];
+				try {
+					const raw = this.getCurrentNodeParameter('models');
+					if (Array.isArray(raw)) {
+						selectedModels = raw.filter((v): v is string => typeof v === 'string');
+					}
+				} catch {
+					// Parameter not yet bound — treat as no selection
+				}
+
+				const optionsResponse = await apiRequest(
+					this, '/api/enrichment/options',
+				) as EnrichmentOptionsResponse;
+
+				const supportsByKey = new Map<string, boolean>(
+					optionsResponse.models.map((m) => [m.key, !!m.supports_web_search]),
+				);
+
+				// When no models picked yet, leave both options enabled so the
+				// field becomes usable as soon as the user selects models.
+				const anySupports = selectedModels.length === 0
+					|| selectedModels.some((k) => supportsByKey.get(k) === true);
+
+				if (!anySupports) {
+					return [
+						{
+							name: 'Off — no selected model supports web search',
+							value: 'off',
+						},
+					];
+				}
+
+				return [
+					{ name: 'Off', value: 'off' },
+					{ name: 'On', value: 'on' },
 				];
 			},
 

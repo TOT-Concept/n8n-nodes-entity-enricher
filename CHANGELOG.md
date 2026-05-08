@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0 (2026-05-07)
+
+### Features
+
+- **Web Search** option on Enrich Entity and Batch Enrich actions — opt-in to provider builtin web search (OpenAI Responses, Anthropic, xAI/Grok, Groq, Google, OpenRouter) for selected models that support it. The dropdown auto-locks to "Off — no selected model supports web search" when none of the selected models declare the capability, mirroring the web app behaviour.
+
 ## 1.2.3 (2026-05-06)
 
 ### Fixed

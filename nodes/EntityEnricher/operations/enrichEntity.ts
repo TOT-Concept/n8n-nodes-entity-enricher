@@ -37,6 +37,9 @@ export async function execute(
 	const arbitrationModel = context.getNodeParameter(
 		'arbitrationModel', itemIndex, '',
 	) as string;
+	const enableWebSearch = context.getNodeParameter(
+		'enableWebSearch', itemIndex, 'off',
+	) as 'on' | 'off';
 	const timeout = context.getNodeParameter('timeout', itemIndex, 300000) as number;
 	const includePerModelResults = context.getNodeParameter(
 		'includePerModelResults', itemIndex, false,
@@ -81,6 +84,7 @@ export async function execute(
 	};
 	if (classificationModel) body.classification_model = classificationModel;
 	if (arbitrationModel) body.arbitration_model = arbitrationModel;
+	if (enableWebSearch === 'on') body.enable_web_search = true;
 
 	// Start enrichment job
 	let jobResponse: JobStartResponse;
