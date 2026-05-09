@@ -153,6 +153,33 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/users/{user_id}/organization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change User Organization Admin
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     Move a user to a different organization (system admin only).
+         *
+         *     Owners are auto-demoted to editor on the move because the owner role is
+         *     org-scoped. The system-admin role is preserved (it's system-wide).
+         *     Records, schemas, API keys, and provider keys created by the user remain
+         *     in the previous organization.
+         */
+        patch: operations["change_user_organization_admin_api_admin_users__user_id__organization_patch"];
+        trace?: never;
+    };
     "/api/admin/users/{user_id}/reactivate": {
         parameters: {
             query?: never;
@@ -3100,6 +3127,14 @@ export type components = {
              * @default 0
              */
             models_toggled: number;
+        };
+        /** ChangeOrganizationRequest */
+        ChangeOrganizationRequest: {
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
         };
         /** CheckoutSessionResponse */
         CheckoutSessionResponse: {
@@ -8477,6 +8512,7 @@ export type BulkModelDeleteRequest = components['schemas']['BulkModelDeleteReque
 export type BulkModelToggleRequest = components['schemas']['BulkModelToggleRequest'];
 export type BulkToggleRequest = components['schemas']['BulkToggleRequest'];
 export type BulkToggleResult = components['schemas']['BulkToggleResult'];
+export type ChangeOrganizationRequest = components['schemas']['ChangeOrganizationRequest'];
 export type CheckoutSessionResponse = components['schemas']['CheckoutSessionResponse'];
 export type ClassificationContext = components['schemas']['ClassificationContext'];
 export type ConfigExport = components['schemas']['ConfigExport'];
@@ -8859,6 +8895,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_user_organization_admin_api_admin_users__user_id__organization_patch: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeOrganizationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserWithOrganization"];
                 };
             };
             /** @description Validation Error */
