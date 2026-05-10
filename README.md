@@ -5,7 +5,7 @@
 
 An [n8n](https://n8n.io/) community node that integrates with [Entity Enricher](https://entityenricher.ai) — a multi-model LLM enrichment platform with schema-driven structured output, multilingual support, and automated fusion.
 
-![Single entity enrichment workflow](https://entityenricher.ai/docs/demo-single-enrichment-n8n-connector.webm)
+![Single entity enrichment workflow](https://entityenricher.ai/docs/demo-single-enrichment-n8n-connector.gif)
 
 ## Installation
 
