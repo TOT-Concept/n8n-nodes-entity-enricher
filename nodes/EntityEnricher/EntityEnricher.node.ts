@@ -497,14 +497,14 @@ export class EntityEnricher implements INodeType {
 
 				if (!schemas.length) {
 					return [{
-						name: '⚠ No schemas found — create one in Schema Editor',
+						name: 'No schemas found - create one in Schema Editor',
 						value: '',
 						description: `${baseUrl}/schema-editor`,
 					}];
 				}
 
 				return schemas.map((s) => ({
-					name: s.is_pinned ? `\u2B50 ${s.name}` : s.name,
+					name: s.is_pinned ? `[Pinned] ${s.name}` : s.name,
 					value: s.id,
 					description: s.tags.length ? `Tags: ${s.tags.join(', ')}` : undefined,
 				}));
@@ -527,7 +527,7 @@ export class EntityEnricher implements INodeType {
 				const limits = extractProfileLimits(options);
 				if (limits?.max_models_per_enrichment != null) {
 					modelOptions.push({
-						name: `⚠ Plan limit: max ${limits.max_models_per_enrichment} model(s) per enrichment`,
+						name: `Plan limit: max ${limits.max_models_per_enrichment} model(s) per enrichment`,
 						value: '__plan_limit_notice__',
 						description: 'Selecting more models will be rejected by the server',
 					});
@@ -542,7 +542,7 @@ export class EntityEnricher implements INodeType {
 				})));
 
 				modelOptions.push({
-					name: '➕ Add more models (manage API keys)',
+					name: 'Add more models (manage API keys)',
 					value: '',
 					description: `${baseUrl}/api-keys/ai-provider`,
 				});
@@ -647,7 +647,7 @@ export class EntityEnricher implements INodeType {
 				const limits = extractProfileLimits(options);
 				if (limits?.max_languages != null) {
 					langOptions.push({
-						name: `⚠ Plan limit: max ${limits.max_languages} language(s)`,
+						name: `Plan limit: max ${limits.max_languages} language(s)`,
 						value: '__plan_limit_notice__',
 						description: 'Selecting more languages will be rejected by the server',
 					});

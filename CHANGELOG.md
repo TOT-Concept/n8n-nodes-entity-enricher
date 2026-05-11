@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.3 (2026-05-11)
+
+### Fixed
+
+- **n8n manual review compliance** — removed emoji and symbol characters (⚠, ⭐, ➕) from `loadOptions` display names in Schema, Models, and Languages dropdowns. Pinned schemas now use a `[Pinned]` text prefix; plan-limit and "add more models" entries use plain text labels. Display names and option labels must be plain text per n8n UX guidelines.
+
 ## 1.3.0 (2026-05-07)
 
 ### Features
