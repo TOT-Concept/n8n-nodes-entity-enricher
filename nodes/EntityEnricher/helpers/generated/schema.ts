@@ -11,8 +11,25 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** No Frontend */
-        get: operations["no_frontend__get"];
+        /** Serve Index */
+        get: operations["serve_index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve Spa */
+        get: operations["serve_spa__path__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2607,6 +2624,28 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/single/enrich/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Synchronous single-entity enrichment
+         * @description 🔒 **Requires: operator (level 1+)**
+         *
+         *     Blocks until the enrichment job finishes and returns the final fused (or best single-model) result. Designed for non-streaming clients such as Make.com, Zapier, or curl. Returns HTTP 422 with classification context if the entity is rejected by pre-flight classification, 504 on timeout, 502 on enrichment failure.
+         */
+        post: operations["enrich_sync_api_single_enrich_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/single/retry-expertises/stream": {
         parameters: {
             query?: never;
@@ -3903,6 +3942,18 @@ export type components = {
             job_id: string;
             /** Message */
             message: string;
+        };
+        /**
+         * FusionSummary
+         * @description Conflict-report summary returned to sync clients.
+         */
+        FusionSummary: {
+            /** Agreed Fields */
+            agreed_fields: number;
+            /** Conflicted Fields */
+            conflicted_fields: number;
+            /** Total Fields */
+            total_fields: number;
         };
         /**
          * GeneratedJsonSchema
@@ -5992,6 +6043,8 @@ export type components = {
             model_name: string;
             /** Organization Name */
             organization_name?: string | null;
+            /** Origin */
+            origin?: string | null;
             /** Output Tokens */
             output_tokens?: number | null;
             /** Processing Time Ms */
@@ -6141,6 +6194,8 @@ export type components = {
             model_name: string;
             /** Organization Name */
             organization_name?: string | null;
+            /** Origin */
+            origin?: string | null;
             /** Output Tokens */
             output_tokens?: number | null;
             /** Processing Time Ms */
@@ -6446,6 +6501,60 @@ export type components = {
             result?: {
                 [key: string]: unknown;
             } | null;
+            /** Success */
+            success: boolean;
+        };
+        /**
+         * SingleEnrichmentSyncResponse
+         * @description Final, blocking response for synchronous single-entity enrichment.
+         *
+         *     Returned by POST /api/single/enrich/sync. Wraps the SSE flow server-side
+         *     and exposes the merged (fused) result when 2+ models succeed, or the best
+         *     single-model result otherwise. Designed for clients that can't consume
+         *     SSE streams (Make.com, curl, Zapier).
+         */
+        SingleEnrichmentSyncResponse: {
+            /** Cost Usd */
+            cost_usd?: number | null;
+            fusion?: components["schemas"]["FusionSummary"] | null;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /** Is Fused */
+            is_fused: boolean;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Model
+             * @description Model used (only set when is_fused=False)
+             */
+            model?: string | null;
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /**
+             * Per Model Results
+             * @description Per-model results (only included when include_per_model_results=true)
+             */
+            per_model_results?: components["schemas"]["SingleEnrichmentResponse"][] | null;
+            /** Processing Time Ms */
+            processing_time_ms?: number | null;
+            /**
+             * Profile Limits
+             * @description Org's plan limits (only included when include_profile_limits=true)
+             */
+            profile_limits?: {
+                [key: string]: unknown;
+            } | null;
+            /** Record Id */
+            record_id?: string | null;
+            /** Result */
+            result?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Source Models
+             * @description Models combined into the fused result (only set when is_fused=True)
+             */
+            source_models?: string[] | null;
             /** Success */
             success: boolean;
         };
@@ -8194,6 +8303,73 @@ export type components = {
             typical_examples?: string[];
         };
         /**
+         * SyncEnrichRequest
+         * @description Request body for synchronous single-entity enrichment.
+         */
+        SyncEnrichRequest: {
+            /**
+             * Arbitration Model
+             * @description Model for auto-fusion LLM arbitration after enrichment (None = rule-based)
+             */
+            arbitration_model?: string | null;
+            /**
+             * Classification Model
+             * @description Optional model for pre-flight entity classification
+             */
+            classification_model?: string | null;
+            /**
+             * Enable Web Search
+             * @description Enable provider builtin web search for selected models that support it
+             * @default false
+             */
+            enable_web_search: boolean;
+            /**
+             * Entity Data
+             * @description Entity data to enrich
+             */
+            entity_data: {
+                [key: string]: unknown;
+            };
+            /**
+             * Include Per Model Results
+             * @description When True, include the full per-model result list alongside the fused/best result. Useful for downstream debugging or analytics
+             * @default false
+             */
+            include_per_model_results: boolean;
+            /**
+             * Include Profile Limits
+             * @description When True, echo the org's profile_limits in the response so downstream automations can branch on remaining quota
+             * @default false
+             */
+            include_profile_limits: boolean;
+            /**
+             * Languages
+             * @default [
+             *       "en"
+             *     ]
+             */
+            languages: string[];
+            /**
+             * Models
+             * @description Model composite keys
+             */
+            models: string[];
+            /** Schema Id */
+            schema_id?: string | null;
+            /**
+             * Strategy
+             * @default single_pass
+             */
+            strategy: string;
+            target_schema?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
+            /**
+             * Timeout Seconds
+             * @description How long to wait for the enrichment to finish before returning 504
+             * @default 300
+             */
+            timeout_seconds: number;
+        };
+        /**
          * TestConnectionResponse
          * @description Response model for connection test.
          */
@@ -8544,6 +8720,7 @@ export type FieldSuggestionItem = components['schemas']['FieldSuggestionItem'];
 export type FusionRequest = components['schemas']['FusionRequest'];
 export type FusionResponse = components['schemas']['FusionResponse'];
 export type FusionStreamResponse = components['schemas']['FusionStreamResponse'];
+export type FusionSummary = components['schemas']['FusionSummary'];
 export type GeneratedJsonSchemaInput = components['schemas']['GeneratedJsonSchema-Input'];
 export type GeneratedJsonSchemaOutput = components['schemas']['GeneratedJsonSchema-Output'];
 export type GenerateSampleRequest = components['schemas']['GenerateSampleRequest'];
@@ -8611,6 +8788,7 @@ export type SchemaPromptRequest = components['schemas']['SchemaPromptRequest'];
 export type SchemaPromptResponse = components['schemas']['SchemaPromptResponse'];
 export type SchemaPromptStreamRequest = components['schemas']['SchemaPromptStreamRequest'];
 export type SingleEnrichmentResponse = components['schemas']['SingleEnrichmentResponse'];
+export type SingleEnrichmentSyncResponse = components['schemas']['SingleEnrichmentSyncResponse'];
 export type SseArbitrationCompleted = components['schemas']['SSEArbitrationCompleted'];
 export type SseArbitrationStarted = components['schemas']['SSEArbitrationStarted'];
 export type SseBatchCompleted = components['schemas']['SSEBatchCompleted'];
@@ -8642,6 +8820,7 @@ export type SubscriptionPlanInput = components['schemas']['SubscriptionPlanInput
 export type SubscriptionPlanWithLimits = components['schemas']['SubscriptionPlanWithLimits'];
 export type SuggestFieldsRequest = components['schemas']['SuggestFieldsRequest'];
 export type SuggestFieldsResponse = components['schemas']['SuggestFieldsResponse'];
+export type SyncEnrichRequest = components['schemas']['SyncEnrichRequest'];
 export type TestConnectionResponse = components['schemas']['TestConnectionResponse'];
 export type TunnelAccessTokenResponse = components['schemas']['TunnelAccessTokenResponse'];
 export type TunnelCredentialCreate = components['schemas']['TunnelCredentialCreate'];
@@ -8659,7 +8838,7 @@ export type VerifyCheckoutRequest = components['schemas']['VerifyCheckoutRequest
 export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
-    no_frontend__get: {
+    serve_index__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -8675,6 +8854,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    serve_spa__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -9725,6 +9935,7 @@ export interface operations {
             header?: {
                 authorization?: string | null;
                 "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -10639,6 +10850,7 @@ export interface operations {
             header?: {
                 authorization?: string | null;
                 "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -10898,6 +11110,7 @@ export interface operations {
             header?: {
                 authorization?: string | null;
                 "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -10937,6 +11150,7 @@ export interface operations {
             header?: {
                 authorization?: string | null;
                 "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -12630,10 +12844,14 @@ export interface operations {
                 include_deleted?: boolean;
                 job_id?: string | null;
                 organization_id_filter?: string | null;
+                /** @description Filter by client origin: 'web', 'n8n', 'make', 'api', or 'legacy' (records created before origin tracking). */
+                origin?: string | null;
                 page?: number;
                 page_size?: number;
                 provider?: string | null;
                 search?: string | null;
+                /** @description Only return records created at or after this timestamp (ISO 8601). Useful for polling clients (Zapier, audit pipelines): poll periodically with the timestamp of the most recent record from the previous poll. */
+                since?: string | null;
                 sort_by?: string;
                 sort_order?: string;
                 success?: boolean | null;
@@ -12874,6 +13092,7 @@ export interface operations {
             header?: {
                 authorization?: string | null;
                 "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -12913,6 +13132,7 @@ export interface operations {
             header?: {
                 authorization?: string | null;
                 "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -13296,6 +13516,7 @@ export interface operations {
             header?: {
                 authorization?: string | null;
                 "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
             };
             path: {
                 schema_id: string;
@@ -13394,6 +13615,7 @@ export interface operations {
             header?: {
                 authorization?: string | null;
                 "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -13411,6 +13633,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StreamEnrichResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    enrich_sync_api_single_enrich_sync_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncEnrichRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SingleEnrichmentSyncResponse"];
                 };
             };
             /** @description Validation Error */

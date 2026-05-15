@@ -45,6 +45,7 @@ export async function consumeSSEStream(
 			url: `${baseUrl}/api/llm/stream/${jobId}`,
 			headers: {
 				'X-API-Key': apiKey,
+				'X-Client-Origin': 'n8n',
 				Accept: 'text/event-stream',
 			},
 			encoding: 'stream',
@@ -158,7 +159,7 @@ async function cancelJob(
 		await context.helpers.httpRequest({
 			method: 'POST',
 			url: `${baseUrl}/api/llm/cancel/${jobId}`,
-			headers: { 'X-API-Key': apiKey },
+			headers: { 'X-API-Key': apiKey, 'X-Client-Origin': 'n8n' },
 			ignoreHttpStatusErrors: true,
 		});
 	} catch {

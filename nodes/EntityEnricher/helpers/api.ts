@@ -88,6 +88,7 @@ export async function apiRequest(
 		url: `${baseUrl}${path}`,
 		headers: {
 			'X-API-Key': apiKey,
+			'X-Client-Origin': 'n8n',
 			'Content-Type': 'application/json',
 		},
 		returnFullResponse: true,
