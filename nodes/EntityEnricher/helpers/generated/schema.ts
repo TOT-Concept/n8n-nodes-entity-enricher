@@ -38,6 +38,48 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/attachment-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Attachment Policies
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     List all attachment format policies.
+         */
+        get: operations["list_attachment_policies_api_admin_attachment_policies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/attachment-policies/{mime_type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Attachment Policy
+         * @description Update a single policy row (mode / is_enabled / label / requires_capability).
+         */
+        patch: operations["update_attachment_policy_api_admin_attachment_policies__mime_type__patch"];
+        trace?: never;
+    };
     "/api/admin/organizations": {
         parameters: {
             query?: never;
@@ -239,6 +281,58 @@ export type paths = {
          *     Update any user's role (system admin only).
          */
         patch: operations["update_user_role_admin_api_admin_users__user_id__role_patch"];
+        trace?: never;
+    };
+    "/api/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Attachments
+         * @description 🔒 **Requires: operator (level 1+)**
+         *
+         *     Upload one or more attachment files.
+         *
+         *     Multipart form-data with one or more `files` parts. Each file is:
+         *       1. Size-checked against per-file + per-request caps
+         *       2. MIME-sniffed (magic bytes + extension) and matched to a policy row
+         *       3. SHA-256 hashed
+         *       4. Written atomically to the storage box under {org_id}/{sha[:2]}/...
+         *       5. If policy mode='inline_text', extracted (and cached) at this step
+         *       6. Upserted into the attachments table (dedup by org+sha256)
+         */
+        post: operations["upload_attachments_api_attachments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attachments/{attachment_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Attachment
+         * @description 🔒 **Requires: operator (level 1+)**
+         *
+         *     Stream the original bytes of an attachment back to the caller (org-scoped).
+         */
+        get: operations["download_attachment_api_attachments__attachment_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/auth/api-keys": {
@@ -2027,6 +2121,10 @@ export type paths = {
          * @description 🔒 **Requires: operator (level 1+)**
          *
          *     Get a single model by ID.
+         *
+         *     For base rows, returns the resolved view (org override > global override
+         *     > base). Override rows themselves are rejected — callers should look up
+         *     the base by ``base_model_id``.
          */
         get: operations["get_model_api_providers_models__model_id__get"];
         put?: never;
@@ -2053,11 +2151,73 @@ export type paths = {
          *
          *     Update a model.
          *
+         *     For synced base models (source in pricepertoken/litellm/seed), edits land
+         *     in an override row instead of mutating the canonical row — admins write
+         *     a global override (organization_id IS NULL), owners write an org-scoped
+         *     override against the global base. Fields that match the base value get
+         *     dropped from the override (auto-clean); an override row with no remaining
+         *     overridden fields is deleted entirely.
+         *
+         *     For non-synced models (source in manual/discovered) the base row is
+         *     updated directly, preserving the legacy behavior.
+         *
          *     Authorization:
-         *     - System admin: can edit any model (global or org-scoped)
-         *     - Owner: can only edit models scoped to their organization
+         *     - System admin: can edit any base model (creates global overrides on synced)
+         *     - Owner: can edit models scoped to their org directly, or create
+         *       org-scoped overrides against global synced models.
          */
         patch: operations["update_model_api_providers_models__model_id__patch"];
+        trace?: never;
+    };
+    "/api/providers/models/{model_id}/override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Model Override
+         * @description 🔒 **Requires: owner (level 4+)**
+         *
+         *     Delete the entire override row for a base model (revert all fields).
+         *
+         *     Query param ``organization_id`` chooses which override to delete:
+         *     - system admin: omit to delete the global override; pass a UUID to
+         *       delete an org-scoped override
+         *     - owner: omit (the org-scoped override for the user's own org is deleted)
+         */
+        delete: operations["delete_model_override_api_providers_models__model_id__override_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/providers/models/{model_id}/override/fields/{field}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Clear Model Override Field
+         * @description 🔒 **Requires: owner (level 4+)**
+         *
+         *     Revert a single field on the override row to the base value.
+         *
+         *     Auto-deletes the override row if no overridden fields remain afterwards.
+         */
+        delete: operations["clear_model_override_field_api_providers_models__model_id__override_fields__field__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/providers/models/all": {
@@ -2130,6 +2290,31 @@ export type paths = {
          *     When enabling, skips models whose providers have no API keys configured.
          */
         post: operations["bulk_toggle_models_api_providers_models_bulk_toggle_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/providers/models/overrides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Model Overrides Endpoint
+         * @description 🔒 **Requires: owner (level 4+)**
+         *
+         *     List LLM model overrides.
+         *
+         *     - System admins see all overrides across every organization plus globals.
+         *     - Owners see only globals + their own org overrides.
+         */
+        get: operations["list_model_overrides_endpoint_api_providers_models_overrides_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2926,6 +3111,130 @@ export type components = {
             plan_id?: string | null;
         };
         /**
+         * AttachmentFormatPolicy
+         * @description A single MIME-type policy row.
+         */
+        AttachmentFormatPolicy: {
+            /** Extensions */
+            extensions: string[];
+            /**
+             * Extractor
+             * @description Server-side extractor identifier (e.g. 'python-docx', 'openpyxl'). Required when mode='inline_text' and the MIME is not a direct-text type.
+             */
+            extractor?: string | null;
+            /** Is Enabled */
+            is_enabled: boolean;
+            /** Label */
+            label: string;
+            /** Mime Type */
+            mime_type: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "inline_text" | "binary";
+            /**
+             * Requires Capability
+             * @description Model capability flag required when mode='binary' (e.g. 'supports_pdf_input', 'supports_vision'). Drives the model-picker filter on the frontend.
+             */
+            requires_capability?: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Updated By Id */
+            updated_by_id: string | null;
+        };
+        /**
+         * AttachmentFormatPolicyUpdate
+         * @description Admin PATCH payload — every field optional.
+         */
+        AttachmentFormatPolicyUpdate: {
+            /** Is Enabled */
+            is_enabled?: boolean | null;
+            /** Label */
+            label?: string | null;
+            /** Mode */
+            mode?: ("inline_text" | "binary") | null;
+            /**
+             * Requires Capability
+             * @description Pass an explicit null to clear. Use empty string to keep current. (FastAPI/Pydantic treats explicit null distinctly from omission.)
+             */
+            requires_capability?: string | null;
+        };
+        /**
+         * AttachmentRef
+         * @description Lightweight reference returned to the UI — never carries bytes or extracted text.
+         */
+        AttachmentRef: {
+            /**
+             * Extraction Kind
+             * @enum {string}
+             */
+            extraction_kind: "binary" | "inline_text" | "extracted";
+            /** Filename */
+            filename: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Media Type */
+            media_type: string;
+            /**
+             * Mode
+             * @description Effective mode for this MIME from the current admin policy. Used by the frontend to display the badge ('inline text' / 'binary').
+             * @enum {string}
+             */
+            mode: "inline_text" | "binary";
+            /**
+             * Requires Capability
+             * @description If mode='binary' and this MIME requires a specific model capability (e.g. 'supports_pdf_input', 'supports_vision'), the UI filters the model picker accordingly. NULL = no auto-gating.
+             */
+            requires_capability?: string | null;
+            /** Sha256 */
+            sha256: string;
+            /** Size Bytes */
+            size_bytes: number;
+        };
+        /**
+         * AttachmentUploadResponse
+         * @description Single-file upload response item. POST /api/attachments returns a list of these.
+         */
+        AttachmentUploadResponse: {
+            /**
+             * Extracted Chars
+             * @description Number of characters in the cached extracted_text (if any). For UI hints.
+             */
+            extracted_chars?: number | null;
+            /**
+             * Extraction Kind
+             * @enum {string}
+             */
+            extraction_kind: "binary" | "inline_text" | "extracted";
+            /** Filename */
+            filename: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Media Type */
+            media_type: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "inline_text" | "binary";
+            /** Requires Capability */
+            requires_capability?: string | null;
+            /** Sha256 */
+            sha256: string;
+            /** Size Bytes */
+            size_bytes: number;
+        };
+        /**
          * AuthConfig
          * @description Authentication configuration for REST API fetching.
          */
@@ -2995,6 +3304,11 @@ export type components = {
              * @description Model for auto-fusion LLM arbitration (None = rule-based)
              */
             arbitration_model?: string | null;
+            /**
+             * Attachment Ids
+             * @description Optional uploaded attachments (UUIDs from POST /api/attachments). Applied to every entity in the batch.
+             */
+            attachment_ids?: string[] | null;
             /**
              * Classification Model
              * @description Optional model for pre-flight entity classification
@@ -3101,6 +3415,11 @@ export type components = {
             low_balance_threshold?: number | string | null;
             /** Vat Id */
             vat_id?: string | null;
+        };
+        /** Body_upload_attachments_api_attachments_post */
+        Body_upload_attachments_api_attachments_post: {
+            /** Files */
+            files: string[];
         };
         /**
          * BulkDeleteRequest
@@ -3438,6 +3757,11 @@ export type components = {
          * @description Request for custom prompt execution.
          */
         CustomPromptRequest: {
+            /**
+             * Attachment Ids
+             * @description Optional uploaded attachments (UUIDs from POST /api/attachments).
+             */
+            attachment_ids?: string[] | null;
             /**
              * Enrichment Record Id
              * @description Optional link to an enrichment record
@@ -3882,6 +4206,11 @@ export type components = {
              */
             arbitration_model?: string | null;
             /**
+             * Attachment Ids
+             * @description Optional uploaded attachments passed to the arbitration LLM (ignored when arbitration_model is None — rule-based merge does not see them).
+             */
+            attachment_ids?: string[] | null;
+            /**
              * Result Ids
              * @description IDs of enrichment records to merge (minimum 2)
              */
@@ -4037,8 +4366,12 @@ export type components = {
         };
         /** GenerateSampleRequest */
         GenerateSampleRequest: {
+            /** Attachment Ids */
+            attachment_ids?: string[] | null;
             /** Entity Type */
             entity_type: string;
+            /** Extra Instructions */
+            extra_instructions?: string | null;
             /** Fields */
             fields?: string[];
             /**
@@ -4726,6 +5059,97 @@ export type components = {
             web_search_pricing_details?: {
                 [key: string]: number;
             } | null;
+        };
+        /**
+         * ModelOverrideBaseSnapshot
+         * @description Snapshot of the synced base model an override targets.
+         *
+         *     Sent on every override list/get response so the UI can render the diff
+         *     (base value → override value) without a second round trip.
+         */
+        ModelOverrideBaseSnapshot: {
+            /**
+             * Field Values
+             * @description Base values for fields that are overridden (subset of model fields).
+             */
+            field_values?: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id: number;
+            /**
+             * Model
+             * @description Base model identifier (API name)
+             */
+            model: string;
+            /** Provider Display Name */
+            provider_display_name: string;
+            /** Provider Name */
+            provider_name: string;
+            /**
+             * Source
+             * @description Base model source: 'pricepertoken', 'litellm', 'seed', ...
+             */
+            source: string;
+        };
+        /**
+         * ModelOverrideListResponse
+         * @description Paginated-style list response for the Overrides tab.
+         */
+        ModelOverrideListResponse: {
+            /** Items */
+            items: components["schemas"]["ModelOverrideResponse"][];
+        };
+        /**
+         * ModelOverrideResponse
+         * @description Response shape for a single override row.
+         *
+         *     Override rows live in `llm_models` with `base_model_id` pointing at the
+         *     synced base. Each non-NULL editable column on the override row replaces
+         *     the same column on the base when the resolver runs.
+         */
+        ModelOverrideResponse: {
+            base: components["schemas"]["ModelOverrideBaseSnapshot"];
+            /** Base Model Id */
+            base_model_id: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By Email */
+            created_by_email?: string | null;
+            /**
+             * Field Values
+             * @description Sparse {column: override_value} dict; one entry per overridden field
+             */
+            field_values: {
+                [key: string]: unknown;
+            };
+            /** Id */
+            id: number;
+            /**
+             * Organization Id
+             * @description Owning org for org-scoped overrides; null for global (admin) overrides.
+             */
+            organization_id?: string | null;
+            /** Organization Name */
+            organization_name?: string | null;
+            /** Organization Slug */
+            organization_slug?: string | null;
+            /**
+             * Overridden Fields
+             * @description Names of columns that carry a non-NULL override value
+             */
+            overridden_fields: string[];
+            /**
+             * Scope
+             * @description 'global' for admin overrides, 'organization' for org-scoped
+             * @enum {string}
+             */
+            scope: "global" | "organization";
+            /** Updated At */
+            updated_at: string | null;
         };
         /**
          * ModelResponse
@@ -5995,6 +6419,11 @@ export type components = {
          */
         RecordDetail: {
             /**
+             * Attachments
+             * @description Documents attached to this enrichment job (PDFs, images, office files, text).
+             */
+            attachments?: components["schemas"]["AttachmentRef"][];
+            /**
              * Cancelled
              * @default false
              */
@@ -6270,6 +6699,11 @@ export type components = {
          */
         RetryExpertisesRequest: {
             /**
+             * Attachment Ids
+             * @description Optional uploaded attachments (UUIDs from POST /api/attachments).
+             */
+            attachment_ids?: string[] | null;
+            /**
              * Enable Web Search
              * @description Enable provider builtin web search for the model if supported
              * @default false
@@ -6434,6 +6868,11 @@ export type components = {
          */
         SchemaPromptRequest: {
             /**
+             * Attachment Ids
+             * @description Optional uploaded attachments (UUIDs from POST /api/attachments).
+             */
+            attachment_ids?: string[] | null;
+            /**
              * Model
              * @description Model composite key (e.g., 'openai::gpt-4o-mini')
              */
@@ -6458,6 +6897,11 @@ export type components = {
          * @description Request to start streaming schema prompt editing.
          */
         SchemaPromptStreamRequest: {
+            /**
+             * Attachment Ids
+             * @description Optional uploaded attachments (UUIDs from POST /api/attachments).
+             */
+            attachment_ids?: string[] | null;
             /**
              * Model
              * @description Model composite key
@@ -7932,6 +8376,11 @@ export type components = {
              */
             arbitration_model?: string | null;
             /**
+             * Attachment Ids
+             * @description Optional uploaded attachments (UUIDs from POST /api/attachments).
+             */
+            attachment_ids?: string[] | null;
+            /**
              * Classification Model
              * @description Optional model for pre-flight entity classification
              */
@@ -7986,12 +8435,22 @@ export type components = {
          */
         StreamGenerateRequest: {
             /**
+             * Attachment Ids
+             * @description Optional uploaded attachments (UUIDs from POST /api/attachments).
+             */
+            attachment_ids?: string[] | null;
+            /**
              * Entity Data
              * @description Entity data to analyze
              */
             entity_data: {
                 [key: string]: unknown;
             };
+            /**
+             * Extra Instructions
+             * @description Optional free-form user instructions appended to the system prompt.
+             */
+            extra_instructions?: string | null;
             /**
              * Model
              * @description Model composite key
@@ -8277,8 +8736,12 @@ export type components = {
         };
         /** SuggestFieldsRequest */
         SuggestFieldsRequest: {
+            /** Attachment Ids */
+            attachment_ids?: string[] | null;
             /** Entity Type */
             entity_type: string;
+            /** Extra Instructions */
+            extra_instructions?: string | null;
             /**
              * Model
              * @description Model composite key
@@ -8312,6 +8775,11 @@ export type components = {
              * @description Model for auto-fusion LLM arbitration after enrichment (None = rule-based)
              */
             arbitration_model?: string | null;
+            /**
+             * Attachment Ids
+             * @description Optional uploaded attachments (UUIDs from POST /api/attachments).
+             */
+            attachment_ids?: string[] | null;
             /**
              * Classification Model
              * @description Optional model for pre-flight entity classification
@@ -8672,6 +9140,10 @@ export type ApiKeyCreateResponse = components['schemas']['ApiKeyCreateResponse']
 export type ApiKeyResponse = components['schemas']['ApiKeyResponse'];
 export type ApiKeyUpdate = components['schemas']['ApiKeyUpdate'];
 export type AssignPlanRequest = components['schemas']['AssignPlanRequest'];
+export type AttachmentFormatPolicy = components['schemas']['AttachmentFormatPolicy'];
+export type AttachmentFormatPolicyUpdate = components['schemas']['AttachmentFormatPolicyUpdate'];
+export type AttachmentRef = components['schemas']['AttachmentRef'];
+export type AttachmentUploadResponse = components['schemas']['AttachmentUploadResponse'];
 export type AuthConfig = components['schemas']['AuthConfig'];
 export type BatchDeleteRequest = components['schemas']['BatchDeleteRequest'];
 export type BatchEnrichmentJobResponse = components['schemas']['BatchEnrichmentJobResponse'];
@@ -8682,6 +9154,7 @@ export type BatchRestoreRequest = components['schemas']['BatchRestoreRequest'];
 export type BillingOverview = components['schemas']['BillingOverview'];
 export type BillingPortalResponse = components['schemas']['BillingPortalResponse'];
 export type BillingSettingsUpdate = components['schemas']['BillingSettingsUpdate'];
+export type BodyUploadAttachmentsApiAttachmentsPost = components['schemas']['Body_upload_attachments_api_attachments_post'];
 export type BulkDeleteRequest = components['schemas']['BulkDeleteRequest'];
 export type BulkDeleteResult = components['schemas']['BulkDeleteResult'];
 export type BulkModelDeleteRequest = components['schemas']['BulkModelDeleteRequest'];
@@ -8742,6 +9215,9 @@ export type ModelCostRow = components['schemas']['ModelCostRow'];
 export type ModelCostStats = components['schemas']['ModelCostStats'];
 export type ModelCreate = components['schemas']['ModelCreate'];
 export type ModelExport = components['schemas']['ModelExport'];
+export type ModelOverrideBaseSnapshot = components['schemas']['ModelOverrideBaseSnapshot'];
+export type ModelOverrideListResponse = components['schemas']['ModelOverrideListResponse'];
+export type ModelOverrideResponse = components['schemas']['ModelOverrideResponse'];
 export type ModelResponse = components['schemas']['ModelResponse'];
 export type ModelUpdate = components['schemas']['ModelUpdate'];
 export type ModelValidationRequest = components['schemas']['ModelValidationRequest'];
@@ -8876,6 +9352,82 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_attachment_policies_api_admin_attachment_policies_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentFormatPolicy"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_attachment_policy_api_admin_attachment_policies__mime_type__patch: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                mime_type: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachmentFormatPolicyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentFormatPolicy"];
                 };
             };
             /** @description Validation Error */
@@ -9224,6 +9776,82 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserWithOrganization"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_attachments_api_attachments_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_attachments_api_attachments_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentUploadResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_attachment_api_attachments__attachment_id__download_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                attachment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -12645,6 +13273,79 @@ export interface operations {
             };
         };
     };
+    delete_model_override_api_providers_models__model_id__override_delete: {
+        parameters: {
+            query?: {
+                organization_id?: string | null;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                model_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_model_override_field_api_providers_models__model_id__override_fields__field__delete: {
+        parameters: {
+            query?: {
+                organization_id?: string | null;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                field: string;
+                model_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_all_models_api_providers_models_all_get: {
         parameters: {
             query?: {
@@ -12747,6 +13448,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BulkToggleResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_model_overrides_endpoint_api_providers_models_overrides_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelOverrideListResponse"];
                 };
             };
             /** @description Validation Error */
