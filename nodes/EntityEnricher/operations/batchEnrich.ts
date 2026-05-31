@@ -45,6 +45,12 @@ export async function execute(
 	const enableWebSearch = context.getNodeParameter(
 		'enableWebSearch', 0, 'off',
 	) as 'on' | 'off';
+	// Structured-output controls live under the collapsed "Advanced Options" collection.
+	const advancedOptions = context.getNodeParameter(
+		'advancedOptions', 0, {},
+	) as { enableResponseSchema?: 'on' | 'off'; enableStrictStructuredOutput?: 'on' | 'off' };
+	const enableResponseSchema = advancedOptions.enableResponseSchema ?? 'on';
+	const enableStrictStructuredOutput = advancedOptions.enableStrictStructuredOutput ?? 'off';
 	const timeout = context.getNodeParameter('timeout', 0, 300000) as number;
 	const includeEnrichmentMetadata = context.getNodeParameter(
 		'includeEnrichmentMetadata', 0, false,
@@ -90,6 +96,10 @@ export async function execute(
 	if (classificationModel) body.classification_model = classificationModel;
 	if (arbitrationModel) body.arbitration_model = arbitrationModel;
 	if (enableWebSearch === 'on') body.enable_web_search = true;
+	// Send both booleans explicitly so an "off" choice is honoured regardless of
+	// the backend default (response schema defaults on, strict defaults off).
+	body.enable_response_schema = enableResponseSchema === 'on';
+	body.enable_strict_structured_output = enableStrictStructuredOutput === 'on';
 
 	// Start batch job
 	let jobResponse: JobStartResponse;

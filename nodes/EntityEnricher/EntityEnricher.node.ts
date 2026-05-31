@@ -422,6 +422,48 @@ export class EntityEnricher implements INodeType {
 				},
 			},
 
+			// Advanced Options — structured-output controls, hidden under a
+			// collapsed "Add option" group (capability-gated dropdowns inside).
+			{
+				displayName: 'Advanced Options',
+				name: 'advancedOptions',
+				type: 'collection',
+				placeholder: 'Add option',
+				default: {},
+				displayOptions: {
+					show: {
+						resource: ['enrichment'],
+						operation: ['enrichEntity', 'batchEnrich'],
+					},
+				},
+				options: [
+					// Response Schema (auto-disabled when no selected model supports it)
+					{
+						displayName: 'Response Schema',
+						name: 'enableResponseSchema',
+						type: 'options',
+						typeOptions: {
+							loadOptionsMethod: 'getResponseSchemaOptions',
+							loadOptionsDependsOn: ['models'],
+						},
+						default: 'on',
+						description: 'Use the provider response-schema channel (NativeOutput) for models that support it. On by default; locked off when no selected model supports it. Capable models otherwise fall back to tool-call output.',
+					},
+					// Strict Structured Output (auto-disabled when no selected model supports it)
+					{
+						displayName: 'Strict Structured Output',
+						name: 'enableStrictStructuredOutput',
+						type: 'options',
+						typeOptions: {
+							loadOptionsMethod: 'getStrictStructuredOutputOptions',
+							loadOptionsDependsOn: ['models'],
+						},
+						default: 'off',
+						description: 'Constrain decoding to the schema (no drift) on whichever structured channel is used, for models that support it. Off by default; locked off when no selected model supports strict structured output.',
+					},
+				],
+			},
+
 			// Timeout
 			{
 				displayName: 'Timeout (ms)',
@@ -534,10 +576,10 @@ export class EntityEnricher implements INodeType {
 				}
 
 				modelOptions.push(...available.map((m) => ({
-					name: m.display_name ?? m.key,
+					name: formatModelLabel(m),
 					value: m.key,
 					description: m.input_price != null && m.output_price != null
-						? `$${m.input_price}/${m.output_price} per M tokens`
+						? `in $${m.input_price.toFixed(2)}/out $${m.output_price.toFixed(2)}`
 						: undefined,
 				})));
 
@@ -564,7 +606,7 @@ export class EntityEnricher implements INodeType {
 				return [
 					{ name: '(None)', value: '' },
 					...available.map((m) => ({
-						name: m.display_name ?? m.key,
+						name: formatModelLabel(m),
 						value: m.key,
 					})),
 				];
@@ -584,7 +626,7 @@ export class EntityEnricher implements INodeType {
 				return [
 					{ name: '(None)', value: '' },
 					...available.map((m) => ({
-						name: m.display_name ?? m.key,
+						name: formatModelLabel(m),
 						value: m.key,
 					})),
 				];
@@ -623,6 +665,94 @@ export class EntityEnricher implements INodeType {
 					return [
 						{
 							name: 'Off — no selected model supports web search',
+							value: 'off',
+						},
+					];
+				}
+
+				return [
+					{ name: 'Off', value: 'off' },
+					{ name: 'On', value: 'on' },
+				];
+			},
+
+			async getResponseSchemaOptions(
+				this: ILoadOptionsFunctions,
+			): Promise<INodePropertyOptions[]> {
+				// Read currently-selected models from sibling parameter and intersect
+				// with API-reported response-schema capability. Lock the dropdown to
+				// "Off" when no selected model supports the response-schema channel.
+				let selectedModels: string[] = [];
+				try {
+					const raw = this.getCurrentNodeParameter('models');
+					if (Array.isArray(raw)) {
+						selectedModels = raw.filter((v): v is string => typeof v === 'string');
+					}
+				} catch {
+					// Parameter not yet bound — treat as no selection
+				}
+
+				const optionsResponse = await apiRequest(
+					this, '/api/enrichment/options',
+				) as EnrichmentOptionsResponse;
+
+				const supportsByKey = new Map<string, boolean>(
+					optionsResponse.models.map((m) => [m.key, !!m.supports_response_schema]),
+				);
+
+				// When no models picked yet, leave both options enabled so the
+				// field becomes usable as soon as the user selects models.
+				const anySupports = selectedModels.length === 0
+					|| selectedModels.some((k) => supportsByKey.get(k) === true);
+
+				if (!anySupports) {
+					return [
+						{
+							name: 'Off — no selected model supports response schema',
+							value: 'off',
+						},
+					];
+				}
+
+				return [
+					{ name: 'Off', value: 'off' },
+					{ name: 'On', value: 'on' },
+				];
+			},
+
+			async getStrictStructuredOutputOptions(
+				this: ILoadOptionsFunctions,
+			): Promise<INodePropertyOptions[]> {
+				// Read currently-selected models and intersect with API-reported
+				// strict-structured-output capability. Lock the dropdown to "Off"
+				// when no selected model can constrain decoding to the schema.
+				let selectedModels: string[] = [];
+				try {
+					const raw = this.getCurrentNodeParameter('models');
+					if (Array.isArray(raw)) {
+						selectedModels = raw.filter((v): v is string => typeof v === 'string');
+					}
+				} catch {
+					// Parameter not yet bound — treat as no selection
+				}
+
+				const optionsResponse = await apiRequest(
+					this, '/api/enrichment/options',
+				) as EnrichmentOptionsResponse;
+
+				const supportsByKey = new Map<string, boolean>(
+					optionsResponse.models.map((m) => [m.key, !!m.supports_strict_structured_output]),
+				);
+
+				// When no models picked yet, leave both options enabled so the
+				// field becomes usable as soon as the user selects models.
+				const anySupports = selectedModels.length === 0
+					|| selectedModels.some((k) => supportsByKey.get(k) === true);
+
+				if (!anySupports) {
+					return [
+						{
+							name: 'Off — no selected model supports strict structured output',
 							value: 'off',
 						},
 					];
@@ -764,6 +894,51 @@ export class EntityEnricher implements INodeType {
 
 		return [returnData];
 	}
+}
+
+/**
+ * Capability flags shown after the model name in dropdowns.
+ *
+ * Ordered by "most decision-relevant first" — what users typically pick a
+ * model for. We omit `supports_prompt_caching`, `supports_strict_structured_output`,
+ * `supports_response_schema`, `supports_tool_choice`, and `supports_audio_output`
+ * because they are implementation details rather than selection criteria.
+ *
+ * Labels are emoji glyphs encoded as Unicode escape sequences so the rendered
+ * dropdown matches the web frontend's capability badges (see ModelsPanel) while
+ * the source file stays pure ASCII — n8n marketplace / npm publication tooling
+ * rejects literal emoji bytes in source. Mapping matches ModelsPanel:
+ *   reasoning  -> brain   vision   -> eye
+ *   pdf input  -> page    web sch. -> globe
+ *   tool calls -> wrench  audio    -> microphone
+ *   video      -> camera (no web-frontend equivalent; symmetric choice)
+ */
+type LLMModelInfo = EnrichmentOptionsResponse['models'][number];
+
+const MODEL_CAPABILITY_LABELS: Array<{ key: keyof LLMModelInfo; label: string }> = [
+	{ key: 'supports_reasoning', label: '\u{1F9E0}' },
+	{ key: 'supports_vision', label: '\u{1F441}\u{FE0F}' },
+	{ key: 'supports_pdf_input', label: '\u{1F4C4}' },
+	{ key: 'supports_web_search', label: '\u{1F310}' },
+	{ key: 'supports_tool_calls', label: '\u{1F527}' },
+	{ key: 'supports_audio_input', label: '\u{1F3A4}' },
+	{ key: 'supports_video_input', label: '\u{1F3A5}' },
+];
+
+/**
+ * Build the dropdown label for a model: display name + capability glyphs.
+ *
+ * Each capability the model declares contributes one emoji glyph (produced
+ * by the Unicode escapes in MODEL_CAPABILITY_LABELS above). Capabilities
+ * the model does not declare are omitted; a model with no advertised
+ * capabilities renders just its display name.
+ */
+function formatModelLabel(m: LLMModelInfo): string {
+	const base = m.display_name ?? m.key;
+	const caps = MODEL_CAPABILITY_LABELS
+		.filter(({ key }) => Boolean(m[key]))
+		.map(({ label }) => label);
+	return caps.length === 0 ? base : `${base} · ${caps.join(' · ')}`;
 }
 
 /**

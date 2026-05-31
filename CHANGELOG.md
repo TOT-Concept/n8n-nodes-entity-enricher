@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.4.0 (2026-05-31)
+
+### Features
+
+- **Response Schema** and **Strict Structured Output** dropdowns on the Enrich Entity and Batch Enrich actions. Each is gated on the selected models' capabilities and locks to a "no selected model supports …" note when none of the chosen models declare the capability (mirroring the web app). Response Schema defaults on; Strict Structured Output defaults off.
+
+### Changed
+
+- Regenerated API types from the backend OpenAPI schema (includes document-attachment endpoints).
+
+## 1.3.4 (2026-05-22)
+
+### Fixed
+
+- **Model price formatting** — round input/output token prices to 2 decimals in the Models dropdown description (e.g. `$0.22/1.65 per M tokens` instead of `$0.22000000000000003/1.6500000000000001 per M tokens`).
+
 ## 1.3.3 (2026-05-11)
 
 ### Fixed

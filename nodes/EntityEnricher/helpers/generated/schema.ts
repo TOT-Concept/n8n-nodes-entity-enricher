@@ -2135,8 +2135,11 @@ export type paths = {
          *
          *     Delete a model.
          *
-         *     Only manually created models can be deleted.
-         *     Models with associated enrichment records cannot be deleted.
+         *     Only manually-created models can be deleted. By default the request is
+         *     rejected with HTTP 409 when enrichment records still reference the model;
+         *     pass ``?force=true`` to bypass that guard. Records keep their denormalised
+         *     ``model_composite_key`` / ``model_name`` strings as historical text — no
+         *     FK exists between the two tables.
          *
          *     Authorization:
          *     - System admin: can delete any model
@@ -2262,7 +2265,9 @@ export type paths = {
          *
          *     Delete multiple models by ID.
          *
-         *     Skips models with linked enrichment records.
+         *     By default skips models with linked enrichment records (reported in
+         *     ``errors``). When ``data.force`` is true the guard is skipped — records
+         *     keep their historical model name as denormalised text.
          *     Requires system admin.
          */
         post: operations["bulk_delete_models_api_providers_models_bulk_delete_post"];
@@ -2315,6 +2320,33 @@ export type paths = {
         get: operations["list_model_overrides_endpoint_api_providers_models_overrides_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/providers/models/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get Models Usage
+         * @description 🔒 **Requires: operator (level 1+)**
+         *
+         *     Return enrichment-record counts for the given model ids.
+         *
+         *     Used by the delete-confirmation modal to warn the user about historical
+         *     records that will keep their denormalised model name even after deletion.
+         *     Available to any authenticated user — the counts are not org-scoped (the
+         *     composite_key column is denormalised and shared across orgs).
+         */
+        post: operations["get_models_usage_api_providers_models_usage_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2526,6 +2558,28 @@ export type paths = {
          *     - POST /api/llm/cancel/{job_id} - Cancel the generation
          */
         post: operations["start_schema_generation_stream_api_schema_generate_stream_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schema/generate/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Synchronous schema generation
+         * @description 🔒 **Requires: editor (level 2+)**
+         *
+         *     Blocks until schema generation finishes and returns the generated schema. Designed for non-streaming clients such as the MCP server, Make.com, Zapier, or curl. Returns HTTP 504 on timeout, 502 on generation failure, 499 if cancelled.
+         */
+        post: operations["generate_schema_sync_api_schema_generate_sync_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3315,6 +3369,18 @@ export type components = {
              */
             classification_model?: string | null;
             /**
+             * Enable Response Schema
+             * @description Use the provider response-schema channel (NativeOutput / JSON-schema enforcement) for selected models that support it. Defaults true; when false, even capable models fall back to tool-call or text output.
+             * @default true
+             */
+            enable_response_schema: boolean;
+            /**
+             * Enable Strict Structured Output
+             * @description Request strict/constrained decoding on the chosen structured channel (native or tool) for selected models that support it. Defaults false.
+             * @default false
+             */
+            enable_strict_structured_output: boolean;
+            /**
              * Enable Web Search
              * @description Enable provider builtin web search for selected models that support it
              * @default false
@@ -3452,6 +3518,12 @@ export type components = {
          * @description Request model for bulk-deleting models.
          */
         BulkModelDeleteRequest: {
+            /**
+             * Force
+             * @description When true, skip the linked-records guard and delete models even if enrichment records reference them. Records keep their denormalised model_composite_key / model_name strings as historical text.
+             * @default false
+             */
+            force: boolean;
             /** Model Ids */
             model_ids: number[];
         };
@@ -3789,6 +3861,13 @@ export type components = {
              * @description User prompt to send to the model
              */
             user_prompt: string;
+            /**
+             * Wire Schema
+             * @description Optional sample JSON describing the desired output structure. When provided, the model is asked to produce structured output matching the sample's shape (field names and inferred types).
+             */
+            wire_schema?: {
+                [key: string]: unknown;
+            } | unknown[] | null;
         };
         /**
          * CustomPromptResponse
@@ -4062,6 +4141,13 @@ export type components = {
             web_search_calls: number;
             /** Web Search Cost Usd */
             web_search_cost_usd?: number | null;
+            /**
+             * Wire Output Schema
+             * @description Structured-output schema slice as it appeared on the wire to the provider (response_format.json_schema.schema / output_config / tools[].input_schema / generationConfig.response_json_schema — provider-specific). Captured for every native/tool-channel LLM call; null for legacy rows, prompted/text channels, or pre-HTTP cancellations. May contain a `_capture_error` sentinel on extraction failure.
+             */
+            wire_output_schema?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * EntityDefinition
@@ -4395,6 +4481,40 @@ export type components = {
             /** Message */
             message: string;
         };
+        /**
+         * GenerateSchemaResponse
+         * @description Response from schema generation.
+         */
+        GenerateSchemaResponse: {
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Expertise Count */
+            expertise_count?: number | null;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /** Model */
+            model: string;
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Processing Time Ms */
+            processing_time_ms?: number | null;
+            /** Property Count */
+            property_count?: number | null;
+            /** Record Id */
+            record_id?: string | null;
+            schema?: components["schemas"]["GeneratedJsonSchema-Output"] | null;
+            /**
+             * Schema Id
+             * @description ID of auto-saved schema
+             */
+            schema_id?: string | null;
+            /** Success */
+            success: boolean;
+            /** Suggestions */
+            suggestions?: string[] | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -4610,11 +4730,6 @@ export type components = {
              */
             supports_audio_output: boolean;
             /**
-             * Supports Native Structured Output
-             * @default false
-             */
-            supports_native_structured_output: boolean;
-            /**
              * Supports Pdf Input
              * @default false
              */
@@ -4634,6 +4749,11 @@ export type components = {
              * @default false
              */
             supports_response_schema: boolean;
+            /**
+             * Supports Strict Structured Output
+             * @default false
+             */
+            supports_strict_structured_output: boolean;
             /**
              * Supports Tool Calls
              * @default false
@@ -4862,11 +4982,6 @@ export type components = {
              */
             supports_audio_output: boolean;
             /**
-             * Supports Native Structured Output
-             * @default false
-             */
-            supports_native_structured_output: boolean;
-            /**
              * Supports Pdf Input
              * @default false
              */
@@ -4886,6 +5001,11 @@ export type components = {
              * @default false
              */
             supports_response_schema: boolean;
+            /**
+             * Supports Strict Structured Output
+             * @default false
+             */
+            supports_strict_structured_output: boolean;
             /**
              * Supports Tool Calls
              * @default false
@@ -4994,11 +5114,6 @@ export type components = {
              */
             supports_audio_output: boolean;
             /**
-             * Supports Native Structured Output
-             * @default false
-             */
-            supports_native_structured_output: boolean;
-            /**
              * Supports Pdf Input
              * @default false
              */
@@ -5018,6 +5133,11 @@ export type components = {
              * @default false
              */
             supports_response_schema: boolean;
+            /**
+             * Supports Strict Structured Output
+             * @default false
+             */
+            supports_strict_structured_output: boolean;
             /**
              * Supports Tool Calls
              * @default false
@@ -5187,6 +5307,17 @@ export type components = {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Deactivated At
+             * @description When the model was last deactivated (NULL = never deactivated).
+             */
+            deactivated_at?: string | null;
+            /**
+             * Deactivation Reason
+             * @description Why the model was deactivated. Persists even after reactivation via toggle/edit so admins can spot zombie rows (is_active=true with a stale reason). NULL means the model has never been auto-deactivated.
+             * @enum {unknown}
+             */
+            deactivation_reason?: "model_not_found" | "unsupported" | "sync_removed" | "validation_failed" | "manual" | "tunnel_offline" | null;
             /** Deprecation Date */
             deprecation_date?: string | null;
             /**
@@ -5249,6 +5380,11 @@ export type components = {
              * @description Stable identifier from pricepertoken.com (e.g., anthropic:claude-haiku-4.5)
              */
             source_identifier?: string | null;
+            /**
+             * Source Rows Raw
+             * @description Raw (pre-override) values of every base row that shares this model's composite key in the same scope — including this row itself. NULL when only one base row exists. Frontend surfaces an inline badge + tooltip when non-empty so admins can compare what each source actually published without admin/org overrides obscuring the disagreement.
+             */
+            source_rows_raw?: components["schemas"]["SourceRowRaw"][] | null;
             /** Supported Reasoning Efforts */
             supported_reasoning_efforts?: string[] | null;
             /**
@@ -5261,11 +5397,6 @@ export type components = {
              * @default false
              */
             supports_audio_output: boolean;
-            /**
-             * Supports Native Structured Output
-             * @default false
-             */
-            supports_native_structured_output: boolean;
             /**
              * Supports Pdf Input
              * @default false
@@ -5286,6 +5417,11 @@ export type components = {
              * @default false
              */
             supports_response_schema: boolean;
+            /**
+             * Supports Strict Structured Output
+             * @default false
+             */
+            supports_strict_structured_output: boolean;
             /**
              * Supports Tool Calls
              * @default false
@@ -5393,8 +5529,6 @@ export type components = {
             supports_audio_input?: boolean | null;
             /** Supports Audio Output */
             supports_audio_output?: boolean | null;
-            /** Supports Native Structured Output */
-            supports_native_structured_output?: boolean | null;
             /** Supports Pdf Input */
             supports_pdf_input?: boolean | null;
             /** Supports Prompt Caching */
@@ -5403,6 +5537,8 @@ export type components = {
             supports_reasoning?: boolean | null;
             /** Supports Response Schema */
             supports_response_schema?: boolean | null;
+            /** Supports Strict Structured Output */
+            supports_strict_structured_output?: boolean | null;
             /** Supports Tool Calls */
             supports_tool_calls?: boolean | null;
             /** Supports Tool Choice */
@@ -5429,6 +5565,32 @@ export type components = {
             web_search_pricing_details?: {
                 [key: string]: number;
             } | null;
+        };
+        /**
+         * ModelUsage
+         * @description Enrichment-record count for a single model.
+         */
+        ModelUsage: {
+            /** Model Id */
+            model_id: number;
+            /** Record Count */
+            record_count: number;
+        };
+        /**
+         * ModelUsageRequest
+         * @description Request model for fetching enrichment-record counts for one or more models.
+         */
+        ModelUsageRequest: {
+            /** Model Ids */
+            model_ids: number[];
+        };
+        /**
+         * ModelUsageResponse
+         * @description Bulk usage lookup response.
+         */
+        ModelUsageResponse: {
+            /** Usages */
+            usages?: components["schemas"]["ModelUsage"][];
         };
         /**
          * ModelValidationRequest
@@ -6048,11 +6210,6 @@ export type components = {
          */
         ProviderCreate: {
             /**
-             * Api Key Override
-             * @description Optional API key to store in DB (will be encrypted)
-             */
-            api_key_override?: string | null;
-            /**
              * Api Version
              * @description API version (for Azure)
              */
@@ -6256,11 +6413,6 @@ export type components = {
              * @default 0
              */
             active_model_count: number;
-            /**
-             * Api Key Masked
-             * @description Masked global API key (****abcd) if override exists
-             */
-            api_key_masked: string | null;
             /** Api Version */
             api_version: string | null;
             /**
@@ -6284,14 +6436,9 @@ export type components = {
             effective_key_suffix?: string | null;
             /**
              * Global Key Suffix
-             * @description Last 4 chars of global key for display
+             * @description Last 4 chars of most recent global key for display
              */
             global_key_suffix?: string | null;
-            /**
-             * Has Api Key Override
-             * @description Whether a DB-stored global API key exists
-             */
-            has_api_key_override: boolean;
             /**
              * Has Global Keys
              * @description Whether global keys exist in provider_keys table
@@ -6390,11 +6537,6 @@ export type components = {
          * @description Request model for updating a provider.
          */
         ProviderUpdate: {
-            /**
-             * Api Key Override
-             * @description New API key (None = don't change, empty string = remove)
-             */
-            api_key_override?: string | null;
             /** Api Version */
             api_version?: string | null;
             /** Display Name */
@@ -6428,6 +6570,11 @@ export type components = {
              * @default false
              */
             cancelled: boolean;
+            /**
+             * Capabilities
+             * @description Capabilities exercised by this record: 'web_search', 'prompt_caching', 'reasoning', 'structured_output', 'pdf_input', 'vision', 'audio_input', 'video_input', 'binary'.
+             */
+            capabilities?: string[];
             /** Confidence Score */
             confidence_score?: number | null;
             /** Cost Usd */
@@ -6585,6 +6732,11 @@ export type components = {
              * @default false
              */
             cancelled: boolean;
+            /**
+             * Capabilities
+             * @description Capabilities exercised by this record: 'web_search', 'prompt_caching', 'reasoning', 'structured_output', 'pdf_input', 'vision', 'audio_input', 'video_input', 'binary'.
+             */
+            capabilities?: string[];
             /** Confidence Score */
             confidence_score?: number | null;
             /** Cost Usd */
@@ -6703,6 +6855,18 @@ export type components = {
              * @description Optional uploaded attachments (UUIDs from POST /api/attachments).
              */
             attachment_ids?: string[] | null;
+            /**
+             * Enable Response Schema
+             * @description Use the provider response-schema channel (NativeOutput) for the model if supported. Defaults true; when false, even capable models fall back to tool-call or text output.
+             * @default true
+             */
+            enable_response_schema: boolean;
+            /**
+             * Enable Strict Structured Output
+             * @description Request strict/constrained decoding on the chosen structured channel for the model if supported. Defaults false.
+             * @default false
+             */
+            enable_strict_structured_output: boolean;
             /**
              * Enable Web Search
              * @description Enable provider builtin web search for the model if supported
@@ -7001,6 +7165,58 @@ export type components = {
             source_models?: string[] | null;
             /** Success */
             success: boolean;
+        };
+        /**
+         * SourceRowRaw
+         * @description Raw (pre-override) values of a base row that contributes to a model.
+         *
+         *     Used by the Models tab to compare what each source actually published.
+         *     When a model has multiple base rows for the same provider::model in the
+         *     same scope (typically litellm + pricepertoken from independent pricing
+         *     syncs), this list lets the UI surface disagreements between sources
+         *     without confusing them with admin overrides applied on top.
+         */
+        SourceRowRaw: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Id */
+            id: number;
+            /** Input Price Per Million */
+            input_price_per_million?: number | null;
+            /** Output Price Per Million */
+            output_price_per_million?: number | null;
+            /** Source */
+            source: string;
+            /**
+             * Supports Pdf Input
+             * @default false
+             */
+            supports_pdf_input: boolean;
+            /**
+             * Supports Reasoning
+             * @default false
+             */
+            supports_reasoning: boolean;
+            /**
+             * Supports Response Schema
+             * @default false
+             */
+            supports_response_schema: boolean;
+            /**
+             * Supports Strict Structured Output
+             * @default false
+             */
+            supports_strict_structured_output: boolean;
+            /**
+             * Supports Tool Calls
+             * @default false
+             */
+            supports_tool_calls: boolean;
+            /**
+             * Supports Vision
+             * @default false
+             */
+            supports_vision: boolean;
         };
         /**
          * SSEArbitrationCompleted
@@ -8386,6 +8602,18 @@ export type components = {
              */
             classification_model?: string | null;
             /**
+             * Enable Response Schema
+             * @description Use the provider response-schema channel (NativeOutput / JSON-schema enforcement) for selected models that support it. Defaults true; when false, even capable models fall back to tool-call or text output.
+             * @default true
+             */
+            enable_response_schema: boolean;
+            /**
+             * Enable Strict Structured Output
+             * @description Request strict/constrained decoding on the chosen structured channel (native or tool) for models that support it. Defaults false; resolves to no-strict when the model can't support it.
+             * @default false
+             */
+            enable_strict_structured_output: boolean;
+            /**
              * Enable Web Search
              * @description Enable provider builtin web search for selected models that support it
              * @default false
@@ -8786,6 +9014,18 @@ export type components = {
              */
             classification_model?: string | null;
             /**
+             * Enable Response Schema
+             * @description Use the provider response-schema channel (NativeOutput / JSON-schema enforcement) for selected models that support it. Defaults true; when false, even capable models fall back to tool-call or text output.
+             * @default true
+             */
+            enable_response_schema: boolean;
+            /**
+             * Enable Strict Structured Output
+             * @description Request strict/constrained decoding on the chosen structured channel (native or tool) for models that support it. Defaults false; resolves to no-strict when the model can't support it.
+             * @default false
+             */
+            enable_strict_structured_output: boolean;
+            /**
              * Enable Web Search
              * @description Enable provider builtin web search for selected models that support it
              * @default false
@@ -8833,6 +9073,40 @@ export type components = {
             /**
              * Timeout Seconds
              * @description How long to wait for the enrichment to finish before returning 504
+             * @default 300
+             */
+            timeout_seconds: number;
+        };
+        /**
+         * SyncGenerateRequest
+         * @description Request body for synchronous schema generation.
+         */
+        SyncGenerateRequest: {
+            /**
+             * Attachment Ids
+             * @description Optional uploaded attachments (UUIDs from POST /api/attachments).
+             */
+            attachment_ids?: string[] | null;
+            /**
+             * Entity Data
+             * @description Entity data to analyze
+             */
+            entity_data: {
+                [key: string]: unknown;
+            };
+            /**
+             * Extra Instructions
+             * @description Optional free-form user instructions appended to the system prompt.
+             */
+            extra_instructions?: string | null;
+            /**
+             * Model
+             * @description Model composite key
+             */
+            model: string;
+            /**
+             * Timeout Seconds
+             * @description How long to wait for schema generation to finish before returning 504
              * @default 300
              */
             timeout_seconds: number;
@@ -9198,6 +9472,7 @@ export type GeneratedJsonSchemaInput = components['schemas']['GeneratedJsonSchem
 export type GeneratedJsonSchemaOutput = components['schemas']['GeneratedJsonSchema-Output'];
 export type GenerateSampleRequest = components['schemas']['GenerateSampleRequest'];
 export type GenerateSampleStreamResponse = components['schemas']['GenerateSampleStreamResponse'];
+export type GenerateSchemaResponse = components['schemas']['GenerateSchemaResponse'];
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
 export type ImportRequest = components['schemas']['ImportRequest'];
 export type ImportResult = components['schemas']['ImportResult'];
@@ -9220,6 +9495,9 @@ export type ModelOverrideListResponse = components['schemas']['ModelOverrideList
 export type ModelOverrideResponse = components['schemas']['ModelOverrideResponse'];
 export type ModelResponse = components['schemas']['ModelResponse'];
 export type ModelUpdate = components['schemas']['ModelUpdate'];
+export type ModelUsage = components['schemas']['ModelUsage'];
+export type ModelUsageRequest = components['schemas']['ModelUsageRequest'];
+export type ModelUsageResponse = components['schemas']['ModelUsageResponse'];
 export type ModelValidationRequest = components['schemas']['ModelValidationRequest'];
 export type ModelValidationResponse = components['schemas']['ModelValidationResponse'];
 export type OrganizationResponse = components['schemas']['OrganizationResponse'];
@@ -9265,6 +9543,7 @@ export type SchemaPromptResponse = components['schemas']['SchemaPromptResponse']
 export type SchemaPromptStreamRequest = components['schemas']['SchemaPromptStreamRequest'];
 export type SingleEnrichmentResponse = components['schemas']['SingleEnrichmentResponse'];
 export type SingleEnrichmentSyncResponse = components['schemas']['SingleEnrichmentSyncResponse'];
+export type SourceRowRaw = components['schemas']['SourceRowRaw'];
 export type SseArbitrationCompleted = components['schemas']['SSEArbitrationCompleted'];
 export type SseArbitrationStarted = components['schemas']['SSEArbitrationStarted'];
 export type SseBatchCompleted = components['schemas']['SSEBatchCompleted'];
@@ -9297,6 +9576,7 @@ export type SubscriptionPlanWithLimits = components['schemas']['SubscriptionPlan
 export type SuggestFieldsRequest = components['schemas']['SuggestFieldsRequest'];
 export type SuggestFieldsResponse = components['schemas']['SuggestFieldsResponse'];
 export type SyncEnrichRequest = components['schemas']['SyncEnrichRequest'];
+export type SyncGenerateRequest = components['schemas']['SyncGenerateRequest'];
 export type TestConnectionResponse = components['schemas']['TestConnectionResponse'];
 export type TunnelAccessTokenResponse = components['schemas']['TunnelAccessTokenResponse'];
 export type TunnelCredentialCreate = components['schemas']['TunnelCredentialCreate'];
@@ -13200,6 +13480,7 @@ export interface operations {
     delete_model_api_providers_models__model_id__delete: {
         parameters: {
             query?: {
+                force?: boolean;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
@@ -13496,6 +13777,45 @@ export interface operations {
             };
         };
     };
+    get_models_usage_api_providers_models_usage_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelUsageRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelUsageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     start_model_validation_api_providers_validate_post: {
         parameters: {
             query?: {
@@ -13576,6 +13896,8 @@ export interface operations {
         parameters: {
             query?: {
                 all_orgs?: boolean;
+                /** @description Filter by capabilities exercised by the record (match ANY): 'web_search', 'prompt_caching', 'reasoning', 'structured_output', 'pdf_input', 'vision', 'audio_input', 'video_input', 'binary'. */
+                capabilities?: string[] | null;
                 entity_id?: string | null;
                 include_deleted?: boolean;
                 job_id?: string | null;
@@ -13745,6 +14067,8 @@ export interface operations {
         parameters: {
             query?: {
                 all_orgs?: boolean;
+                /** @description Filter to jobs containing a record that exercised any of these capabilities (match ANY): 'web_search', 'prompt_caching', 'reasoning', 'structured_output', 'pdf_input', 'vision', 'audio_input', 'video_input', 'binary'. */
+                capabilities?: string[] | null;
                 include_deleted?: boolean;
                 organization_id_filter?: string | null;
                 page?: number;
@@ -13846,6 +14170,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StreamGenerateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_schema_sync_api_schema_generate_sync_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateSchemaResponse"];
                 };
             };
             /** @description Validation Error */
