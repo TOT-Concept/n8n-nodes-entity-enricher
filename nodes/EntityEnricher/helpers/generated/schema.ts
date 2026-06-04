@@ -298,16 +298,39 @@ export type paths = {
          *
          *     Upload one or more attachment files.
          *
-         *     Multipart form-data with one or more `files` parts. Each file is:
-         *       1. Size-checked against per-file + per-request caps
-         *       2. MIME-sniffed (magic bytes + extension) and matched to a policy row
-         *       3. SHA-256 hashed
-         *       4. Written atomically to the storage box under {org_id}/{sha[:2]}/...
-         *       5. If policy mode='inline_text', extracted (and cached) at this step
-         *       6. Upserted into the attachments table (dedup by org+sha256)
+         *     Multipart form-data with one or more `files` parts. Each file is size-checked,
+         *     MIME-sniffed, written to the storage box, and upserted into the attachments
+         *     table (dedup by org+sha256). The per-file pipeline lives in
+         *     ``upload_service.store_attachment_bytes``.
          */
         post: operations["upload_attachments_api_attachments_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attachments/{attachment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Attachment
+         * @description 🔒 **Requires: operator (level 1+)**
+         *
+         *     Permanently remove an attachment (org-scoped).
+         *
+         *     Typically called as a cleanup step after a successful enrichment so source
+         *     documents are not left on the storage box. The org-scoped lookup is the
+         *     tenant check (mirrors the download endpoint).
+         */
+        delete: operations["delete_attachment_api_attachments__attachment_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -329,6 +352,59 @@ export type paths = {
         get: operations["download_attachment_api_attachments__attachment_id__download_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attachments/base64": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Attachment Base64
+         * @description 🔒 **Requires: operator (level 1+)**
+         *
+         *     Upload a single attachment as a base64 JSON body.
+         *
+         *     For clients that cannot send multipart/form-data (Make.com, MCP, curl).
+         *     Bytes are decoded, then handed to the same per-file pipeline as the
+         *     multipart route.
+         */
+        post: operations["upload_attachment_base64_api_attachments_base64_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attachments/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Attachments
+         * @description 🔒 **Requires: operator (level 1+)**
+         *
+         *     Check which attachments are still present on storage (org-scoped).
+         *
+         *     Used by the Playground reload-from-record flow to warn the user before a run
+         *     if a source document has been deleted/pruned. IDs not found in the org's
+         *     attachments table are reported as missing too (filename '' when unknown).
+         *     Reuses the same org-scoped loader the prompt builder uses; one stat per file.
+         */
+        post: operations["verify_attachments_api_attachments_verify_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3165,6 +3241,45 @@ export type components = {
             plan_id?: string | null;
         };
         /**
+         * AttachmentBase64Request
+         * @description JSON upload body for non-multipart clients (Make.com, MCP, curl).
+         *
+         *     The bytes arrive base64-encoded (no ``data:`` prefix). The server still
+         *     sniffs magic bytes, so ``media_type`` is only a hint.
+         */
+        AttachmentBase64Request: {
+            /**
+             * Content Base64
+             * @description File bytes, base64-encoded (no data: prefix).
+             */
+            content_base64: string;
+            /**
+             * Filename
+             * @description Original filename including extension.
+             */
+            filename: string;
+            /**
+             * Media Type
+             * @description Optional MIME hint; the server still sniffs the magic bytes.
+             */
+            media_type?: string | null;
+        };
+        /**
+         * AttachmentDeleteResponse
+         * @description Result of DELETE /api/attachments/{id}.
+         */
+        AttachmentDeleteResponse: {
+            /** Filename */
+            filename: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Success */
+            success: boolean;
+        };
+        /**
          * AttachmentFormatPolicy
          * @description A single MIME-type policy row.
          */
@@ -3287,6 +3402,27 @@ export type components = {
             sha256: string;
             /** Size Bytes */
             size_bytes: number;
+        };
+        /**
+         * AttachmentVerifyRequest
+         * @description Body for POST /api/attachments/verify — check storage presence by ID.
+         */
+        AttachmentVerifyRequest: {
+            /** Attachment Ids */
+            attachment_ids?: string[];
+        };
+        /**
+         * AttachmentVerifyResponse
+         * @description Result of POST /api/attachments/verify.
+         *
+         *     Used by the Playground reload-from-record flow to warn before a run if any
+         *     source document has been deleted/pruned off the storage box.
+         */
+        AttachmentVerifyResponse: {
+            /** Missing */
+            missing?: components["schemas"]["MissingAttachment"][];
+            /** Present */
+            present?: string[];
         };
         /**
          * AuthConfig
@@ -4826,6 +4962,23 @@ export type components = {
             /** Refresh Token */
             refresh_token: string;
             user: components["schemas"]["UserResponse"];
+        };
+        /**
+         * MissingAttachment
+         * @description An attachment ID that could not be resolved or is absent from storage.
+         */
+        MissingAttachment: {
+            /**
+             * Filename
+             * @description Empty when the ID isn't found in the org's attachments table.
+             * @default
+             */
+            filename: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
         };
         /**
          * ModelChange
@@ -9414,10 +9567,14 @@ export type ApiKeyCreateResponse = components['schemas']['ApiKeyCreateResponse']
 export type ApiKeyResponse = components['schemas']['ApiKeyResponse'];
 export type ApiKeyUpdate = components['schemas']['ApiKeyUpdate'];
 export type AssignPlanRequest = components['schemas']['AssignPlanRequest'];
+export type AttachmentBase64Request = components['schemas']['AttachmentBase64Request'];
+export type AttachmentDeleteResponse = components['schemas']['AttachmentDeleteResponse'];
 export type AttachmentFormatPolicy = components['schemas']['AttachmentFormatPolicy'];
 export type AttachmentFormatPolicyUpdate = components['schemas']['AttachmentFormatPolicyUpdate'];
 export type AttachmentRef = components['schemas']['AttachmentRef'];
 export type AttachmentUploadResponse = components['schemas']['AttachmentUploadResponse'];
+export type AttachmentVerifyRequest = components['schemas']['AttachmentVerifyRequest'];
+export type AttachmentVerifyResponse = components['schemas']['AttachmentVerifyResponse'];
 export type AuthConfig = components['schemas']['AuthConfig'];
 export type BatchDeleteRequest = components['schemas']['BatchDeleteRequest'];
 export type BatchEnrichmentJobResponse = components['schemas']['BatchEnrichmentJobResponse'];
@@ -9485,6 +9642,7 @@ export type LeaveOrganizationRequest = components['schemas']['LeaveOrganizationR
 export type LlmModel = components['schemas']['LLMModel'];
 export type LoginRequest = components['schemas']['LoginRequest'];
 export type LoginResponse = components['schemas']['LoginResponse'];
+export type MissingAttachment = components['schemas']['MissingAttachment'];
 export type ModelChange = components['schemas']['ModelChange'];
 export type ModelCostRow = components['schemas']['ModelCostRow'];
 export type ModelCostStats = components['schemas']['ModelCostStats'];
@@ -10108,6 +10266,43 @@ export interface operations {
             };
         };
     };
+    delete_attachment_api_attachments__attachment_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                attachment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentDeleteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     download_attachment_api_attachments__attachment_id__download_get: {
         parameters: {
             query?: {
@@ -10132,6 +10327,84 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_attachment_base64_api_attachments_base64_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachmentBase64Request"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentUploadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_attachments_api_attachments_verify_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachmentVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentVerifyResponse"];
                 };
             };
             /** @description Validation Error */

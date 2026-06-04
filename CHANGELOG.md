@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.0 (2026-06-04)
+
+### Features
+
+- **Attachment** resource with **Add Attachment** (uploads a binary property from the input item via multipart `POST /api/attachments`, returns its attachment ID) and **Delete Attachment** (`DELETE /api/attachments/{id}`, a handy post-enrichment cleanup step) operations.
+- **Attachment IDs** parameter (comma-separated UUIDs) on the Enrich Entity and Batch Enrich actions, wired into the request body as `attachment_ids` so uploaded documents are fed into the enrichment.
+
 ## 1.4.0 (2026-05-31)
 
 ### Features

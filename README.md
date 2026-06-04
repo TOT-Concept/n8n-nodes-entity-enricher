@@ -47,6 +47,8 @@ The credential is verified against the API on save.
 | **Record** | List Records | Query enrichment records with pagination and filters |
 | **Record** | Get Record | Retrieve a specific enrichment result by ID |
 | **Fusion** | Merge Results | Merge multiple model results with optional LLM arbitration |
+| **Attachment** | Add Attachment | Upload a binary property from the input item (multipart) and return its attachment ID |
+| **Attachment** | Delete Attachment | Delete an attachment by ID — a handy post-enrichment cleanup step |
 | **Configuration** | Get Options | Get available models, languages, and strategies |
 
 ## Single Entity Enrichment

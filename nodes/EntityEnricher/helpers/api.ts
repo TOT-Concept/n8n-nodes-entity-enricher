@@ -9,6 +9,12 @@ import { NodeOperationError } from 'n8n-workflow';
 interface ApiRequestOptions {
 	method?: string;
 	body?: unknown;
+	/**
+	 * Multipart form body. When set, `body` is ignored and the JSON
+	 * Content-Type header is dropped so the HTTP client sets the multipart
+	 * boundary itself. Used for binary file uploads (Add Attachment).
+	 */
+	form?: FormData;
 }
 
 /**
@@ -89,13 +95,18 @@ export async function apiRequest(
 		headers: {
 			'X-API-Key': apiKey,
 			'X-Client-Origin': 'n8n',
+			// Content-Type defaults to JSON; dropped below for multipart uploads
+			// so the HTTP client can set the boundary itself.
 			'Content-Type': 'application/json',
 		},
 		returnFullResponse: true,
 		ignoreHttpStatusErrors: true,
 	};
 
-	if (options.body !== undefined) {
+	if (options.form !== undefined) {
+		delete (requestOptions.headers as Record<string, string>)['Content-Type'];
+		requestOptions.body = options.form;
+	} else if (options.body !== undefined) {
 		requestOptions.body = JSON.stringify(options.body);
 	}
 

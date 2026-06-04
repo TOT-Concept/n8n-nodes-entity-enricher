@@ -12,6 +12,7 @@
 export type {
 	EnrichmentOptionsResponse,
 	SingleEnrichmentResponse,
+	AttachmentUploadResponse,
 	ExpertiseBreakdown,
 	FusionResponse,
 	ConflictReport,

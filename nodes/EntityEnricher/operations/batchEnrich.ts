@@ -55,6 +55,8 @@ export async function execute(
 	const includeEnrichmentMetadata = context.getNodeParameter(
 		'includeEnrichmentMetadata', 0, false,
 	) as boolean;
+	const attachmentIds = (context.getNodeParameter('attachmentIds', 0, '') as string)
+		.split(',').map((s) => s.trim()).filter(Boolean);
 
 	if (!schemaId) {
 		throw new NodeOperationError(context.getNode(), 'Schema is required');
@@ -95,6 +97,7 @@ export async function execute(
 	};
 	if (classificationModel) body.classification_model = classificationModel;
 	if (arbitrationModel) body.arbitration_model = arbitrationModel;
+	if (attachmentIds.length) body.attachment_ids = attachmentIds;
 	if (enableWebSearch === 'on') body.enable_web_search = true;
 	// Send both booleans explicitly so an "off" choice is honoured regardless of
 	// the backend default (response schema defaults on, strict defaults off).

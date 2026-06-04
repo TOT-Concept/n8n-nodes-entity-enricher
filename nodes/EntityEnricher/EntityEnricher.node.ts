@@ -11,7 +11,9 @@ import { NodeOperationError } from 'n8n-workflow';
 import { apiRequest } from './helpers/api';
 import type { EnrichmentOptionsResponse, ProfileLimits, SavedSchema } from './helpers/types';
 import { extractSearchKeys } from './helpers/validation';
+import * as addAttachment from './operations/addAttachment';
 import * as batchEnrich from './operations/batchEnrich';
+import * as deleteAttachment from './operations/deleteAttachment';
 import * as enrichEntity from './operations/enrichEntity';
 import * as getOptions from './operations/getOptions';
 import * as getRecord from './operations/getRecord';
@@ -78,6 +80,7 @@ export class EntityEnricher implements INodeType {
 					{ name: 'Enrichment', value: 'enrichment' },
 					{ name: 'Schema', value: 'schema' },
 					{ name: 'Record', value: 'record' },
+					{ name: 'Attachment', value: 'attachment' },
 					{ name: 'Fusion', value: 'fusion' },
 					{ name: 'Configuration', value: 'configuration' },
 				],
@@ -156,6 +159,28 @@ export class EntityEnricher implements INodeType {
 				name: 'operation',
 				type: 'options',
 				noDataExpression: true,
+				displayOptions: { show: { resource: ['attachment'] } },
+				options: [
+					{
+						name: 'Add Attachment',
+						value: 'addAttachment',
+						description: 'Upload a file to use as source material in an enrichment',
+						action: 'Add an attachment',
+					},
+					{
+						name: 'Delete Attachment',
+						value: 'deleteAttachment',
+						description: 'Remove an attachment from the server by ID',
+						action: 'Delete an attachment',
+					},
+				],
+				default: 'addAttachment',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
 				displayOptions: { show: { resource: ['fusion'] } },
 				options: [
 					{
@@ -226,6 +251,22 @@ export class EntityEnricher implements INodeType {
 				},
 			},
 
+			// Attachment IDs (optional, for enrichment + batch)
+			{
+				displayName: 'Attachment IDs',
+				name: 'attachmentIds',
+				type: 'string',
+				default: '',
+				placeholder: 'uuid1, uuid2',
+				description: 'Comma-separated attachment UUIDs (from Add Attachment) to use as source material for the enrichment',
+				displayOptions: {
+					show: {
+						resource: ['enrichment'],
+						operation: ['enrichEntity', 'batchEnrich'],
+					},
+				},
+			},
+
 			// Schema ID (get schema details)
 			{
 				displayName: 'Schema',
@@ -259,6 +300,54 @@ export class EntityEnricher implements INodeType {
 					show: {
 						resource: ['record'],
 						operation: ['getRecord'],
+					},
+				},
+			},
+
+			// ─── Attachment Parameters ───
+
+			// Binary property (add attachment)
+			{
+				displayName: 'Input Binary Field',
+				name: 'binaryPropertyName',
+				type: 'string',
+				required: true,
+				default: 'data',
+				description: 'Name of the binary property on the input item that holds the file to upload',
+				hint: 'Connect a node that outputs a file (e.g. HTTP Request with response format "File", or Read Binary File)',
+				displayOptions: {
+					show: {
+						resource: ['attachment'],
+						operation: ['addAttachment'],
+					},
+				},
+			},
+			{
+				displayName: 'File Name Override',
+				name: 'fileNameOverride',
+				type: 'string',
+				default: '',
+				description: 'Optional filename to use instead of the binary property\'s own file name. The extension matters — the server sniffs the format.',
+				displayOptions: {
+					show: {
+						resource: ['attachment'],
+						operation: ['addAttachment'],
+					},
+				},
+			},
+
+			// Attachment ID (delete attachment)
+			{
+				displayName: 'Attachment ID',
+				name: 'attachmentId',
+				type: 'string',
+				required: true,
+				default: '',
+				description: 'UUID of the attachment to delete (returned by Add Attachment)',
+				displayOptions: {
+					show: {
+						resource: ['attachment'],
+						operation: ['deleteAttachment'],
 					},
 				},
 			},
@@ -870,6 +959,10 @@ export class EntityEnricher implements INodeType {
 					results = await getRecord.execute(this, i);
 				} else if (resource === 'schema' && operation === 'getSchemaDetails') {
 					results = await getSchemaDetails.execute(this, i);
+				} else if (resource === 'attachment' && operation === 'addAttachment') {
+					results = await addAttachment.execute(this, i);
+				} else if (resource === 'attachment' && operation === 'deleteAttachment') {
+					results = await deleteAttachment.execute(this, i);
 				} else if (resource === 'fusion' && operation === 'mergeResults') {
 					results = await mergeResults.execute(this, i);
 				} else {
