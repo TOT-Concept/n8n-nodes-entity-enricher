@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1 (2026-06-06)
+
+### Fixed
+
+- **n8n verification compliance** — set `peerDependencies.n8n-workflow` to `*` (was `>=1.0.0`), as required by `@n8n/scan-community-package` for n8n Cloud verification.
+
 ## 1.4.0 (2026-06-06)
 
 ### Features

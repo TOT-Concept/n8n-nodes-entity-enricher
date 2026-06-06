@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-entity-enricher",
-	"version": "1.4.0",
+	"version": "1.4.1",
 	"description": "n8n community node for Entity Enricher — enrich entities with multi-model LLM fusion, multilingual output, and expertise-driven strategies",
 	"keywords": [
 		"n8n-community-node-package",
@@ -65,6 +65,6 @@
 		"typescript": "^5.7.0"
 	},
 	"peerDependencies": {
-		"n8n-workflow": ">=1.0.0"
+		"n8n-workflow": "*"
 	}
 }
