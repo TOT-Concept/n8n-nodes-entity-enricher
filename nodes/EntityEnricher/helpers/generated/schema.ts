@@ -3586,8 +3586,8 @@ export type components = {
             selected_indices?: number[] | null;
             /**
              * Strategy
-             * @description Enrichment strategy to use
-             * @default single_pass
+             * @description Enrichment strategy to use. 'auto' (default) lets the server pick single_pass / expert_domains / multi_expertise from the schema shape.
+             * @default auto
              */
             strategy: string;
             /** @description Target schema defining the structure the enrichment should produce */
@@ -6858,6 +6858,13 @@ export type components = {
              * Format: uuid
              */
             entity_id: string;
+            /**
+             * Entity Input Data
+             * @description Original input entity data submitted for enrichment (for faithful replay)
+             */
+            entity_input_data?: {
+                [key: string]: unknown;
+            } | null;
             /** Entity Name */
             entity_name?: string | null;
             /**
@@ -6924,6 +6931,11 @@ export type components = {
              * @description Enrichment strategy used (e.g., 'single_pass', 'expert_domains')
              */
             strategy?: string | null;
+            /**
+             * Strategy Requested
+             * @description What the client requested: 'auto' (server picked `strategy`), an explicit name, or null for legacy records. When 'auto' and it differs from `strategy`, the UI shows 'Auto → <strategy>'.
+             */
+            strategy_requested?: string | null;
             /** Structured Output */
             structured_output: {
                 [key: string]: unknown;
@@ -7088,6 +7100,11 @@ export type components = {
              * @description Enrichment strategy used (e.g., 'single_pass', 'expert_domains')
              */
             strategy?: string | null;
+            /**
+             * Strategy Requested
+             * @description What the client requested: 'auto' (server picked `strategy`), an explicit name, or null for legacy records. When 'auto' and it differs from `strategy`, the UI shows 'Auto → <strategy>'.
+             */
+            strategy_requested?: string | null;
             /** Success */
             success: boolean;
             /**
@@ -7488,6 +7505,16 @@ export type components = {
             /** Source */
             source: string;
             /**
+             * Supports Audio Input
+             * @default false
+             */
+            supports_audio_input: boolean;
+            /**
+             * Supports Audio Output
+             * @default false
+             */
+            supports_audio_output: boolean;
+            /**
              * Supports Embeddings
              * @default false
              */
@@ -7497,6 +7524,11 @@ export type components = {
              * @default false
              */
             supports_pdf_input: boolean;
+            /**
+             * Supports Prompt Caching
+             * @default false
+             */
+            supports_prompt_caching: boolean;
             /**
              * Supports Reasoning
              * @default false
@@ -7518,10 +7550,25 @@ export type components = {
              */
             supports_tool_calls: boolean;
             /**
+             * Supports Tool Choice
+             * @default false
+             */
+            supports_tool_choice: boolean;
+            /**
+             * Supports Video Input
+             * @default false
+             */
+            supports_video_input: boolean;
+            /**
              * Supports Vision
              * @default false
              */
             supports_vision: boolean;
+            /**
+             * Supports Web Search
+             * @default false
+             */
+            supports_web_search: boolean;
         };
         /**
          * SSEArbitrationCompleted
@@ -8877,6 +8924,95 @@ export type components = {
             total_models: number;
         };
         /**
+         * SSEStrategySelected
+         * @description Emitted once when the server auto-selects the enrichment strategy.
+         *
+         *     Only sent when the client requested ``auto`` (or omitted the strategy).
+         *     Lets the UI show a badge like "Auto → Multi-expertise" with the reasoning,
+         *     so users aren't surprised when auto picks a costlier strategy.
+         */
+        SSEStrategySelected: {
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Entity Index
+             * @description Entity index (batch only)
+             */
+            entity_index?: number | null;
+            /**
+             * Event
+             * @default strategy_selected
+             * @constant
+             */
+            event: "strategy_selected";
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Last Error Summary */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /**
+             * Reason
+             * @description Human-readable justification for the choice
+             */
+            reason: string;
+            /**
+             * Requested
+             * @description What the client asked for (usually 'auto')
+             */
+            requested: string;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Signals
+             * @description Numeric signals the decision keyed off (domains, weight, ...)
+             */
+            signals?: {
+                [key: string]: number;
+            } | null;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Strategy
+             * @description The concrete strategy that will run
+             */
+            strategy: string;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
          * StrategyInfo
          * @description Enrichment strategy information for UI display.
          */
@@ -8947,7 +9083,8 @@ export type components = {
             schema_id?: string | null;
             /**
              * Strategy
-             * @default single_pass
+             * @description Enrichment strategy. 'auto' (default) lets the server pick single_pass / expert_domains / multi_expertise from the schema shape.
+             * @default auto
              */
             strategy: string;
             target_schema?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
@@ -9377,7 +9514,8 @@ export type components = {
             schema_id?: string | null;
             /**
              * Strategy
-             * @default single_pass
+             * @description Enrichment strategy. 'auto' (default) lets the server pick single_pass / expert_domains / multi_expertise from the schema shape.
+             * @default auto
              */
             strategy: string;
             target_schema?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
@@ -9887,6 +10025,7 @@ export type SseJobCompleted = components['schemas']['SSEJobCompleted'];
 export type SseJobFailed = components['schemas']['SSEJobFailed'];
 export type SseModelCompleted = components['schemas']['SSEModelCompleted'];
 export type SseModelStarted = components['schemas']['SSEModelStarted'];
+export type SseStrategySelected = components['schemas']['SSEStrategySelected'];
 export type StrategyInfo = components['schemas']['StrategyInfo'];
 export type StreamEnrichRequest = components['schemas']['StreamEnrichRequest'];
 export type StreamEnrichResponse = components['schemas']['StreamEnrichResponse'];
@@ -12876,7 +13015,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
+                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
                 };
             };
         };

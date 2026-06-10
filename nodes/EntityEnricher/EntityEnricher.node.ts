@@ -446,8 +446,8 @@ export class EntityEnricher implements INodeType {
 				typeOptions: {
 					loadOptionsMethod: 'getStrategies',
 				},
-				default: 'multi_expertise',
-				description: 'Enrichment strategy. Multi-expertise runs parallel calls per domain for best results.',
+				default: 'auto',
+				description: 'Enrichment strategy. Auto (default) lets the server pick the best strategy from your schema shape; multi-expertise runs parallel calls per domain.',
 				displayOptions: {
 					show: {
 						resource: ['enrichment'],
