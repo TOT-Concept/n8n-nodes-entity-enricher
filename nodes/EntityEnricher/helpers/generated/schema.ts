@@ -1789,6 +1789,38 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/org-keys/embedding-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Embedding Model
+         * @description 🔒 **Requires: operator (level 1+)**
+         *
+         *     Get the org's configured embedding model (null = semantic IDs disabled).
+         */
+        get: operations["get_embedding_model_api_org_keys_embedding_model_get"];
+        /**
+         * Set Embedding Model
+         * @description 🔒 **Requires: owner (level 4+)**
+         *
+         *     Set the org's embedding model.
+         *
+         *     Near-immutable: once any semantic concepts exist, the model can only be CLEARED
+         *     (set to null), not switched to a different one — stored vectors live in a single
+         *     model's space and are never comparable across models. Re-embedding is a Phase-2 job.
+         */
+        put: operations["set_embedding_model_api_org_keys_embedding_model_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/org-keys/tunnels": {
         parameters: {
             query?: never;
@@ -4161,6 +4193,14 @@ export type components = {
             success: boolean;
         };
         /**
+         * EmbeddingModelSetting
+         * @description Org's embedding model for semantic IDs (composite key provider::model).
+         */
+        EmbeddingModelSetting: {
+            /** Composite Key */
+            composite_key?: string | null;
+        };
+        /**
          * EnrichmentOptionsResponse
          * @description Available options for enrichment.
          */
@@ -4175,6 +4215,11 @@ export type components = {
              * @description Role of the API key used (for service accounts)
              */
             api_key_role?: string | null;
+            /**
+             * Default Embedding Model
+             * @description Org's embedding model (composite key) for semantic IDs; null = disabled
+             */
+            default_embedding_model?: string | null;
             /** Languages */
             languages: {
                 [key: string]: string;
@@ -4833,6 +4878,8 @@ export type components = {
             deprecation_date?: string | null;
             /** Display Name */
             display_name?: string | null;
+            /** Embedding Dimensions */
+            embedding_dimensions?: number | null;
             /** Input Price */
             input_price?: number | null;
             /** Is Available */
@@ -4865,6 +4912,11 @@ export type components = {
              * @default false
              */
             supports_audio_output: boolean;
+            /**
+             * Supports Embeddings
+             * @default false
+             */
+            supports_embeddings: boolean;
             /**
              * Supports Pdf Input
              * @default false
@@ -5100,6 +5152,8 @@ export type components = {
              * @description Human-readable model name
              */
             display_name?: string | null;
+            /** Embedding Dimensions */
+            embedding_dimensions?: number | null;
             /** Input Price Per Million */
             input_price_per_million?: number | null;
             /** Max Input Tokens */
@@ -5134,6 +5188,11 @@ export type components = {
              * @default false
              */
             supports_audio_output: boolean;
+            /**
+             * Supports Embeddings
+             * @default false
+             */
+            supports_embeddings: boolean;
             /**
              * Supports Pdf Input
              * @default false
@@ -5233,6 +5292,8 @@ export type components = {
              * @description Human-readable model name
              */
             display_name?: string | null;
+            /** Embedding Dimensions */
+            embedding_dimensions?: number | null;
             /** Input Price Per Million */
             input_price_per_million?: number | null;
             /** Is Active */
@@ -5266,6 +5327,11 @@ export type components = {
              * @default false
              */
             supports_audio_output: boolean;
+            /**
+             * Supports Embeddings
+             * @default false
+             */
+            supports_embeddings: boolean;
             /**
              * Supports Pdf Input
              * @default false
@@ -5478,6 +5544,8 @@ export type components = {
              * @description Human-readable model name
              */
             display_name?: string | null;
+            /** Embedding Dimensions */
+            embedding_dimensions?: number | null;
             /** Id */
             id: number;
             /** Input Price Per Million */
@@ -5550,6 +5618,11 @@ export type components = {
              * @default false
              */
             supports_audio_output: boolean;
+            /**
+             * Supports Embeddings
+             * @default false
+             */
+            supports_embeddings: boolean;
             /**
              * Supports Pdf Input
              * @default false
@@ -5660,6 +5733,8 @@ export type components = {
             deprecation_date?: string | null;
             /** Display Name */
             display_name?: string | null;
+            /** Embedding Dimensions */
+            embedding_dimensions?: number | null;
             /** Input Price Per Million */
             input_price_per_million?: number | null;
             /** Is Active */
@@ -5682,6 +5757,8 @@ export type components = {
             supports_audio_input?: boolean | null;
             /** Supports Audio Output */
             supports_audio_output?: boolean | null;
+            /** Supports Embeddings */
+            supports_embeddings?: boolean | null;
             /** Supports Pdf Input */
             supports_pdf_input?: boolean | null;
             /** Supports Prompt Caching */
@@ -6270,6 +6347,16 @@ export type components = {
                 [key: string]: components["schemas"]["PropertySchema-Input"];
             } | null;
             /**
+             * Semantic Id
+             * @description True = this string property holds the embedding-based semantic ID of its containing object (the root entity, a 1-1 nested object, or an array item). Written post-enrichment (not by the LLM); mutually exclusive with is_key; at most one per object.
+             */
+            semantic_id?: boolean | null;
+            /**
+             * Semantic Threshold
+             * @description Cosine similarity threshold for reusing an existing concept (default 0.92)
+             */
+            semantic_threshold?: number | null;
+            /**
              * Type
              * @description JSON Schema type: string, number, integer, boolean, array, object
              */
@@ -6329,6 +6416,16 @@ export type components = {
             properties?: {
                 [key: string]: components["schemas"]["PropertySchema-Output"];
             } | null;
+            /**
+             * Semantic Id
+             * @description True = this string property holds the embedding-based semantic ID of its containing object (the root entity, a 1-1 nested object, or an array item). Written post-enrichment (not by the LLM); mutually exclusive with is_key; at most one per object.
+             */
+            semantic_id?: boolean | null;
+            /**
+             * Semantic Threshold
+             * @description Cosine similarity threshold for reusing an existing concept (default 0.92)
+             */
+            semantic_threshold?: number | null;
             /**
              * Type
              * @description JSON Schema type: string, number, integer, boolean, array, object
@@ -6730,7 +6827,10 @@ export type components = {
             capabilities?: string[];
             /** Confidence Score */
             confidence_score?: number | null;
-            /** Cost Usd */
+            /**
+             * Cost Usd
+             * @description LLM-call cost only (sum of enrichment_prompts). See embedding_cost_usd.
+             */
             cost_usd?: number | null;
             /**
              * Created At
@@ -6743,6 +6843,16 @@ export type components = {
             deleted_at?: string | null;
             /** Deleted By Name */
             deleted_by_name?: string | null;
+            /**
+             * Embedding Cost Usd
+             * @description Billed cost of the semantic-ID embedding pass for this record, if any. Tracked separately from cost_usd; the total cost is cost_usd + this.
+             */
+            embedding_cost_usd?: number | null;
+            /**
+             * Embedding Tokens
+             * @description Tokens consumed resolving semantic IDs for this record.
+             */
+            embedding_tokens?: number | null;
             /**
              * Entity Id
              * Format: uuid
@@ -6804,6 +6914,11 @@ export type components = {
              * @description Entity name from schema root.name
              */
             schema_entity_name?: string | null;
+            /**
+             * Semantic Concepts
+             * @description Embedding-resolved semantic IDs assigned to objects (root, nested, or array item).
+             */
+            semantic_concepts?: components["schemas"]["SemanticConceptRef"][];
             /**
              * Strategy
              * @description Enrichment strategy used (e.g., 'single_pass', 'expert_domains')
@@ -6892,13 +7007,26 @@ export type components = {
             capabilities?: string[];
             /** Confidence Score */
             confidence_score?: number | null;
-            /** Cost Usd */
+            /**
+             * Cost Usd
+             * @description LLM-call cost only (sum of enrichment_prompts). See embedding_cost_usd.
+             */
             cost_usd?: number | null;
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Embedding Cost Usd
+             * @description Billed cost of the semantic-ID embedding pass for this record, if any. Tracked separately from cost_usd; the total cost is cost_usd + this.
+             */
+            embedding_cost_usd?: number | null;
+            /**
+             * Embedding Tokens
+             * @description Tokens consumed resolving semantic IDs for this record.
+             */
+            embedding_tokens?: number | null;
             /**
              * Entity Id
              * Format: uuid
@@ -7228,6 +7356,25 @@ export type components = {
             prompt: string;
         };
         /**
+         * SemanticConceptRef
+         * @description Concept linked to an enrichment record, for the record-detail panel.
+         */
+        SemanticConceptRef: {
+            /** Canonical Text */
+            canonical_text: string;
+            /**
+             * Concept Id
+             * Format: uuid
+             */
+            concept_id: string;
+            /** Concept Type */
+            concept_type: string;
+            /** Cosine */
+            cosine: number | null;
+            /** Json Path */
+            json_path: string;
+        };
+        /**
          * SingleEnrichmentResponse
          * @description Response for a single model's enrichment result.
          */
@@ -7340,6 +7487,11 @@ export type components = {
             output_price_per_million?: number | null;
             /** Source */
             source: string;
+            /**
+             * Supports Embeddings
+             * @default false
+             */
+            supports_embeddings: boolean;
             /**
              * Supports Pdf Input
              * @default false
@@ -8833,6 +8985,12 @@ export type components = {
              */
             extra_instructions?: string | null;
             /**
+             * Generate Semantic Ids
+             * @description If true, add a semantic_id string property to every object that has a key source — the root entity, 1-1 nested objects, and array items alike (enables embedding-based entity resolution).
+             * @default false
+             */
+            generate_semantic_ids: boolean;
+            /**
              * Model
              * @description Model composite key
              */
@@ -9253,6 +9411,12 @@ export type components = {
              */
             extra_instructions?: string | null;
             /**
+             * Generate Semantic Ids
+             * @description If true, add a semantic_id string property to every object that has a key source — the root entity, 1-1 nested objects, and array items alike (enables embedding-based entity resolution).
+             * @default false
+             */
+            generate_semantic_ids: boolean;
+            /**
              * Model
              * @description Model composite key
              */
@@ -9613,6 +9777,7 @@ export type DeviceCodeRequest = components['schemas']['DeviceCodeRequest'];
 export type DeviceCodeResponse = components['schemas']['DeviceCodeResponse'];
 export type DiscoveredModel = components['schemas']['DiscoveredModel'];
 export type DiscoverModelsResponse = components['schemas']['DiscoverModelsResponse'];
+export type EmbeddingModelSetting = components['schemas']['EmbeddingModelSetting'];
 export type EnrichmentOptionsResponse = components['schemas']['EnrichmentOptionsResponse'];
 export type EnrichmentPromptSummary = components['schemas']['EnrichmentPromptSummary'];
 export type EntityDefinitionInput = components['schemas']['EntityDefinition-Input'];
@@ -9699,6 +9864,7 @@ export type SavedSchemaUpdate = components['schemas']['SavedSchemaUpdate'];
 export type SchemaPromptRequest = components['schemas']['SchemaPromptRequest'];
 export type SchemaPromptResponse = components['schemas']['SchemaPromptResponse'];
 export type SchemaPromptStreamRequest = components['schemas']['SchemaPromptStreamRequest'];
+export type SemanticConceptRef = components['schemas']['SemanticConceptRef'];
 export type SingleEnrichmentResponse = components['schemas']['SingleEnrichmentResponse'];
 export type SingleEnrichmentSyncResponse = components['schemas']['SingleEnrichmentSyncResponse'];
 export type SourceRowRaw = components['schemas']['SourceRowRaw'];
@@ -12963,6 +13129,80 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["KeyHealthCheckResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_embedding_model_api_org_keys_embedding_model_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmbeddingModelSetting"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_embedding_model_api_org_keys_embedding_model_put: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmbeddingModelSetting"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmbeddingModelSetting"];
                 };
             };
             /** @description Validation Error */
