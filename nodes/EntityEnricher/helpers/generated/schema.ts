@@ -2038,9 +2038,12 @@ export type paths = {
          *
          *     For Ollama providers, lists models via /api/tags, fetches per-model details
          *     via /api/show in parallel, then INSERTs each new chat-capable model into
-         *     llm_models with the metadata Ollama reports (context_length, vision/tool
-         *     capabilities, parameter size, family). Embedding-only models are skipped.
-         *     Existing rows that were previously auto-deactivated get reactivated.
+         *     llm_models with the metadata Ollama reports (context_length, vision/tool/
+         *     thinking capabilities, parameter size, family). Capability flags Ollama
+         *     doesn't report are backfilled by name-matching against litellm-synced
+         *     models already in the DB (see services.llm.capability_matcher).
+         *     Embedding-only models are skipped. Existing rows that were previously
+         *     auto-deactivated get reactivated.
          */
         post: operations["discover_provider_models_api_providers__provider_id__discover_models_post"];
         delete?: never;
@@ -4131,6 +4134,11 @@ export type components = {
          * @description A model discovered from a provider.
          */
         DiscoveredModel: {
+            /**
+             * Capability Match
+             * @description litellm-synced models (provider/model) that supplied backfilled capabilities
+             */
+            capability_match?: string | null;
             /** Context Length */
             context_length?: number | null;
             /** Display Name */
@@ -4158,10 +4166,35 @@ export type components = {
             /** Size */
             size?: string | null;
             /**
+             * Supports Audio Input
+             * @default false
+             */
+            supports_audio_input: boolean;
+            /**
+             * Supports Audio Output
+             * @default false
+             */
+            supports_audio_output: boolean;
+            /**
+             * Supports Pdf Input
+             * @default false
+             */
+            supports_pdf_input: boolean;
+            /**
+             * Supports Reasoning
+             * @default false
+             */
+            supports_reasoning: boolean;
+            /**
              * Supports Tool Calls
              * @default false
              */
             supports_tool_calls: boolean;
+            /**
+             * Supports Video Input
+             * @default false
+             */
+            supports_video_input: boolean;
             /**
              * Supports Vision
              * @default false
