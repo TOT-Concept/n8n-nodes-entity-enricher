@@ -2412,6 +2412,40 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/providers/models/cleanup-deactivated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cleanup Deactivated Models
+         * @description 🔒 **Requires: admin (level 5+)**
+         *
+         *     Sweep auto-deactivated models (and any now-orphaned canonical specs).
+         *
+         *     Targets base rows whose ``deactivation_reason`` is one of the requested
+         *     auto/transient reasons (``model_not_found``, ``unsupported``,
+         *     ``sync_removed``, ``validation_failed``) — never ``manual`` or
+         *     ``tunnel_offline``. Override rows cascade with their base. Any ``llm_specs``
+         *     row left backing zero models is deleted to preserve the "every spec backs
+         *     ≥1 model" invariant.
+         *
+         *     With ``dry_run=true`` (default) nothing is deleted; the response previews
+         *     the models + specs that would be removed and the enrichment-record counts
+         *     that would be unlinked (records keep their historical model-name text).
+         *     Requires system admin.
+         */
+        post: operations["cleanup_deactivated_models_api_providers_models_cleanup_deactivated_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/providers/models/overrides": {
         parameters: {
             query?: never;
@@ -3788,6 +3822,105 @@ export type components = {
             status: "match" | "mismatch" | "unknown" | "ambiguous";
         };
         /**
+         * CleanupDeactivatedModelInfo
+         * @description One model row that the cleanup would (or did) delete.
+         */
+        CleanupDeactivatedModelInfo: {
+            /** Deactivated At */
+            deactivated_at?: string | null;
+            /** Deactivation Reason */
+            deactivation_reason?: string | null;
+            /** Display Name */
+            display_name?: string | null;
+            /** Id */
+            id: number;
+            /** Model */
+            model: string;
+            /** Provider Display Name */
+            provider_display_name: string;
+            /** Provider Name */
+            provider_name: string;
+            /**
+             * Record Count
+             * @description Enrichment records referencing this model (kept as text after delete).
+             * @default 0
+             */
+            record_count: number;
+            /** Spec Id */
+            spec_id?: number | null;
+        };
+        /**
+         * CleanupDeactivatedRequest
+         * @description Request to sweep auto-deactivated models (and any orphaned specs).
+         */
+        CleanupDeactivatedRequest: {
+            /**
+             * Dry Run
+             * @description When true, only count/preview the rows that would be deleted.
+             * @default true
+             */
+            dry_run: boolean;
+            /**
+             * Reasons
+             * @description Which auto-deactivation reasons to sweep (never 'manual').
+             */
+            reasons?: ("model_not_found" | "unsupported" | "sync_removed" | "validation_failed")[];
+        };
+        /**
+         * CleanupDeactivatedResponse
+         * @description Preview (dry-run) or result of the deactivated-model sweep.
+         */
+        CleanupDeactivatedResponse: {
+            /**
+             * Deleted Models
+             * @description Models actually deleted (0 on dry-run).
+             * @default 0
+             */
+            deleted_models: number;
+            /**
+             * Deleted Specs
+             * @description Orphaned specs actually deleted (0 on dry-run).
+             * @default 0
+             */
+            deleted_specs: number;
+            /** Dry Run */
+            dry_run: boolean;
+            /**
+             * Model Count
+             * @default 0
+             */
+            model_count: number;
+            /** Models */
+            models?: components["schemas"]["CleanupDeactivatedModelInfo"][];
+            /** Reasons */
+            reasons: string[];
+            /**
+             * Spec Count
+             * @default 0
+             */
+            spec_count: number;
+            /** Specs To Delete */
+            specs_to_delete?: components["schemas"]["CleanupSpecInfo"][];
+            /**
+             * Total Record Count
+             * @description Total enrichment records across all swept models.
+             * @default 0
+             */
+            total_record_count: number;
+        };
+        /**
+         * CleanupSpecInfo
+         * @description A canonical spec that would (or did) get removed as orphaned.
+         */
+        CleanupSpecInfo: {
+            /** Canonical Key */
+            canonical_key: string;
+            /** Display Name */
+            display_name?: string | null;
+            /** Id */
+            id: number;
+        };
+        /**
          * ConfigExport
          * @description Full export format for providers and models.
          */
@@ -4923,6 +5056,8 @@ export type components = {
             max_input_tokens?: number | null;
             /** Max Output Tokens */
             max_output_tokens?: number | null;
+            /** Model Label */
+            model_label?: string | null;
             /** Output Price */
             output_price?: number | null;
             /** Output Reasoning Token Price Per Million */
@@ -5207,6 +5342,11 @@ export type components = {
             output_price_per_million?: number | null;
             /** Output Reasoning Token Price Per Million */
             output_reasoning_token_price_per_million?: number | null;
+            /**
+             * Requires Streaming
+             * @default false
+             */
+            requires_streaming: boolean;
             /** Rpm */
             rpm?: number | null;
             /** Supported Reasoning Efforts */
@@ -5344,6 +5484,11 @@ export type components = {
             output_price_per_million?: number | null;
             /** Output Reasoning Token Price Per Million */
             output_reasoning_token_price_per_million?: number | null;
+            /**
+             * Requires Streaming
+             * @default false
+             */
+            requires_streaming: boolean;
             /** Rpm */
             rpm?: number | null;
             /** Source */
@@ -5615,6 +5760,11 @@ export type components = {
             provider_id: number;
             /** Provider Name */
             provider_name: string;
+            /**
+             * Requires Streaming
+             * @default false
+             */
+            requires_streaming: boolean;
             /** Rpm */
             rpm?: number | null;
             /**
@@ -5782,6 +5932,8 @@ export type components = {
             output_price_per_million?: number | null;
             /** Output Reasoning Token Price Per Million */
             output_reasoning_token_price_per_million?: number | null;
+            /** Requires Streaming */
+            requires_streaming?: boolean | null;
             /** Rpm */
             rpm?: number | null;
             /** Supported Reasoning Efforts */
@@ -6219,7 +6371,7 @@ export type components = {
             dry_run: boolean;
             /**
              * Source
-             * @description Pricing source: 'litellm' or 'pricepertoken'
+             * @description Pricing source: 'litellm', 'pricepertoken', or 'together'
              * @default litellm
              */
             source: string;
@@ -6235,6 +6387,11 @@ export type components = {
             errors?: string[];
             /** Model Changes */
             model_changes?: components["schemas"]["ModelChange"][];
+            /**
+             * Notices
+             * @description Informational messages about side effects already applied (e.g. an auto-created provider), distinct from blocking errors
+             */
+            notices?: string[];
             /** Provider Changes */
             provider_changes?: components["schemas"]["ProviderChange"][];
             summary: components["schemas"]["PricingSyncSummary"];
@@ -9930,6 +10087,10 @@ export type BulkToggleResult = components['schemas']['BulkToggleResult'];
 export type ChangeOrganizationRequest = components['schemas']['ChangeOrganizationRequest'];
 export type CheckoutSessionResponse = components['schemas']['CheckoutSessionResponse'];
 export type ClassificationContext = components['schemas']['ClassificationContext'];
+export type CleanupDeactivatedModelInfo = components['schemas']['CleanupDeactivatedModelInfo'];
+export type CleanupDeactivatedRequest = components['schemas']['CleanupDeactivatedRequest'];
+export type CleanupDeactivatedResponse = components['schemas']['CleanupDeactivatedResponse'];
+export type CleanupSpecInfo = components['schemas']['CleanupSpecInfo'];
 export type ConfigExport = components['schemas']['ConfigExport'];
 export type ConflictReport = components['schemas']['ConflictReport'];
 export type CostStatsRow = components['schemas']['CostStatsRow'];
@@ -14414,6 +14575,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BulkToggleResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cleanup_deactivated_models_api_providers_models_cleanup_deactivated_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CleanupDeactivatedRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CleanupDeactivatedResponse"];
                 };
             };
             /** @description Validation Error */
