@@ -298,10 +298,11 @@ export type paths = {
          *
          *     Upload one or more attachment files.
          *
-         *     Multipart form-data with one or more `files` parts. Each file is size-checked,
-         *     MIME-sniffed, written to the storage box, and upserted into the attachments
-         *     table (dedup by org+sha256). The per-file pipeline lives in
-         *     ``upload_service.store_attachment_bytes``.
+         *     Multipart form-data with one or more `files` parts. Each file is size-checked
+         *     (per-file and per-request total), MIME-sniffed, written to the storage box, and
+         *     upserted into the attachments table (dedup by org+sha256). There is no cap on the
+         *     number of files — only the per-file and per-request total size limits apply. The
+         *     per-file pipeline lives in ``upload_service.store_attachment_bytes``.
          */
         post: operations["upload_attachments_api_attachments_post"];
         delete?: never;
@@ -820,6 +821,177 @@ export type paths = {
          *     entity_index for frontend routing.
          */
         post: operations["start_batch_enrichment_api_batch_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/benchmarks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Scenarios
+         * @description 🔒 **Requires: operator (level 1+)**
+         */
+        get: operations["list_scenarios_api_benchmarks_get"];
+        put?: never;
+        /**
+         * Create Scenario
+         * @description 🔒 **Requires: owner (level 4+)**
+         */
+        post: operations["create_scenario_api_benchmarks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/benchmarks/{scenario_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scenario
+         * @description 🔒 **Requires: operator (level 1+)**
+         */
+        get: operations["get_scenario_api_benchmarks__scenario_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Scenario
+         * @description 🔒 **Requires: owner (level 4+)**
+         */
+        delete: operations["delete_scenario_api_benchmarks__scenario_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Scenario
+         * @description 🔒 **Requires: owner (level 4+)**
+         */
+        patch: operations["update_scenario_api_benchmarks__scenario_id__patch"];
+        trace?: never;
+    };
+    "/api/benchmarks/{scenario_id}/reference": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Reference
+         * @description 🔒 **Requires: owner (level 4+)**
+         *
+         *     Save (or clear) a scenario's gold reference output (owner+).
+         *
+         *     The reference is the expected result used to score each model's result. Build it
+         *     once via grounded generation (strong models + web search + source-of-truth
+         *     attachments) and human-edit, or paste an existing record's output, then verify.
+         */
+        put: operations["set_reference_api_benchmarks__scenario_id__reference_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/benchmarks/{scenario_id}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Results
+         * @description 🔒 **Requires: operator (level 1+)**
+         */
+        get: operations["list_results_api_benchmarks__scenario_id__results_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/benchmarks/{scenario_id}/results/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete Results
+         * @description 🔒 **Requires: owner (level 4+)**
+         */
+        post: operations["delete_results_api_benchmarks__scenario_id__results_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/benchmarks/{scenario_id}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Benchmark
+         * @description 🔒 **Requires: owner (level 4+)**
+         *
+         *     Run a scenario against an explicit set of models. Returns a job_id whose
+         *     progress streams over GET /api/llm/stream/{job_id}. Each model result is upserted
+         *     into benchmark_results as it completes.
+         */
+        post: operations["run_benchmark_api_benchmarks__scenario_id__run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/benchmarks/{scenario_id}/score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Score Benchmark
+         * @description 🔒 **Requires: owner (level 4+)**
+         *
+         *     Re-score a scenario's results against its gold reference. Returns a job_id whose
+         *     progress streams over GET /api/llm/stream/{job_id}. Scoring is a separate pass over
+         *     already-saved results (no re-enrichment); it bills embeddings (+ optional judge).
+         *
+         *     Scoring config (judge model, embedding override, strictness) is read from the scenario,
+         *     not the request — so every result is graded identically. The primary scoring path is
+         *     auto-score on a successful run; this endpoint re-scores after the reference or config
+         *     changes.
+         */
+        post: operations["score_benchmark_api_benchmarks__scenario_id__score_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1633,7 +1805,11 @@ export type paths = {
          * Continue Job
          * @description 🔒 **Requires: operator (level 1+)**
          *
-         *     Resume a paused LLM job (e.g. after classification mismatch).
+         *     Resume a paused LLM job.
+         *
+         *     Used for classification mismatch (no body) and interactive sample-generation
+         *     clarification (body carries the user's answers, which the paused planner loop
+         *     reads to continue).
          */
         post: operations["continue_job_api_llm_continue__job_id__post"];
         delete?: never;
@@ -1919,6 +2095,32 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/pricing/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sources
+         * @description 🔒 **Requires: owner (level 4+)**
+         *
+         *     List selectable pricing scrapers with per-source freshness metadata.
+         *
+         *     Drives the Sync modal's multi-select scraper list: each entry carries its
+         *     label, whether it relies on a web-search research pass, and the dates it was
+         *     last synced / last researched.
+         */
+        get: operations["list_sources_api_pricing_sources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pricing/sync": {
         parameters: {
             query?: never;
@@ -2163,7 +2365,10 @@ export type paths = {
          *
          *     Enable or disable all models under the selected providers.
          *
-         *     When enabling, skips providers without API keys configured.
+         *     When enabling, skips providers without API keys configured. Non-admins may
+         *     only toggle providers scoped to their own organization; global / other-org
+         *     providers in the request are silently skipped (the UI marks them
+         *     non-editable — this is the server-side backstop).
          */
         post: operations["bulk_toggle_providers_api_providers_bulk_toggle_post"];
         delete?: never;
@@ -2183,7 +2388,13 @@ export type paths = {
          * Export Config
          * @description 🔒 **Requires: owner (level 4+)**
          *
-         *     Export all providers and models as JSON.
+         *     Export providers, models, and (admin only) canonical specs as JSON.
+         *
+         *     Admins get a full dump of `llm_providers`, base `llm_models`, and
+         *     `llm_specs`. Owners get only their org-scoped providers and models, plus any
+         *     global provider that carries one of their org models (emitted as a
+         *     match-by-name carrier so it round-trips without letting the owner mutate the
+         *     global catalog). API keys and runtime cost/token counters are never included.
          */
         get: operations["export_config_api_providers_export_get"];
         put?: never;
@@ -2207,11 +2418,20 @@ export type paths = {
          * Import Config
          * @description 🔒 **Requires: owner (level 4+)**
          *
-         *     Import providers and models from JSON.
+         *     Import providers, models, and specs from JSON (always an upsert).
          *
-         *     Mode:
-         *     - merge: Add new providers/models, update existing ones
-         *     - replace: Delete all existing, import fresh (dangerous!)
+         *     Existing rows are matched by natural key and updated in place; missing ones
+         *     are created. Nothing is deleted and no API keys are touched.
+         *
+         *     Scope rules:
+         *     - Admin: each row is restored to the organization recorded in the file
+         *       (global stays global); specs are restored + re-linked.
+         *     - Owner: every row is forced into the owner's own organization — they can
+         *       never create or edit a global provider/model. A file entry for a *global*
+         *       provider (organization_id null) is a match-by-name carrier: the global
+         *       provider must already exist and only the owner's org models under it are
+         *       attached. An org provider whose name shadows a global one is skipped.
+         *       Specs are ignored (owners do not manage the global spec table).
          */
         post: operations["import_config_api_providers_import_post"];
         delete?: never;
@@ -2263,22 +2483,10 @@ export type paths = {
          * Update Model
          * @description 🔒 **Requires: owner (level 4+)**
          *
-         *     Update a model.
+         *     Update a single model (override-routed for synced, direct for manual).
          *
-         *     For synced base models (source in pricepertoken/litellm/seed), edits land
-         *     in an override row instead of mutating the canonical row — admins write
-         *     a global override (organization_id IS NULL), owners write an org-scoped
-         *     override against the global base. Fields that match the base value get
-         *     dropped from the override (auto-clean); an override row with no remaining
-         *     overridden fields is deleted entirely.
-         *
-         *     For non-synced models (source in manual/discovered) the base row is
-         *     updated directly, preserving the legacy behavior.
-         *
-         *     Authorization:
-         *     - System admin: can edit any base model (creates global overrides on synced)
-         *     - Owner: can edit models scoped to their org directly, or create
-         *       org-scoped overrides against global synced models.
+         *     See ``_apply_model_update`` for the routing + authorization rules. Returns
+         *     the resolved (merged) view so the UI sees exactly what the user will see.
          */
         patch: operations["update_model_api_providers_models__model_id__patch"];
         trace?: never;
@@ -2351,6 +2559,11 @@ export type paths = {
          *         include_inactive: Include inactive models
          *         scope_org_id: Filter to a specific organization's models (admin only).
          *                       If not set, owners see global + their org, admins see global only.
+         *         fuse_sources: Collapse multiple source rows for the same (provider, model,
+         *                       scope) into one merged row — same merge rule as
+         *                       /enrichment/options. The merged row keeps the highest-priority
+         *                       source's identity and still carries `source_rows_raw` for the
+         *                       per-source diff badge.
          */
         get: operations["list_all_models_api_providers_models_all_get"];
         put?: never;
@@ -2404,8 +2617,41 @@ export type paths = {
          *     Enable or disable specific models by ID.
          *
          *     When enabling, skips models whose providers have no API keys configured.
+         *     Non-admins may only toggle models scoped to their own organization; global /
+         *     other-org models in the request are silently skipped (the server-side
+         *     backstop — an owner deactivates a global model *for their org* through the
+         *     override path, not here).
          */
         post: operations["bulk_toggle_models_api_providers_models_bulk_toggle_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/providers/models/bulk-update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Update Models
+         * @description 🔒 **Requires: owner (level 4+)**
+         *
+         *     Apply the same field changes to many models at once.
+         *
+         *     ``data.updates`` carries only the fields to change (PATCH semantics). Each
+         *     model is routed individually through ``_apply_model_update`` (override row
+         *     for synced sources, base update for manual/discovered), so capability flags
+         *     can be flipped across a selection. Per-model
+         *     failures (not found, unauthorized, etc.) are collected in ``errors`` instead
+         *     of aborting the whole batch; ``skipped`` counts updates that no-op'd.
+         */
+        post: operations["bulk_update_models_api_providers_models_bulk_update_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2749,31 +2995,6 @@ export type paths = {
          *     Returns a job_id for SSE streaming via GET /api/llm/stream/{job_id}.
          */
         post: operations["start_sample_generation_stream_api_schema_sample_generate_stream_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/schema/sample/suggest-fields": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Suggest Fields
-         * @description 🔒 **Requires: editor (level 2+)**
-         *
-         *     Suggest common data fields for an entity type.
-         *
-         *     Returns a list of field names and labels based on LLM knowledge.
-         *     This is a synchronous (non-streaming) endpoint for fast autocomplete.
-         */
-        post: operations["suggest_fields_api_schema_sample_suggest_fields_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3662,6 +3883,469 @@ export type components = {
             /** Ids */
             ids: string[];
         };
+        /**
+         * BenchmarkReferenceMeta
+         * @description Provenance for a scenario's gold reference output.
+         *
+         *     Records how the reference was produced so a model's score is interpreted against
+         *     the right baseline (e.g. a reference built with web search + source documents is a
+         *     grounded ideal, which candidates without that grounding are measured against).
+         */
+        BenchmarkReferenceMeta: {
+            /**
+             * Attachment Ids
+             * @description Source-of-truth documents used for generation
+             */
+            attachment_ids?: string[];
+            /** Generated At */
+            generated_at?: string | null;
+            /**
+             * Model Keys
+             * @description Models used for grounded generation
+             */
+            model_keys?: string[];
+            /**
+             * Record Id
+             * @description Enrichment record the reference was copied from (source='record')
+             */
+            record_id?: string | null;
+            /** Source */
+            source?: ("generated" | "pasted" | "record") | null;
+            /**
+             * Web Search
+             * @description Web search was enabled for generation
+             * @default false
+             */
+            web_search: boolean;
+        };
+        /**
+         * BenchmarkResultResponse
+         * @description One persisted result for a (scenario x model) pair.
+         *
+         *     With repetitions > 1 the scalar metric/quality columns hold the **mean** across the
+         *     successful runs and the **median-by-quality** representative run's structured output;
+         *     ``runs`` carries the full per-rep breakdown and ``quality_overall_min``/``max`` the spread.
+         */
+        BenchmarkResultResponse: {
+            /**
+             * Api Key Source
+             * @description Key source for the run: 'organization' or 'global'
+             */
+            api_key_source?: string | null;
+            /** Cache Read Tokens */
+            cache_read_tokens?: number | null;
+            /**
+             * Capabilities
+             * @description Capabilities the model exercised (web_search, reasoning, vision, pdf_input, ...)
+             */
+            capabilities?: string[];
+            /** Config Hash */
+            config_hash?: string | null;
+            /**
+             * Cost Score
+             * @description Cost vs the cheapest result in the scenario (min_cost/this_cost; 1.0 = cheapest)
+             */
+            cost_score?: number | null;
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /** Enrichment Record Id */
+            enrichment_record_id?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /**
+             * Is Stale
+             * @description True when the result was produced under an older scenario config
+             * @default false
+             */
+            is_stale: boolean;
+            /** Model Composite Key */
+            model_composite_key: string;
+            /** Model Name */
+            model_name?: string | null;
+            /**
+             * Output Channel
+             * @description Structured-output channel used: native/tool/prompted/text, or 'mixed'
+             */
+            output_channel?: string | null;
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Processing Time Ms */
+            processing_time_ms?: number | null;
+            /** Provider Name */
+            provider_name?: string | null;
+            /**
+             * Quality Complete
+             * @description Completeness (recall-like): did it fill what the reference filled
+             */
+            quality_complete?: number | null;
+            /**
+             * Quality Correct
+             * @description Correctness (precision-like): are filled values right
+             */
+            quality_correct?: number | null;
+            quality_detail?: components["schemas"]["QualityDetail"] | null;
+            /**
+             * Quality Hallucination
+             * @description Hallucination rate: fraction of filled values with no reference basis
+             */
+            quality_hallucination?: number | null;
+            /**
+             * Quality Overall
+             * @description Weighted overall quality 0..1 (null = not scored)
+             */
+            quality_overall?: number | null;
+            /**
+             * Quality Overall Max
+             * @description Highest per-rep overall quality (consistency spread ceiling)
+             */
+            quality_overall_max?: number | null;
+            /**
+             * Quality Overall Min
+             * @description Lowest per-rep overall quality (consistency spread floor)
+             */
+            quality_overall_min?: number | null;
+            /** Quality Scored At */
+            quality_scored_at?: string | null;
+            /**
+             * Quality Stale
+             * @description True when scored against a reference that has since changed
+             * @default false
+             */
+            quality_stale: boolean;
+            /**
+             * Retries
+             * @description Total LLM retries across the record's prompt calls (sum of attempts-1)
+             */
+            retries?: number | null;
+            /**
+             * Run Count
+             * @default 1
+             */
+            run_count: number;
+            /** Runs */
+            runs?: components["schemas"]["BenchmarkRunMetric"][];
+            /**
+             * Scenario Id
+             * Format: uuid
+             */
+            scenario_id: string;
+            /**
+             * Speed Score
+             * @description Wall-clock speed vs the fastest result in the scenario (min_time/this_time; 1.0 = fastest)
+             */
+            speed_score?: number | null;
+            /** Strategy Used */
+            strategy_used?: string | null;
+            /** Structured Output */
+            structured_output?: {
+                [key: string]: unknown;
+            } | null;
+            /** Success */
+            success: boolean;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Web Search Calls */
+            web_search_calls?: number | null;
+        };
+        /**
+         * BenchmarkRunMetric
+         * @description One repetition's metrics, stored in ``benchmark_results.runs`` for drill-down.
+         *
+         *     The result row's scalar columns hold the mean (cost/time/quality) and the
+         *     median-by-quality representative run; this is the per-rep detail behind them.
+         */
+        BenchmarkRunMetric: {
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /** Enrichment Record Id */
+            enrichment_record_id?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Processing Time Ms */
+            processing_time_ms?: number | null;
+            /** Quality Complete */
+            quality_complete?: number | null;
+            /** Quality Correct */
+            quality_correct?: number | null;
+            quality_detail?: components["schemas"]["QualityDetail"] | null;
+            /** Quality Hallucination */
+            quality_hallucination?: number | null;
+            /** Quality Overall */
+            quality_overall?: number | null;
+            /**
+             * Rep
+             * @description 1-based repetition index
+             */
+            rep: number;
+            /**
+             * Structured Output
+             * @description This rep's output (kept so re-scoring needs no re-enrichment)
+             */
+            structured_output?: {
+                [key: string]: unknown;
+            } | null;
+            /** Success */
+            success: boolean;
+        };
+        /**
+         * BenchmarkScenarioCreate
+         * @description Request model for creating a benchmark scenario.
+         */
+        BenchmarkScenarioCreate: {
+            /** Attachment Ids */
+            attachment_ids?: string[];
+            /** Description */
+            description?: string | null;
+            /**
+             * Enable Response Schema
+             * @default true
+             */
+            enable_response_schema: boolean;
+            /**
+             * Enable Strict Structured Output
+             * @default false
+             */
+            enable_strict_structured_output: boolean;
+            /**
+             * Entity Data
+             * @description Fixed entity input (search keys / raw JSON)
+             */
+            entity_data?: {
+                [key: string]: unknown;
+            };
+            /** Languages */
+            languages?: string[];
+            /** Name */
+            name: string;
+            /**
+             * Repetitions
+             * @description Run each model N times per run; keep the mean + consistency spread
+             * @default 2
+             */
+            repetitions: number;
+            /**
+             * Schema Id
+             * Format: uuid
+             * @description Saved schema this scenario enriches against
+             */
+            schema_id: string;
+            /**
+             * Scoring Embedding Model Key
+             * @description Embedding-model override for cosine matching; null = org default
+             */
+            scoring_embedding_model_key?: string | null;
+            /**
+             * Scoring Judge Model Key
+             * @description LLM judge model (composite key) used to score results
+             */
+            scoring_judge_model_key: string;
+            /**
+             * Scoring Threshold
+             * @description Match strictness (emb_high); null = default 0.86
+             */
+            scoring_threshold?: number | null;
+            /**
+             * Strategy
+             * @default single_pass
+             */
+            strategy: string;
+        };
+        /**
+         * BenchmarkScenarioDetail
+         * @description Scenario plus its persisted results.
+         */
+        BenchmarkScenarioDetail: {
+            /** Attachment Ids */
+            attachment_ids: string[];
+            /** Config Hash */
+            config_hash?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description?: string | null;
+            /** Enable Response Schema */
+            enable_response_schema: boolean;
+            /** Enable Strict Structured Output */
+            enable_strict_structured_output: boolean;
+            /** Entity Data */
+            entity_data: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Languages */
+            languages: string[];
+            /** Name */
+            name: string;
+            reference_meta?: components["schemas"]["BenchmarkReferenceMeta"] | null;
+            /** Reference Output */
+            reference_output?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Reference Verified
+             * @default false
+             */
+            reference_verified: boolean;
+            /**
+             * Repetitions
+             * @default 1
+             */
+            repetitions: number;
+            /**
+             * Result Count
+             * @default 0
+             */
+            result_count: number;
+            /** Results */
+            results?: components["schemas"]["BenchmarkResultResponse"][];
+            /** Schema Id */
+            schema_id?: string | null;
+            /** Schema Name */
+            schema_name?: string | null;
+            /** Schema Property Count */
+            schema_property_count?: number | null;
+            /** Scoring Embedding Model Key */
+            scoring_embedding_model_key?: string | null;
+            /** Scoring Judge Model Key */
+            scoring_judge_model_key?: string | null;
+            /** Scoring Threshold */
+            scoring_threshold?: number | null;
+            /** Strategy */
+            strategy: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * BenchmarkScenarioResponse
+         * @description Full benchmark scenario response.
+         */
+        BenchmarkScenarioResponse: {
+            /** Attachment Ids */
+            attachment_ids: string[];
+            /** Config Hash */
+            config_hash?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description?: string | null;
+            /** Enable Response Schema */
+            enable_response_schema: boolean;
+            /** Enable Strict Structured Output */
+            enable_strict_structured_output: boolean;
+            /** Entity Data */
+            entity_data: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Languages */
+            languages: string[];
+            /** Name */
+            name: string;
+            reference_meta?: components["schemas"]["BenchmarkReferenceMeta"] | null;
+            /** Reference Output */
+            reference_output?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Reference Verified
+             * @default false
+             */
+            reference_verified: boolean;
+            /**
+             * Repetitions
+             * @default 1
+             */
+            repetitions: number;
+            /**
+             * Result Count
+             * @default 0
+             */
+            result_count: number;
+            /** Schema Id */
+            schema_id?: string | null;
+            /** Schema Name */
+            schema_name?: string | null;
+            /** Schema Property Count */
+            schema_property_count?: number | null;
+            /** Scoring Embedding Model Key */
+            scoring_embedding_model_key?: string | null;
+            /** Scoring Judge Model Key */
+            scoring_judge_model_key?: string | null;
+            /** Scoring Threshold */
+            scoring_threshold?: number | null;
+            /** Strategy */
+            strategy: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * BenchmarkScenarioUpdate
+         * @description Request model for updating a benchmark scenario (all fields optional).
+         */
+        BenchmarkScenarioUpdate: {
+            /** Attachment Ids */
+            attachment_ids?: string[] | null;
+            /** Description */
+            description?: string | null;
+            /** Enable Response Schema */
+            enable_response_schema?: boolean | null;
+            /** Enable Strict Structured Output */
+            enable_strict_structured_output?: boolean | null;
+            /** Entity Data */
+            entity_data?: {
+                [key: string]: unknown;
+            } | null;
+            /** Languages */
+            languages?: string[] | null;
+            /** Name */
+            name?: string | null;
+            /** Repetitions */
+            repetitions?: number | null;
+            /** Schema Id */
+            schema_id?: string | null;
+            /** Scoring Embedding Model Key */
+            scoring_embedding_model_key?: string | null;
+            /** Scoring Judge Model Key */
+            scoring_judge_model_key?: string | null;
+            /** Scoring Threshold */
+            scoring_threshold?: number | null;
+            /** Strategy */
+            strategy?: string | null;
+        };
         /** BillingOverview */
         BillingOverview: {
             /** Available Plans */
@@ -3741,6 +4425,27 @@ export type components = {
             is_active: boolean;
             /** Model Ids */
             model_ids: number[];
+            /**
+             * Reason
+             * @description Deactivation reason stamped when is_active=false (e.g. 'benchmark_failed' when a benchmark run failed, 'user' for a deliberate user disable). Ignored when is_active=true — reactivation always clears the reason.
+             * @default manual
+             * @enum {string}
+             */
+            reason: "manual" | "benchmark_failed" | "user";
+        };
+        /**
+         * BulkModelUpdateRequest
+         * @description Request model for editing the same fields across many models at once.
+         *
+         *     ``updates`` carries only the fields to change (PATCH semantics, same shape
+         *     as a single ``ModelUpdate``). Each model is routed individually — synced
+         *     models get an override row, manual/discovered models a direct base update —
+         *     so capability flags can be flipped in bulk.
+         */
+        BulkModelUpdateRequest: {
+            /** Model Ids */
+            model_ids: number[];
+            updates: components["schemas"]["ModelUpdate"];
         };
         /**
          * BulkToggleRequest
@@ -3762,6 +4467,24 @@ export type components = {
              * @default 0
              */
             models_toggled: number;
+        };
+        /**
+         * BulkUpdateResult
+         * @description Result of a bulk model update.
+         */
+        BulkUpdateResult: {
+            /** Errors */
+            errors?: string[];
+            /**
+             * Skipped
+             * @default 0
+             */
+            skipped: number;
+            /**
+             * Updated
+             * @default 0
+             */
+            updated: number;
         };
         /** ChangeOrganizationRequest */
         ChangeOrganizationRequest: {
@@ -3922,7 +4645,10 @@ export type components = {
         };
         /**
          * ConfigExport
-         * @description Full export format for providers and models.
+         * @description Full export format for providers, models, and canonical specs.
+         *
+         *     Deliberately excludes API keys (provider_keys) and per-provider/model
+         *     runtime counters (cost / token totals).
          */
         ConfigExport: {
             /**
@@ -3932,9 +4658,11 @@ export type components = {
             exported_at: string;
             /** Providers */
             providers?: components["schemas"]["ProviderExport"][];
+            /** Specs */
+            specs?: components["schemas"]["SpecExport"][];
             /**
              * Version
-             * @default 1.0
+             * @default 2.0
              */
             version: string;
         };
@@ -3963,6 +4691,22 @@ export type components = {
              * @description Total number of fields compared
              */
             total_fields: number;
+        };
+        /**
+         * ContinueJobRequest
+         * @description Optional body for resuming a paused job.
+         *
+         *     Used by interactive sample generation to carry the user's answers. Absent
+         *     body (classification continue) resumes with no payload — backward compatible.
+         */
+        ContinueJobRequest: {
+            /**
+             * Answers
+             * @description Map of question id -> answer
+             */
+            answers?: {
+                [key: string]: components["schemas"]["QuestionAnswer"];
+            } | null;
         };
         /**
          * CostStatsRow
@@ -4196,6 +4940,28 @@ export type components = {
             response?: string | null;
             /** Success */
             success: boolean;
+        };
+        /**
+         * DeleteBenchmarkResultsRequest
+         * @description Request model for deleting a scenario's results for specific models.
+         */
+        DeleteBenchmarkResultsRequest: {
+            /**
+             * Model Keys
+             * @description Model composite keys whose results to delete
+             */
+            model_keys: string[];
+        };
+        /**
+         * DeleteBenchmarkResultsResponse
+         * @description Result of deleting benchmark results.
+         */
+        DeleteBenchmarkResultsResponse: {
+            /**
+             * Deleted
+             * @default 0
+             */
+            deleted: number;
         };
         /** DeviceCodeConfirmRequest */
         DeviceCodeConfirmRequest: {
@@ -4621,13 +5387,6 @@ export type components = {
                 [key: string]: unknown;
             };
         };
-        /** FieldSuggestionItem */
-        FieldSuggestionItem: {
-            /** Label */
-            label: string;
-            /** Name */
-            name: string;
-        };
         /**
          * FusionRequest
          * @description Request to merge multiple model results.
@@ -4870,16 +5629,13 @@ export type components = {
         /**
          * ImportRequest
          * @description Request model for importing configuration.
+         *
+         *     Import is always an upsert: existing providers/models are updated in place
+         *     (matched by natural key), missing ones are created. Nothing is deleted, and
+         *     API keys are never touched.
          */
         ImportRequest: {
             config: components["schemas"]["ConfigExport"];
-            /**
-             * Mode
-             * @description merge: add new, update existing; replace: delete all, import fresh
-             * @default merge
-             * @enum {string}
-             */
-            mode: "merge" | "replace";
         };
         /**
          * ImportResult
@@ -4894,11 +5650,6 @@ export type components = {
              */
             models_created: number;
             /**
-             * Models Skipped
-             * @default 0
-             */
-            models_skipped: number;
-            /**
              * Models Updated
              * @default 0
              */
@@ -4909,15 +5660,15 @@ export type components = {
              */
             providers_created: number;
             /**
-             * Providers Skipped
-             * @default 0
-             */
-            providers_skipped: number;
-            /**
              * Providers Updated
              * @default 0
              */
             providers_updated: number;
+            /**
+             * Specs Imported
+             * @default 0
+             */
+            specs_imported: number;
         };
         /**
          * JobsListResponse
@@ -5233,6 +5984,12 @@ export type components = {
              * @description Provider name (DB format)
              */
             provider_name: string;
+            /**
+             * Source
+             * @description Scraper source that produced this change
+             * @default
+             */
+            source: string;
         };
         /**
          * ModelCostRow
@@ -5436,6 +6193,10 @@ export type components = {
         /**
          * ModelExport
          * @description Export format for a single model.
+         *
+         *     Inherits every config column of `llm_models` from `LLMModelFields`, plus the
+         *     identity/lifecycle columns needed for a faithful round-trip. API keys are
+         *     never part of this model (they live in `provider_keys`, a separate table).
          */
         ModelExport: {
             /** Benchmark Coding */
@@ -5480,6 +6241,8 @@ export type components = {
              * @description Model identifier for API
              */
             model: string;
+            /** Organization Id */
+            organization_id?: string | null;
             /** Output Price Per Million */
             output_price_per_million?: number | null;
             /** Output Reasoning Token Price Per Million */
@@ -5493,6 +6256,8 @@ export type components = {
             rpm?: number | null;
             /** Source */
             source: string;
+            /** Source Identifier */
+            source_identifier?: string | null;
             /** Supported Reasoning Efforts */
             supported_reasoning_efforts?: string[] | null;
             /**
@@ -5714,7 +6479,7 @@ export type components = {
              * @description Why the model was deactivated. Persists even after reactivation via toggle/edit so admins can spot zombie rows (is_active=true with a stale reason). NULL means the model has never been auto-deactivated.
              * @enum {unknown}
              */
-            deactivation_reason?: "model_not_found" | "unsupported" | "sync_removed" | "validation_failed" | "manual" | "tunnel_offline" | null;
+            deactivation_reason?: "model_not_found" | "unsupported" | "sync_removed" | "validation_failed" | "manual" | "tunnel_offline" | "benchmark_failed" | "user" | null;
             /** Deprecation Date */
             deprecation_date?: string | null;
             /**
@@ -5726,6 +6491,11 @@ export type components = {
             embedding_dimensions?: number | null;
             /** Id */
             id: number;
+            /**
+             * Input Price Billed
+             * @description Input price per million with the viewer's org commission markup applied (None = unknown; equals raw for free-tier orgs). Computed from the org's plan + per-provider org-key status, mirroring /enrichment/options — the authoritative billed price for UI display.
+             */
+            input_price_billed?: number | null;
             /** Input Price Per Million */
             input_price_per_million?: number | null;
             /** Is Active */
@@ -5750,6 +6520,11 @@ export type components = {
              * @description Org ID if org-scoped, null if global
              */
             organization_id?: string | null;
+            /**
+             * Output Price Billed
+             * @description Output price per million with the viewer's org commission markup applied.
+             */
+            output_price_billed?: number | null;
             /** Output Price Per Million */
             output_price_per_million?: number | null;
             /** Output Reasoning Token Price Per Million */
@@ -5789,6 +6564,11 @@ export type components = {
              * @description Raw (pre-override) values of every base row that shares this model's composite key in the same scope — including this row itself. NULL when only one base row exists. Frontend surfaces an inline badge + tooltip when non-empty so admins can compare what each source actually published without admin/org overrides obscuring the disagreement.
              */
             source_rows_raw?: components["schemas"]["SourceRowRaw"][] | null;
+            /**
+             * Spec Id
+             * @description FK to llm_specs (canonical cross-provider model identity). Rows with the same (provider_id, spec_id) are the same underlying model — used to collapse alias/snapshot duplicates in selection lists (e.g. benchmarks).
+             */
+            spec_id?: number | null;
             /** Supported Reasoning Efforts */
             supported_reasoning_efforts?: string[] | null;
             /**
@@ -6359,6 +7139,31 @@ export type components = {
             subscription_period_end?: string | null;
         };
         /**
+         * PricingSourceInfo
+         * @description A selectable pricing scraper, with freshness metadata for the sync modal.
+         */
+        PricingSourceInfo: {
+            /** Label */
+            label: string;
+            /**
+             * Last Researched
+             * @description When the web-search research cache for this vendor was last refreshed
+             */
+            last_researched?: string | null;
+            /**
+             * Last Synced
+             * @description When this source was last applied (non-dry-run)
+             */
+            last_synced?: string | null;
+            /**
+             * Requires Web Search
+             * @description True for API-catalog sources whose pricing is researched via web search
+             */
+            requires_web_search: boolean;
+            /** Source */
+            source: string;
+        };
+        /**
          * PricingSyncRequest
          * @description Request for pricing sync
          */
@@ -6370,11 +7175,27 @@ export type components = {
              */
             dry_run: boolean;
             /**
+             * Force Refresh
+             * @description Bypass the cached vendor research and re-run a live web-search pass.
+             * @default false
+             */
+            force_refresh: boolean;
+            /**
+             * Research Model Key
+             * @description Composite key (provider::model) of the web-search model used to research pricing/capabilities for API-catalog sources. None = auto-pick the best available web-search-capable model with a resolvable key.
+             */
+            research_model_key?: string | null;
+            /**
              * Source
-             * @description Pricing source: 'litellm', 'pricepertoken', or 'together'
+             * @description Single pricing source (back-compat). Ignored when `sources` is set. One of 'litellm', 'pricepertoken', 'together', 'cohere', 'moonshot'.
              * @default litellm
              */
             source: string;
+            /**
+             * Sources
+             * @description Multiple sources to sync in one call. When set, takes precedence over `source`; each change is tagged with its originating source.
+             */
+            sources?: string[] | null;
         };
         /**
          * PricingSyncResponse
@@ -6392,6 +7213,11 @@ export type components = {
              * @description Informational messages about side effects already applied (e.g. an auto-created provider), distinct from blocking errors
              */
             notices?: string[];
+            /**
+             * Per Source
+             * @description Per-source breakdown when multiple sources were synced
+             */
+            per_source?: components["schemas"]["SourceSyncSummary"][];
             /** Provider Changes */
             provider_changes?: components["schemas"]["ProviderChange"][];
             summary: components["schemas"]["PricingSyncSummary"];
@@ -6643,6 +7469,12 @@ export type components = {
              * @description Provider name (lowercase, slugified)
              */
             name: string;
+            /**
+             * Source
+             * @description Scraper source that produced this change
+             * @default
+             */
+            source: string;
         };
         /**
          * ProviderCreate
@@ -6677,6 +7509,13 @@ export type components = {
              */
             rate_limit_override?: number | null;
             /**
+             * Request Extra Body
+             * @description Provider-specific params merged into every request's extra_body (e.g. {"enable_thinking": false} for Qwen/DashScope). Admin/owner only.
+             */
+            request_extra_body?: {
+                [key: string]: unknown;
+            } | null;
+            /**
              * Specific Endpoint
              * @description Custom endpoint URL (for Azure, Ollama)
              */
@@ -6685,6 +7524,9 @@ export type components = {
         /**
          * ProviderExport
          * @description Export format for a single provider.
+         *
+         *     Carries the provider's config columns only — never any API key material
+         *     (keys are stored in `provider_keys` and are intentionally excluded).
          */
         ProviderExport: {
             /** Api Version */
@@ -6695,10 +7537,16 @@ export type components = {
             models?: components["schemas"]["ModelExport"][];
             /** Name */
             name: string;
+            /** Organization Id */
+            organization_id?: string | null;
             /** Provider Type */
             provider_type: string | null;
             /** Rate Limit Override */
             rate_limit_override: number | null;
+            /** Request Extra Body */
+            request_extra_body?: {
+                [key: string]: unknown;
+            } | null;
             /** Source */
             source: string;
             /** Specific Endpoint */
@@ -6886,6 +7734,12 @@ export type components = {
              */
             has_global_keys: boolean;
             /**
+             * Has Native Client
+             * @description Whether pydantic-ai ships a native client for this provider (after PROVIDER_NAME_MAP). False = the provider needs a custom specific_endpoint to be routed through the OpenAI-compatible client
+             * @default true
+             */
+            has_native_client: boolean;
+            /**
              * Has Org Key
              * @description Whether org has a key for this provider
              * @default false
@@ -6950,6 +7804,13 @@ export type components = {
              */
             rate_limit_override: number | null;
             /**
+             * Request Extra Body
+             * @description Provider-specific params merged into every request's extra_body
+             */
+            request_extra_body?: {
+                [key: string]: unknown;
+            } | null;
+            /**
              * Scope
              * @description Provider scope: global or organization
              * @default global
@@ -6990,8 +7851,98 @@ export type components = {
             provider_type?: string | null;
             /** Rate Limit Override */
             rate_limit_override?: number | null;
+            /**
+             * Request Extra Body
+             * @description Provider-specific params merged into every request's extra_body (e.g. {"enable_thinking": false} for Qwen/DashScope). Send {} or null to clear.
+             */
+            request_extra_body?: {
+                [key: string]: unknown;
+            } | null;
             /** Specific Endpoint */
             specific_endpoint?: string | null;
+        };
+        /**
+         * QualityArrayScore
+         * @description Per-array set-alignment detail (precision / recall / F1 + miss/hallucination lists).
+         */
+        QualityArrayScore: {
+            /** Cand Count */
+            cand_count: number;
+            /** F1 */
+            f1: number;
+            /** Hallucinated */
+            hallucinated: number;
+            /** Hallucinated Labels */
+            hallucinated_labels?: string[];
+            /** Matched */
+            matched: number;
+            /** Missed */
+            missed: number;
+            /** Missed Labels */
+            missed_labels?: string[];
+            /** Path */
+            path: string;
+            /** Precision */
+            precision: number;
+            /** Recall */
+            recall: number;
+            /** Ref Count */
+            ref_count: number;
+        };
+        /**
+         * QualityDetail
+         * @description Full per-result scoring breakdown stored in ``benchmark_results.quality_detail``.
+         */
+        QualityDetail: {
+            /** Arrays */
+            arrays?: components["schemas"]["QualityArrayScore"][];
+            /** Completeness */
+            completeness: number;
+            /** Correctness */
+            correctness: number;
+            /** Fields */
+            fields?: components["schemas"]["QualityFieldScore"][];
+            /** Hallucination Rate */
+            hallucination_rate: number;
+            /** Overall */
+            overall: number;
+        };
+        /**
+         * QualityFieldScore
+         * @description Per-leaf score detail for the expandable results row.
+         */
+        QualityFieldScore: {
+            /** Candidate */
+            candidate?: unknown;
+            /** Cosine */
+            cosine?: number | null;
+            /**
+             * Method
+             * @description exact | normalized | embedding | judge | miss | extra
+             */
+            method: string;
+            /** Path */
+            path: string;
+            /** Reference */
+            reference?: unknown;
+            /** Score */
+            score: number;
+        };
+        /**
+         * QuestionAnswer
+         * @description A user's answer to one interactive clarifying question.
+         */
+        QuestionAnswer: {
+            /**
+             * Option Ids
+             * @description Selected option ids
+             */
+            option_ids?: string[];
+            /**
+             * Text
+             * @description Free-form 'Other' reply
+             */
+            text?: string | null;
         };
         /**
          * RecordDetail
@@ -7385,6 +8336,27 @@ export type components = {
             target_schema?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
         };
         /**
+         * RunBenchmarkJobResponse
+         * @description Response after starting a benchmark run (progress streams over the LLM job SSE).
+         */
+        RunBenchmarkJobResponse: {
+            /** Job Id */
+            job_id: string;
+            /** Total Models */
+            total_models: number;
+        };
+        /**
+         * RunBenchmarkRequest
+         * @description Request model for running a scenario across an explicit set of models.
+         */
+        RunBenchmarkRequest: {
+            /**
+             * Model Keys
+             * @description Model composite keys to benchmark (active set)
+             */
+            model_keys: string[];
+        };
+        /**
          * SavedSchemaCreate
          * @description Request model for creating a saved schema.
          */
@@ -7563,6 +8535,31 @@ export type components = {
             prompt: string;
         };
         /**
+         * ScoreBenchmarkJobResponse
+         * @description Response after starting a scoring job (progress streams over the LLM job SSE).
+         */
+        ScoreBenchmarkJobResponse: {
+            /** Job Id */
+            job_id: string;
+            /** Total Results */
+            total_results: number;
+        };
+        /**
+         * ScoreBenchmarkRequest
+         * @description Re-score a scenario's results against its gold reference.
+         *
+         *     Scoring config (judge model, embedding override, strictness) is frozen on the scenario,
+         *     not chosen here — so every result is graded identically. This request only scopes *which*
+         *     results to (re-)score.
+         */
+        ScoreBenchmarkRequest: {
+            /**
+             * Model Keys
+             * @description Result model composite keys to score; null/empty = all scoreable results
+             */
+            model_keys?: string[] | null;
+        };
+        /**
          * SemanticConceptRef
          * @description Concept linked to an enrichment record, for the record-detail panel.
          */
@@ -7580,6 +8577,26 @@ export type components = {
             cosine: number | null;
             /** Json Path */
             json_path: string;
+        };
+        /**
+         * SetBenchmarkReferenceRequest
+         * @description Save (or clear) a scenario's gold reference output.
+         */
+        SetBenchmarkReferenceRequest: {
+            reference_meta?: components["schemas"]["BenchmarkReferenceMeta"] | null;
+            /**
+             * Reference Output
+             * @description The expected output; null clears the reference
+             */
+            reference_output?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Reference Verified
+             * @description Explicit human sign-off that the reference is correct
+             * @default false
+             */
+            reference_verified: boolean;
         };
         /**
          * SingleEnrichmentResponse
@@ -7759,6 +8776,80 @@ export type components = {
              * @default false
              */
             supports_web_search: boolean;
+        };
+        /**
+         * SourceSyncSummary
+         * @description Per-source summary when multiple sources are synced in one call.
+         */
+        SourceSyncSummary: {
+            /** Source */
+            source: string;
+            summary: components["schemas"]["PricingSyncSummary"];
+        };
+        /**
+         * SpecExport
+         * @description Export format for a single `llm_specs` row (canonical cross-provider spec).
+         */
+        SpecExport: {
+            /** Authority Provider */
+            authority_provider?: string | null;
+            /** Benchmark Coding */
+            benchmark_coding?: number | null;
+            /** Benchmark Intelligence */
+            benchmark_intelligence?: number | null;
+            /** Benchmark Intelligence Reasoning */
+            benchmark_intelligence_reasoning?: number | null;
+            /** Benchmark Math */
+            benchmark_math?: number | null;
+            /** Benchmarks Extra */
+            benchmarks_extra?: {
+                [key: string]: number;
+            } | null;
+            /** Canonical Key */
+            canonical_key: string;
+            /** Deprecation Date */
+            deprecation_date?: string | null;
+            /** Display Name */
+            display_name?: string | null;
+            /** Embedding Dimensions */
+            embedding_dimensions?: number | null;
+            /** Supported Reasoning Efforts */
+            supported_reasoning_efforts?: string[] | null;
+            /**
+             * Supports Audio Input
+             * @default false
+             */
+            supports_audio_input: boolean;
+            /**
+             * Supports Audio Output
+             * @default false
+             */
+            supports_audio_output: boolean;
+            /**
+             * Supports Embeddings
+             * @default false
+             */
+            supports_embeddings: boolean;
+            /**
+             * Supports Reasoning
+             * @default false
+             */
+            supports_reasoning: boolean;
+            /**
+             * Supports Tool Calls
+             * @default false
+             */
+            supports_tool_calls: boolean;
+            /**
+             * Supports Video Input
+             * @default false
+             */
+            supports_video_input: boolean;
+            /**
+             * Supports Vision
+             * @default false
+             */
+            supports_vision: boolean;
         };
         /**
          * SSEArbitrationCompleted
@@ -9114,6 +10205,140 @@ export type components = {
             total_models: number;
         };
         /**
+         * SSESampleClarificationPause
+         * @description Emitted when interactive sample generation pauses to ask the user clarifying questions.
+         *
+         *     Part of an iterative planner↔user loop: each round may emit a fresh set of
+         *     questions (distinguished by `round`). The client answers via
+         *     POST /api/llm/continue/{job_id} with a ContinueJobRequest body, after which
+         *     the planner may pause again or proceed to generate.
+         */
+        SSESampleClarificationPause: {
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Entity Title
+             * @description Refined human title for the entity instance
+             */
+            entity_title: string;
+            /**
+             * Event
+             * @default sample_clarification_pause
+             * @constant
+             */
+            event: "sample_clarification_pause";
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Last Error Summary */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Questions */
+            questions: components["schemas"]["SSESampleQuestion"][];
+            /**
+             * Round
+             * @description Zero-based planner loop round
+             * @default 0
+             */
+            round: number;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Source Mode
+             * @description transcribe_data | structure_only | describe_subject
+             */
+            source_mode: string;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /** Timeout Seconds */
+            timeout_seconds: number;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
+         * SSESampleQuestion
+         * @description A clarifying question the sample-generation planner asks the user.
+         *
+         *     Free text is always allowed in addition to the listed options (the UI shows
+         *     an 'Other' field), so `options` may be empty for a free-text-only question.
+         */
+        SSESampleQuestion: {
+            /**
+             * Allow Multiple
+             * @description Allow selecting >1 option
+             * @default false
+             */
+            allow_multiple: boolean;
+            /**
+             * Default Option Id
+             * @description Option used if the user does not answer before timeout
+             */
+            default_option_id?: string | null;
+            /**
+             * Id
+             * @description Stable question id, echoed back in the answer
+             */
+            id: string;
+            /**
+             * Options
+             * @description Selectable choices (may be empty)
+             */
+            options?: components["schemas"]["SSESampleQuestionOption"][];
+            /**
+             * Text
+             * @description The question shown to the user
+             */
+            text: string;
+        };
+        /**
+         * SSESampleQuestionOption
+         * @description One selectable choice for a clarifying question.
+         */
+        SSESampleQuestionOption: {
+            /**
+             * Id
+             * @description Stable option id, echoed back in the answer
+             */
+            id: string;
+            /**
+             * Label
+             * @description Human-readable choice
+             */
+            label: string;
+        };
+        /**
          * SSEStrategySelected
          * @description Emitted once when the server auto-selects the enrichment strategy.
          *
@@ -9600,37 +10825,6 @@ export type components = {
             /** Sort Order */
             sort_order: number;
         };
-        /** SuggestFieldsRequest */
-        SuggestFieldsRequest: {
-            /** Attachment Ids */
-            attachment_ids?: string[] | null;
-            /** Entity Type */
-            entity_type: string;
-            /** Extra Instructions */
-            extra_instructions?: string | null;
-            /**
-             * Model
-             * @description Model composite key
-             */
-            model: string;
-            /**
-             * Naming Convention
-             * @description Field naming convention: 'auto', 'snake_case', or 'camelCase'
-             * @default auto
-             */
-            naming_convention: string;
-        };
-        /** SuggestFieldsResponse */
-        SuggestFieldsResponse: {
-            /** Cost Usd */
-            cost_usd?: number | null;
-            /** Fields */
-            fields: components["schemas"]["FieldSuggestionItem"][];
-            /** Processing Time Ms */
-            processing_time_ms?: number | null;
-            /** Typical Examples */
-            typical_examples?: string[];
-        };
         /**
          * SyncEnrichRequest
          * @description Request body for synchronous single-entity enrichment.
@@ -10074,6 +11268,13 @@ export type BatchEnrichmentRequest = components['schemas']['BatchEnrichmentReque
 export type BatchFetchRequest = components['schemas']['BatchFetchRequest'];
 export type BatchFetchResponse = components['schemas']['BatchFetchResponse'];
 export type BatchRestoreRequest = components['schemas']['BatchRestoreRequest'];
+export type BenchmarkReferenceMeta = components['schemas']['BenchmarkReferenceMeta'];
+export type BenchmarkResultResponse = components['schemas']['BenchmarkResultResponse'];
+export type BenchmarkRunMetric = components['schemas']['BenchmarkRunMetric'];
+export type BenchmarkScenarioCreate = components['schemas']['BenchmarkScenarioCreate'];
+export type BenchmarkScenarioDetail = components['schemas']['BenchmarkScenarioDetail'];
+export type BenchmarkScenarioResponse = components['schemas']['BenchmarkScenarioResponse'];
+export type BenchmarkScenarioUpdate = components['schemas']['BenchmarkScenarioUpdate'];
 export type BillingOverview = components['schemas']['BillingOverview'];
 export type BillingPortalResponse = components['schemas']['BillingPortalResponse'];
 export type BillingSettingsUpdate = components['schemas']['BillingSettingsUpdate'];
@@ -10082,8 +11283,10 @@ export type BulkDeleteRequest = components['schemas']['BulkDeleteRequest'];
 export type BulkDeleteResult = components['schemas']['BulkDeleteResult'];
 export type BulkModelDeleteRequest = components['schemas']['BulkModelDeleteRequest'];
 export type BulkModelToggleRequest = components['schemas']['BulkModelToggleRequest'];
+export type BulkModelUpdateRequest = components['schemas']['BulkModelUpdateRequest'];
 export type BulkToggleRequest = components['schemas']['BulkToggleRequest'];
 export type BulkToggleResult = components['schemas']['BulkToggleResult'];
+export type BulkUpdateResult = components['schemas']['BulkUpdateResult'];
 export type ChangeOrganizationRequest = components['schemas']['ChangeOrganizationRequest'];
 export type CheckoutSessionResponse = components['schemas']['CheckoutSessionResponse'];
 export type ClassificationContext = components['schemas']['ClassificationContext'];
@@ -10093,6 +11296,7 @@ export type CleanupDeactivatedResponse = components['schemas']['CleanupDeactivat
 export type CleanupSpecInfo = components['schemas']['CleanupSpecInfo'];
 export type ConfigExport = components['schemas']['ConfigExport'];
 export type ConflictReport = components['schemas']['ConflictReport'];
+export type ContinueJobRequest = components['schemas']['ContinueJobRequest'];
 export type CostStatsRow = components['schemas']['CostStatsRow'];
 export type CostSummary = components['schemas']['CostSummary'];
 export type CreditBalance = components['schemas']['CreditBalance'];
@@ -10102,6 +11306,8 @@ export type CreditTransaction = components['schemas']['CreditTransaction'];
 export type CreditTransactionList = components['schemas']['CreditTransactionList'];
 export type CustomPromptRequest = components['schemas']['CustomPromptRequest'];
 export type CustomPromptResponse = components['schemas']['CustomPromptResponse'];
+export type DeleteBenchmarkResultsRequest = components['schemas']['DeleteBenchmarkResultsRequest'];
+export type DeleteBenchmarkResultsResponse = components['schemas']['DeleteBenchmarkResultsResponse'];
 export type DeviceCodeConfirmRequest = components['schemas']['DeviceCodeConfirmRequest'];
 export type DeviceCodePollRequest = components['schemas']['DeviceCodePollRequest'];
 export type DeviceCodePollResponse = components['schemas']['DeviceCodePollResponse'];
@@ -10117,7 +11323,6 @@ export type EntityDefinitionOutput = components['schemas']['EntityDefinition-Out
 export type ExpertiseBreakdown = components['schemas']['ExpertiseBreakdown'];
 export type ExpertiseDomain = components['schemas']['ExpertiseDomain'];
 export type FieldConflict = components['schemas']['FieldConflict'];
-export type FieldSuggestionItem = components['schemas']['FieldSuggestionItem'];
 export type FusionRequest = components['schemas']['FusionRequest'];
 export type FusionResponse = components['schemas']['FusionResponse'];
 export type FusionStreamResponse = components['schemas']['FusionStreamResponse'];
@@ -10166,6 +11371,7 @@ export type PerformanceStatsByModel = components['schemas']['PerformanceStatsByM
 export type PerformanceStatsByPropertyCount = components['schemas']['PerformanceStatsByPropertyCount'];
 export type PerformanceStatsResponse = components['schemas']['PerformanceStatsResponse'];
 export type PlansWithContext = components['schemas']['PlansWithContext'];
+export type PricingSourceInfo = components['schemas']['PricingSourceInfo'];
 export type PricingSyncRequest = components['schemas']['PricingSyncRequest'];
 export type PricingSyncResponse = components['schemas']['PricingSyncResponse'];
 export type PricingSyncSummary = components['schemas']['PricingSyncSummary'];
@@ -10180,6 +11386,10 @@ export type ProviderKeyResponse = components['schemas']['ProviderKeyResponse'];
 export type ProviderKeyUpdate = components['schemas']['ProviderKeyUpdate'];
 export type ProviderResponse = components['schemas']['ProviderResponse'];
 export type ProviderUpdate = components['schemas']['ProviderUpdate'];
+export type QualityArrayScore = components['schemas']['QualityArrayScore'];
+export type QualityDetail = components['schemas']['QualityDetail'];
+export type QualityFieldScore = components['schemas']['QualityFieldScore'];
+export type QuestionAnswer = components['schemas']['QuestionAnswer'];
 export type RecordDetail = components['schemas']['RecordDetail'];
 export type RecordsListResponse = components['schemas']['RecordsListResponse'];
 export type RecordStatsResponse = components['schemas']['RecordStatsResponse'];
@@ -10188,6 +11398,8 @@ export type RefreshTokenRequest = components['schemas']['RefreshTokenRequest'];
 export type RefreshTokenResponse = components['schemas']['RefreshTokenResponse'];
 export type RegisterRequest = components['schemas']['RegisterRequest'];
 export type RetryExpertisesRequest = components['schemas']['RetryExpertisesRequest'];
+export type RunBenchmarkJobResponse = components['schemas']['RunBenchmarkJobResponse'];
+export type RunBenchmarkRequest = components['schemas']['RunBenchmarkRequest'];
 export type SavedSchemaCreate = components['schemas']['SavedSchemaCreate'];
 export type SavedSchemaListItem = components['schemas']['SavedSchemaListItem'];
 export type SavedSchemaListResponse = components['schemas']['SavedSchemaListResponse'];
@@ -10196,10 +11408,15 @@ export type SavedSchemaUpdate = components['schemas']['SavedSchemaUpdate'];
 export type SchemaPromptRequest = components['schemas']['SchemaPromptRequest'];
 export type SchemaPromptResponse = components['schemas']['SchemaPromptResponse'];
 export type SchemaPromptStreamRequest = components['schemas']['SchemaPromptStreamRequest'];
+export type ScoreBenchmarkJobResponse = components['schemas']['ScoreBenchmarkJobResponse'];
+export type ScoreBenchmarkRequest = components['schemas']['ScoreBenchmarkRequest'];
 export type SemanticConceptRef = components['schemas']['SemanticConceptRef'];
+export type SetBenchmarkReferenceRequest = components['schemas']['SetBenchmarkReferenceRequest'];
 export type SingleEnrichmentResponse = components['schemas']['SingleEnrichmentResponse'];
 export type SingleEnrichmentSyncResponse = components['schemas']['SingleEnrichmentSyncResponse'];
 export type SourceRowRaw = components['schemas']['SourceRowRaw'];
+export type SourceSyncSummary = components['schemas']['SourceSyncSummary'];
+export type SpecExport = components['schemas']['SpecExport'];
 export type SseArbitrationCompleted = components['schemas']['SSEArbitrationCompleted'];
 export type SseArbitrationStarted = components['schemas']['SSEArbitrationStarted'];
 export type SseBatchCompleted = components['schemas']['SSEBatchCompleted'];
@@ -10219,6 +11436,9 @@ export type SseJobCompleted = components['schemas']['SSEJobCompleted'];
 export type SseJobFailed = components['schemas']['SSEJobFailed'];
 export type SseModelCompleted = components['schemas']['SSEModelCompleted'];
 export type SseModelStarted = components['schemas']['SSEModelStarted'];
+export type SseSampleClarificationPause = components['schemas']['SSESampleClarificationPause'];
+export type SseSampleQuestion = components['schemas']['SSESampleQuestion'];
+export type SseSampleQuestionOption = components['schemas']['SSESampleQuestionOption'];
 export type SseStrategySelected = components['schemas']['SSEStrategySelected'];
 export type StrategyInfo = components['schemas']['StrategyInfo'];
 export type StreamEnrichRequest = components['schemas']['StreamEnrichRequest'];
@@ -10230,8 +11450,6 @@ export type SubscriptionPlan = components['schemas']['SubscriptionPlan'];
 export type SubscriptionPlanAdmin = components['schemas']['SubscriptionPlanAdmin'];
 export type SubscriptionPlanInput = components['schemas']['SubscriptionPlanInput'];
 export type SubscriptionPlanWithLimits = components['schemas']['SubscriptionPlanWithLimits'];
-export type SuggestFieldsRequest = components['schemas']['SuggestFieldsRequest'];
-export type SuggestFieldsResponse = components['schemas']['SuggestFieldsResponse'];
 export type SyncEnrichRequest = components['schemas']['SyncEnrichRequest'];
 export type SyncGenerateRequest = components['schemas']['SyncGenerateRequest'];
 export type TestConnectionResponse = components['schemas']['TestConnectionResponse'];
@@ -11633,6 +12851,397 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BatchEnrichmentJobResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_scenarios_api_benchmarks_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkScenarioResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_scenario_api_benchmarks_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BenchmarkScenarioCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkScenarioResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scenario_api_benchmarks__scenario_id__get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkScenarioDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_scenario_api_benchmarks__scenario_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_scenario_api_benchmarks__scenario_id__patch: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BenchmarkScenarioUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkScenarioResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_reference_api_benchmarks__scenario_id__reference_put: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetBenchmarkReferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkScenarioResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_results_api_benchmarks__scenario_id__results_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkResultResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_results_api_benchmarks__scenario_id__results_delete_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteBenchmarkResultsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteBenchmarkResultsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_benchmark_api_benchmarks__scenario_id__run_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
+            };
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunBenchmarkRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunBenchmarkJobResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    score_benchmark_api_benchmarks__scenario_id__score_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScoreBenchmarkRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreBenchmarkJobResponse"];
                 };
             };
             /** @description Validation Error */
@@ -13172,7 +14781,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ContinueJobRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -13209,7 +14822,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
+                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
                 };
             };
         };
@@ -13749,6 +15362,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    list_sources_api_pricing_sources_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PricingSourceInfo"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -14476,6 +16124,7 @@ export interface operations {
     list_all_models_api_providers_models_all_get: {
         parameters: {
             query?: {
+                fuse_sources?: boolean;
                 include_inactive?: boolean;
                 scope_org_id?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
@@ -14575,6 +16224,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BulkToggleResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_update_models_api_providers_models_bulk_update_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkModelUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkUpdateResult"];
                 };
             };
             /** @description Validation Error */
@@ -15135,45 +16823,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GenerateSampleStreamResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    suggest_fields_api_schema_sample_suggest_fields_post: {
-        parameters: {
-            query?: {
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SuggestFieldsRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuggestFieldsResponse"];
                 };
             };
             /** @description Validation Error */
