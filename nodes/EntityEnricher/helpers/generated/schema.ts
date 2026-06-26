@@ -945,6 +945,31 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/benchmarks/{scenario_id}/results/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Results
+         * @description 🔒 **Requires: owner (level 4+)**
+         *
+         *     Import portable (GUID-free) results onto a scenario, e.g. from another environment.
+         *
+         *     Results carry no enrichment-record link and reference models by composite key only, so an
+         *     export from test can be re-imported into prod. Upserts per model key like a normal run.
+         */
+        post: operations["import_results_api_benchmarks__scenario_id__results_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/benchmarks/{scenario_id}/run": {
         parameters: {
             query?: never;
@@ -2390,11 +2415,16 @@ export type paths = {
          *
          *     Export providers, models, and (admin only) canonical specs as JSON.
          *
-         *     Admins get a full dump of `llm_providers`, base `llm_models`, and
-         *     `llm_specs`. Owners get only their org-scoped providers and models, plus any
-         *     global provider that carries one of their org models (emitted as a
-         *     match-by-name carrier so it round-trips without letting the owner mutate the
-         *     global catalog). API keys and runtime cost/token counters are never included.
+         *     Each provider/model is tagged with a portable `scope` ("global" or
+         *     "organization") instead of a concrete org UUID, so an "organization"-scoped
+         *     file can be re-imported by any org into their own organization.
+         *
+         *     Admins get all GLOBAL providers/models plus their OWN org's providers/models
+         *     (never other organizations') and the `llm_specs` rows. Owners get only their
+         *     org-scoped providers and models, plus any global provider that carries one of
+         *     their org models (emitted as a match-by-name carrier so it round-trips
+         *     without letting the owner mutate the global catalog). API keys and runtime
+         *     cost/token counters are never included.
          */
         get: operations["export_config_api_providers_export_get"];
         put?: never;
@@ -2423,15 +2453,15 @@ export type paths = {
          *     Existing rows are matched by natural key and updated in place; missing ones
          *     are created. Nothing is deleted and no API keys are touched.
          *
-         *     Scope rules:
-         *     - Admin: each row is restored to the organization recorded in the file
-         *       (global stays global); specs are restored + re-linked.
-         *     - Owner: every row is forced into the owner's own organization — they can
-         *       never create or edit a global provider/model. A file entry for a *global*
-         *       provider (organization_id null) is a match-by-name carrier: the global
-         *       provider must already exist and only the owner's org models under it are
-         *       attached. An org provider whose name shadows a global one is skipped.
-         *       Specs are ignored (owners do not manage the global spec table).
+         *     Scope rules (driven by each row's `scope`, never a concrete org UUID):
+         *     - "organization" rows always go into the IMPORTER's own organization — for
+         *       admins too — which is what makes an exported file portable between orgs.
+         *     - "global" rows: only a system admin can create/edit them. For a non-admin a
+         *       "global" provider is a match-by-name carrier (it must already exist; only
+         *       the owner's org models under it are attached), and a "global" *model* is
+         *       skipped with an error.
+         *     - An org provider whose name shadows a global one is skipped.
+         *     - Specs are admin-only (owners do not manage the global spec table).
          */
         post: operations["import_config_api_providers_import_post"];
         delete?: never;
@@ -2555,15 +2585,17 @@ export type paths = {
          *
          *     List all models across all providers with availability info.
          *
+         *     Source rows for the same (provider, model, scope) are **collapsed by default**
+         *     into one merged row (same merge rule as /enrichment/options), which keeps the
+         *     highest-priority source's identity and carries `source_rows_raw` for the
+         *     per-source diff badge.
+         *
          *     Args:
          *         include_inactive: Include inactive models
          *         scope_org_id: Filter to a specific organization's models (admin only).
          *                       If not set, owners see global + their org, admins see global only.
-         *         fuse_sources: Collapse multiple source rows for the same (provider, model,
-         *                       scope) into one merged row — same merge rule as
-         *                       /enrichment/options. The merged row keeps the highest-priority
-         *                       source's identity and still carries `source_rows_raw` for the
-         *                       per-source diff badge.
+         *         split_sources: Expand the collapsed rows back to one row per sync source.
+         *                        **System-admin only** — forced off for everyone else.
          */
         get: operations["list_all_models_api_providers_models_all_get"];
         put?: never;
@@ -2706,7 +2738,7 @@ export type paths = {
          *     List LLM model overrides.
          *
          *     - System admins see all overrides across every organization plus globals.
-         *     - Owners see only globals + their own org overrides.
+         *     - Owners see only their own org's overrides (globals are admin-managed).
          */
         get: operations["list_model_overrides_endpoint_api_providers_models_overrides_get"];
         put?: never;
@@ -4647,8 +4679,10 @@ export type components = {
          * ConfigExport
          * @description Full export format for providers, models, and canonical specs.
          *
-         *     Deliberately excludes API keys (provider_keys) and per-provider/model
-         *     runtime counters (cost / token totals).
+         *     Each provider/model carries a `scope` ("global" or "organization") instead of
+         *     a concrete org UUID, so an "organization"-scoped file is portable: any org can
+         *     import it into their own organization. Deliberately excludes API keys
+         *     (provider_keys) and per-provider/model runtime counters (cost / token totals).
          */
         ConfigExport: {
             /**
@@ -4662,7 +4696,7 @@ export type components = {
             specs?: components["schemas"]["SpecExport"][];
             /**
              * Version
-             * @default 2.0
+             * @default 3.0
              */
             version: string;
         };
@@ -5627,6 +5661,89 @@ export type components = {
             detail?: components["schemas"]["ValidationError"][];
         };
         /**
+         * ImportBenchmarkResultsRequest
+         * @description Bulk-import portable results onto an existing scenario (upsert per model key).
+         */
+        ImportBenchmarkResultsRequest: {
+            /** Results */
+            results?: components["schemas"]["ImportedBenchmarkResult"][];
+        };
+        /**
+         * ImportBenchmarkResultsResponse
+         * @description Outcome of a results import.
+         */
+        ImportBenchmarkResultsResponse: {
+            /**
+             * Imported
+             * @default 0
+             */
+            imported: number;
+        };
+        /**
+         * ImportedBenchmarkResult
+         * @description A portable, GUID-free benchmark result for cross-environment import.
+         *
+         *     Carries everything needed to reconstruct a result row EXCEPT references that don't
+         *     survive a server move: the model is named by its composite key + display names (plain
+         *     text, no FK), and there is intentionally no enrichment-record link (imported rows have
+         *     output + scores but no record drill-down). ``runs`` is the per-rep breakdown; any record
+         *     ids inside it are dropped on insert. Quality scores ride along so a test→prod comparison
+         *     keeps them; staleness is recomputed on read against the target scenario's config/reference.
+         */
+        ImportedBenchmarkResult: {
+            /** Config Hash */
+            config_hash?: string | null;
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /** Model Composite Key */
+            model_composite_key: string;
+            /** Model Name */
+            model_name?: string | null;
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Processing Time Ms */
+            processing_time_ms?: number | null;
+            /** Provider Name */
+            provider_name?: string | null;
+            /** Quality Complete */
+            quality_complete?: number | null;
+            /** Quality Config */
+            quality_config?: {
+                [key: string]: unknown;
+            } | null;
+            /** Quality Correct */
+            quality_correct?: number | null;
+            quality_detail?: components["schemas"]["QualityDetail"] | null;
+            /** Quality Hallucination */
+            quality_hallucination?: number | null;
+            /** Quality Overall */
+            quality_overall?: number | null;
+            /** Reference Hash */
+            reference_hash?: string | null;
+            /**
+             * Run Count
+             * @default 1
+             */
+            run_count: number;
+            /** Runs */
+            runs?: components["schemas"]["BenchmarkRunMetric"][];
+            /** Strategy Used */
+            strategy_used?: string | null;
+            /** Structured Output */
+            structured_output?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Success
+             * @default false
+             */
+            success: boolean;
+        };
+        /**
          * ImportRequest
          * @description Request model for importing configuration.
          *
@@ -6197,6 +6314,11 @@ export type components = {
          *     Inherits every config column of `llm_models` from `LLMModelFields`, plus the
          *     identity/lifecycle columns needed for a faithful round-trip. API keys are
          *     never part of this model (they live in `provider_keys`, a separate table).
+         *
+         *     `is_active` is exported for human readability, but it is a *generated* column
+         *     (`deactivated_at IS NULL`) — the source of truth is the `deactivated_at` /
+         *     `deactivation_reason` pair, which travels alongside it so an inactive model
+         *     round-trips with its original reason instead of a generic re-stamp on import.
          */
         ModelExport: {
             /** Benchmark Coding */
@@ -6219,6 +6341,10 @@ export type components = {
             cache_write_price_per_million?: number | null;
             /** Context Length */
             context_length?: number | null;
+            /** Deactivated At */
+            deactivated_at?: string | null;
+            /** Deactivation Reason */
+            deactivation_reason?: string | null;
             /** Deprecation Date */
             deprecation_date?: string | null;
             /**
@@ -6241,8 +6367,6 @@ export type components = {
              * @description Model identifier for API
              */
             model: string;
-            /** Organization Id */
-            organization_id?: string | null;
             /** Output Price Per Million */
             output_price_per_million?: number | null;
             /** Output Reasoning Token Price Per Million */
@@ -6254,6 +6378,12 @@ export type components = {
             requires_streaming: boolean;
             /** Rpm */
             rpm?: number | null;
+            /**
+             * Scope
+             * @default organization
+             * @enum {string}
+             */
+            scope: "global" | "organization";
             /** Source */
             source: string;
             /** Source Identifier */
@@ -7537,8 +7667,6 @@ export type components = {
             models?: components["schemas"]["ModelExport"][];
             /** Name */
             name: string;
-            /** Organization Id */
-            organization_id?: string | null;
             /** Provider Type */
             provider_type: string | null;
             /** Rate Limit Override */
@@ -7547,6 +7675,12 @@ export type components = {
             request_extra_body?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Scope
+             * @default organization
+             * @enum {string}
+             */
+            scope: "global" | "organization";
             /** Source */
             source: string;
             /** Specific Endpoint */
@@ -11333,6 +11467,9 @@ export type GenerateSampleRequest = components['schemas']['GenerateSampleRequest
 export type GenerateSampleStreamResponse = components['schemas']['GenerateSampleStreamResponse'];
 export type GenerateSchemaResponse = components['schemas']['GenerateSchemaResponse'];
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
+export type ImportBenchmarkResultsRequest = components['schemas']['ImportBenchmarkResultsRequest'];
+export type ImportBenchmarkResultsResponse = components['schemas']['ImportBenchmarkResultsResponse'];
+export type ImportedBenchmarkResult = components['schemas']['ImportedBenchmarkResult'];
 export type ImportRequest = components['schemas']['ImportRequest'];
 export type ImportResult = components['schemas']['ImportResult'];
 export type JobsListResponse = components['schemas']['JobsListResponse'];
@@ -13159,6 +13296,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeleteBenchmarkResultsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_results_api_benchmarks__scenario_id__results_import_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportBenchmarkResultsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBenchmarkResultsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -16124,9 +16302,9 @@ export interface operations {
     list_all_models_api_providers_models_all_get: {
         parameters: {
             query?: {
-                fuse_sources?: boolean;
                 include_inactive?: boolean;
                 scope_org_id?: string | null;
+                split_sources?: boolean;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
