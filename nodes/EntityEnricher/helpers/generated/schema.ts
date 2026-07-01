@@ -47,9 +47,7 @@ export type paths = {
         };
         /**
          * List Attachment Policies
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     List all attachment format policies.
+         * @description List all attachment format policies.
          */
         get: operations["list_attachment_policies_api_admin_attachment_policies_get"];
         put?: never;
@@ -89,9 +87,7 @@ export type paths = {
         };
         /**
          * List All Organizations
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     List all organizations with stats (system admin only).
+         * @description List all organizations with stats (system admin only).
          */
         get: operations["list_all_organizations_api_admin_organizations_get"];
         put?: never;
@@ -117,9 +113,7 @@ export type paths = {
         head?: never;
         /**
          * Assign Organization Plan
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Assign or remove a subscription plan for an organization.
+         * @description Assign or remove a subscription plan for an organization.
          */
         patch: operations["assign_organization_plan_api_admin_organizations__org_id__plan_patch"];
         trace?: never;
@@ -133,9 +127,7 @@ export type paths = {
         };
         /**
          * List Organization Users
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     List users for a specific organization (system admin only).
+         * @description List users for a specific organization (system admin only).
          */
         get: operations["list_organization_users_api_admin_organizations__org_id__users_get"];
         put?: never;
@@ -155,9 +147,7 @@ export type paths = {
         };
         /**
          * List All Users
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     List all users across all organizations (system admin only).
+         * @description List all users across all organizations (system admin only).
          */
         get: operations["list_all_users_api_admin_users_get"];
         put?: never;
@@ -183,9 +173,7 @@ export type paths = {
         head?: never;
         /**
          * Approve Or Reject User Admin
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Approve or reject any pending user (system admin only).
+         * @description Approve or reject any pending user (system admin only).
          */
         patch: operations["approve_or_reject_user_admin_api_admin_users__user_id__approval_patch"];
         trace?: never;
@@ -201,9 +189,7 @@ export type paths = {
         put?: never;
         /**
          * Deactivate User Admin
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Deactivate any user (system admin only).
+         * @description Deactivate any user (system admin only).
          */
         post: operations["deactivate_user_admin_api_admin_users__user_id__deactivate_post"];
         delete?: never;
@@ -227,9 +213,7 @@ export type paths = {
         head?: never;
         /**
          * Change User Organization Admin
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Move a user to a different organization (system admin only).
+         * @description Move a user to a different organization (system admin only).
          *
          *     Owners are auto-demoted to editor on the move because the owner role is
          *     org-scoped. The system-admin role is preserved (it's system-wide).
@@ -250,9 +234,7 @@ export type paths = {
         put?: never;
         /**
          * Reactivate User Admin
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Reactivate a deactivated user (system admin only).
+         * @description Reactivate a deactivated user (system admin only).
          */
         post: operations["reactivate_user_admin_api_admin_users__user_id__reactivate_post"];
         delete?: never;
@@ -276,9 +258,7 @@ export type paths = {
         head?: never;
         /**
          * Update User Role Admin
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Update any user's role (system admin only).
+         * @description Update any user's role (system admin only).
          */
         patch: operations["update_user_role_admin_api_admin_users__user_id__role_patch"];
         trace?: never;
@@ -294,9 +274,7 @@ export type paths = {
         put?: never;
         /**
          * Upload Attachments
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Upload one or more attachment files.
+         * @description Upload one or more attachment files.
          *
          *     Multipart form-data with one or more `files` parts. Each file is size-checked
          *     (per-file and per-request total), MIME-sniffed, written to the storage box, and
@@ -323,9 +301,7 @@ export type paths = {
         post?: never;
         /**
          * Delete Attachment
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Permanently remove an attachment (org-scoped).
+         * @description Permanently remove an attachment (org-scoped).
          *
          *     Typically called as a cleanup step after a successful enrichment so source
          *     documents are not left on the storage box. The org-scoped lookup is the
@@ -346,9 +322,7 @@ export type paths = {
         };
         /**
          * Download Attachment
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Stream the original bytes of an attachment back to the caller (org-scoped).
+         * @description Stream the original bytes of an attachment back to the caller (org-scoped).
          */
         get: operations["download_attachment_api_attachments__attachment_id__download_get"];
         put?: never;
@@ -370,15 +344,39 @@ export type paths = {
         put?: never;
         /**
          * Upload Attachment Base64
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Upload a single attachment as a base64 JSON body.
+         * @description Upload a single attachment as a base64 JSON body.
          *
          *     For clients that cannot send multipart/form-data (Make.com, MCP, curl).
          *     Bytes are decoded, then handed to the same per-file pipeline as the
          *     multipart route.
          */
         post: operations["upload_attachment_base64_api_attachments_base64_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attachments/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get Attachments Metadata
+         * @description Return full metadata (filename/type/mode/capability) for a list of attachment IDs.
+         *
+         *     Used to re-hydrate attachment chips when a saved schema is reopened — the schema
+         *     stores only the UUIDs (in generation_params), so the UI needs their metadata to
+         *     display them and re-gate the model picker. Org-scoped; IDs that no longer exist are
+         *     silently omitted (a deleted source document just drops off the chip row). Requested
+         *     order is preserved so the chips render deterministically.
+         */
+        post: operations["get_attachments_metadata_api_attachments_metadata_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -396,9 +394,7 @@ export type paths = {
         put?: never;
         /**
          * Verify Attachments
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Check which attachments are still present on storage (org-scoped).
+         * @description Check which attachments are still present on storage (org-scoped).
          *
          *     Used by the Playground reload-from-record flow to warn the user before a run
          *     if a source document has been deleted/pruned. IDs not found in the org's
@@ -421,17 +417,13 @@ export type paths = {
         };
         /**
          * List Api Keys
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     List all API keys for the current organization.
+         * @description List all API keys for the current organization.
          */
         get: operations["list_api_keys_api_auth_api_keys_get"];
         put?: never;
         /**
          * Create Api Key
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Create a new API key.
+         * @description Create a new API key.
          *
          *     If `role` is set, creates an organization access key (owner+ required).
          *     Otherwise, creates a legacy user key tied to the current user.
@@ -455,18 +447,14 @@ export type paths = {
         post?: never;
         /**
          * Revoke Api Key
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Revoke an API key.
+         * @description Revoke an API key.
          */
         delete: operations["revoke_api_key_api_auth_api_keys__key_id__delete"];
         options?: never;
         head?: never;
         /**
          * Update Api Key
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Update an organization access key's role. Requires owner+ role.
+         * @description Update an organization access key's role. Requires owner+ role.
          */
         patch: operations["update_api_key_api_auth_api_keys__key_id__patch"];
         trace?: never;
@@ -502,9 +490,7 @@ export type paths = {
         put?: never;
         /**
          * Leave Organization
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Leave the current organization.
+         * @description Leave the current organization.
          *
          *     If the user is the last owner, they must confirm deletion of the organization.
          *     Records and schemas are detached (preserved), while users, API keys, and
@@ -546,9 +532,7 @@ export type paths = {
         };
         /**
          * Get Current User Info
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get current user information with fresh chunk manifest.
+         * @description Get current user information with fresh chunk manifest.
          */
         get: operations["get_current_user_info_api_auth_me_get"];
         put?: never;
@@ -574,9 +558,7 @@ export type paths = {
         head?: never;
         /**
          * Update Organization Name
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Update the current user's organization name. Requires owner+ role.
+         * @description Update the current user's organization name. Requires owner+ role.
          */
         patch: operations["update_organization_name_api_auth_organization_patch"];
         trace?: never;
@@ -632,9 +614,7 @@ export type paths = {
         };
         /**
          * List Pending Users
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     List pending users awaiting approval (owner or higher).
+         * @description List pending users awaiting approval (owner or higher).
          */
         get: operations["list_pending_users_api_auth_pending_users_get"];
         put?: never;
@@ -698,9 +678,7 @@ export type paths = {
         };
         /**
          * List Users
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     List all active users in the organization (owner or higher).
+         * @description List all active users in the organization (owner or higher).
          */
         get: operations["list_users_api_auth_users_get"];
         put?: never;
@@ -723,9 +701,7 @@ export type paths = {
         post?: never;
         /**
          * Deactivate User
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Deactivate a user (owner or higher).
+         * @description Deactivate a user (owner or higher).
          */
         delete: operations["deactivate_user_api_auth_users__user_id__delete"];
         options?: never;
@@ -748,9 +724,7 @@ export type paths = {
         head?: never;
         /**
          * Approve Or Reject User
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Approve or reject a pending user (owner or higher).
+         * @description Approve or reject a pending user (owner or higher).
          */
         patch: operations["approve_or_reject_user_api_auth_users__user_id__approval_patch"];
         trace?: never;
@@ -770,9 +744,7 @@ export type paths = {
         head?: never;
         /**
          * Update User Role
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Update a user's role (owner or higher).
+         * @description Update a user's role (owner or higher).
          */
         patch: operations["update_user_role_api_auth_users__user_id__role_patch"];
         trace?: never;
@@ -788,9 +760,7 @@ export type paths = {
         put?: never;
         /**
          * Fetch Entities
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Fetch entities from a REST API URL.
+         * @description Fetch entities from a REST API URL.
          *
          *     Supports various authentication methods and handles common response patterns.
          */
@@ -812,9 +782,7 @@ export type paths = {
         put?: never;
         /**
          * Start Batch Enrichment
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Start a batch enrichment job with full pipeline per entity.
+         * @description Start a batch enrichment job with full pipeline per entity.
          *
          *     Each entity goes through: classification (optional) → multi-model parallel
          *     execution → auto-fusion (if 2+ models). SSE events are tagged with
@@ -834,16 +802,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /**
-         * List Scenarios
-         * @description 🔒 **Requires: operator (level 1+)**
-         */
+        /** List Scenarios */
         get: operations["list_scenarios_api_benchmarks_get"];
         put?: never;
-        /**
-         * Create Scenario
-         * @description 🔒 **Requires: owner (level 4+)**
-         */
+        /** Create Scenario */
         post: operations["create_scenario_api_benchmarks_post"];
         delete?: never;
         options?: never;
@@ -858,24 +820,15 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get Scenario
-         * @description 🔒 **Requires: operator (level 1+)**
-         */
+        /** Get Scenario */
         get: operations["get_scenario_api_benchmarks__scenario_id__get"];
         put?: never;
         post?: never;
-        /**
-         * Delete Scenario
-         * @description 🔒 **Requires: owner (level 4+)**
-         */
+        /** Delete Scenario */
         delete: operations["delete_scenario_api_benchmarks__scenario_id__delete"];
         options?: never;
         head?: never;
-        /**
-         * Update Scenario
-         * @description 🔒 **Requires: owner (level 4+)**
-         */
+        /** Update Scenario */
         patch: operations["update_scenario_api_benchmarks__scenario_id__patch"];
         trace?: never;
     };
@@ -889,9 +842,7 @@ export type paths = {
         get?: never;
         /**
          * Set Reference
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Save (or clear) a scenario's gold reference output (owner+).
+         * @description Save (or clear) a scenario's gold reference output (owner+).
          *
          *     The reference is the expected result used to score each model's result. Build it
          *     once via grounded generation (strong models + web search + source-of-truth
@@ -912,10 +863,7 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /**
-         * List Results
-         * @description 🔒 **Requires: operator (level 1+)**
-         */
+        /** List Results */
         get: operations["list_results_api_benchmarks__scenario_id__results_get"];
         put?: never;
         post?: never;
@@ -934,10 +882,7 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /**
-         * Delete Results
-         * @description 🔒 **Requires: owner (level 4+)**
-         */
+        /** Delete Results */
         post: operations["delete_results_api_benchmarks__scenario_id__results_delete_post"];
         delete?: never;
         options?: never;
@@ -956,9 +901,7 @@ export type paths = {
         put?: never;
         /**
          * Import Results
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Import portable (GUID-free) results onto a scenario, e.g. from another environment.
+         * @description Import portable (GUID-free) results onto a scenario, e.g. from another environment.
          *
          *     Results carry no enrichment-record link and reference models by composite key only, so an
          *     export from test can be re-imported into prod. Upserts per model key like a normal run.
@@ -981,9 +924,7 @@ export type paths = {
         put?: never;
         /**
          * Run Benchmark
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Run a scenario against an explicit set of models. Returns a job_id whose
+         * @description Run a scenario against an explicit set of models. Returns a job_id whose
          *     progress streams over GET /api/llm/stream/{job_id}. Each model result is upserted
          *     into benchmark_results as it completes.
          */
@@ -1005,9 +946,7 @@ export type paths = {
         put?: never;
         /**
          * Score Benchmark
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Re-score a scenario's results against its gold reference. Returns a job_id whose
+         * @description Re-score a scenario's results against its gold reference. Returns a job_id whose
          *     progress streams over GET /api/llm/stream/{job_id}. Scoring is a separate pass over
          *     already-saved results (no re-enrichment); it bills embeddings (+ optional judge).
          *
@@ -1032,10 +971,7 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /**
-         * Allocate Credits
-         * @description 🔒 **Requires: admin (level 5+)**
-         */
+        /** Allocate Credits */
         post: operations["allocate_credits_api_billing_admin_allocate_post"];
         delete?: never;
         options?: never;
@@ -1050,16 +986,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /**
-         * List Plans Admin
-         * @description 🔒 **Requires: admin (level 5+)**
-         */
+        /** List Plans Admin */
         get: operations["list_plans_admin_api_billing_admin_plans_get"];
         put?: never;
-        /**
-         * Create Plan
-         * @description 🔒 **Requires: admin (level 5+)**
-         */
+        /** Create Plan */
         post: operations["create_plan_api_billing_admin_plans_post"];
         delete?: never;
         options?: never;
@@ -1077,17 +1007,11 @@ export type paths = {
         get?: never;
         put?: never;
         post?: never;
-        /**
-         * Delete Plan
-         * @description 🔒 **Requires: admin (level 5+)**
-         */
+        /** Delete Plan */
         delete: operations["delete_plan_api_billing_admin_plans__plan_id__delete"];
         options?: never;
         head?: never;
-        /**
-         * Update Plan
-         * @description 🔒 **Requires: admin (level 5+)**
-         */
+        /** Update Plan */
         patch: operations["update_plan_api_billing_admin_plans__plan_id__patch"];
         trace?: never;
     };
@@ -1098,10 +1022,7 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get Credit Balance
-         * @description 🔒 **Requires: operator (level 1+)**
-         */
+        /** Get Credit Balance */
         get: operations["get_credit_balance_api_billing_balance_get"];
         put?: never;
         post?: never;
@@ -1120,10 +1041,7 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /**
-         * Create Credit Checkout
-         * @description 🔒 **Requires: owner (level 4+)**
-         */
+        /** Create Credit Checkout */
         post: operations["create_credit_checkout_api_billing_credits_checkout_post"];
         delete?: never;
         options?: never;
@@ -1142,9 +1060,7 @@ export type paths = {
         put?: never;
         /**
          * Verify Checkout
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Verify a Stripe checkout session was fulfilled. Self-heals if webhook was missed.
+         * @description Verify a Stripe checkout session was fulfilled. Self-heals if webhook was missed.
          */
         post: operations["verify_checkout_api_billing_credits_verify_checkout_post"];
         delete?: never;
@@ -1160,10 +1076,7 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get Billing Overview
-         * @description 🔒 **Requires: operator (level 1+)**
-         */
+        /** Get Billing Overview */
         get: operations["get_billing_overview_api_billing_overview_get"];
         put?: never;
         post?: never;
@@ -1182,9 +1095,7 @@ export type paths = {
         };
         /**
          * Get Plans
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     List active subscription plans with org context for the upgrade modal.
+         * @description List active subscription plans with org context for the upgrade modal.
          *
          *     Non-admin users see only public plans + their current plan.
          *     Not billing-gated: all authenticated users can view plans (needed for upgrade modal).
@@ -1207,10 +1118,7 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /**
-         * Create Billing Portal
-         * @description 🔒 **Requires: owner (level 4+)**
-         */
+        /** Create Billing Portal */
         post: operations["create_billing_portal_api_billing_portal_post"];
         delete?: never;
         options?: never;
@@ -1231,10 +1139,7 @@ export type paths = {
         delete?: never;
         options?: never;
         head?: never;
-        /**
-         * Update Billing Settings
-         * @description 🔒 **Requires: owner (level 4+)**
-         */
+        /** Update Billing Settings */
         patch: operations["update_billing_settings_api_billing_settings_patch"];
         trace?: never;
     };
@@ -1247,10 +1152,7 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /**
-         * Cancel Subscription
-         * @description 🔒 **Requires: owner (level 4+)**
-         */
+        /** Cancel Subscription */
         post: operations["cancel_subscription_api_billing_subscription_cancel_post"];
         delete?: never;
         options?: never;
@@ -1267,10 +1169,7 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /**
-         * Create Subscription Checkout
-         * @description 🔒 **Requires: owner (level 4+)**
-         */
+        /** Create Subscription Checkout */
         post: operations["create_subscription_checkout_api_billing_subscription_checkout_post"];
         delete?: never;
         options?: never;
@@ -1285,10 +1184,7 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /**
-         * List Transactions
-         * @description 🔒 **Requires: operator (level 1+)**
-         */
+        /** List Transactions */
         get: operations["list_transactions_api_billing_transactions_get"];
         put?: never;
         post?: never;
@@ -1307,10 +1203,7 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /**
-         * Validate Vat
-         * @description 🔒 **Requires: owner (level 4+)**
-         */
+        /** Validate Vat */
         post: operations["validate_vat_api_billing_vat_validate_post"];
         delete?: never;
         options?: never;
@@ -1327,9 +1220,7 @@ export type paths = {
         };
         /**
          * Get Cost By Model
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get cost breakdown by model.
+         * @description Get cost breakdown by model.
          */
         get: operations["get_cost_by_model_api_costs_by_model_get"];
         put?: never;
@@ -1349,9 +1240,7 @@ export type paths = {
         };
         /**
          * Get Performance Stats
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get aggregated performance statistics.
+         * @description Get aggregated performance statistics.
          *
          *     Returns stats grouped by model, language count, input token ranges, and property count.
          *     Useful for analyzing cost and inference duration patterns.
@@ -1374,9 +1263,7 @@ export type paths = {
         };
         /**
          * Get Performance Preset
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get performance stats for a preset time period.
+         * @description Get performance stats for a preset time period.
          *
          *     Presets: 7d, 30d, 90d, all
          */
@@ -1398,9 +1285,7 @@ export type paths = {
         };
         /**
          * Get Cost Preset
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get cost data for a preset time period.
+         * @description Get cost data for a preset time period.
          *
          *     Presets: 7d, 30d, 90d, all
          */
@@ -1422,9 +1307,7 @@ export type paths = {
         };
         /**
          * Get Cost Stats
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get cost statistics aggregated by time period.
+         * @description Get cost statistics aggregated by time period.
          */
         get: operations["get_cost_stats_api_costs_stats_get"];
         put?: never;
@@ -1444,9 +1327,7 @@ export type paths = {
         };
         /**
          * Get Cost Summary
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get overall cost summary.
+         * @description Get overall cost summary.
          */
         get: operations["get_cost_summary_api_costs_summary_get"];
         put?: never;
@@ -1468,9 +1349,7 @@ export type paths = {
         put?: never;
         /**
          * Execute Custom Prompt
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Execute a custom prompt with the selected model.
+         * @description Execute a custom prompt with the selected model.
          *
          *     Returns the raw text response from the model.
          */
@@ -1490,9 +1369,7 @@ export type paths = {
         };
         /**
          * Get Prompt History
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get custom prompt execution history.
+         * @description Get custom prompt execution history.
          */
         get: operations["get_prompt_history_api_custom_prompt_history_get"];
         put?: never;
@@ -1514,9 +1391,7 @@ export type paths = {
         put?: never;
         /**
          * Cancel Job
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Request cancellation of a running job.
+         * @description Request cancellation of a running job.
          */
         post: operations["cancel_job_api_enrichment_cancel__job_id__post"];
         delete?: never;
@@ -1534,9 +1409,7 @@ export type paths = {
         };
         /**
          * List Jobs
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     List recent enrichment jobs.
+         * @description List recent enrichment jobs.
          */
         get: operations["list_jobs_api_enrichment_jobs_get"];
         put?: never;
@@ -1556,9 +1429,7 @@ export type paths = {
         };
         /**
          * Get Job Status
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get current status of an enrichment job.
+         * @description Get current status of an enrichment job.
          */
         get: operations["get_job_status_api_enrichment_jobs__job_id__status_get"];
         put?: never;
@@ -1578,9 +1449,7 @@ export type paths = {
         };
         /**
          * Get Options
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get available enrichment options (models, languages).
+         * @description Get available enrichment options (models, languages).
          */
         get: operations["get_options_api_enrichment_options_get"];
         put?: never;
@@ -1600,9 +1469,7 @@ export type paths = {
         };
         /**
          * Stream Progress
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Stream progress events for an enrichment job via SSE.
+         * @description Stream progress events for an enrichment job via SSE.
          */
         get: operations["stream_progress_api_enrichment_stream__job_id__get"];
         put?: never;
@@ -1624,9 +1491,7 @@ export type paths = {
         put?: never;
         /**
          * Merge Results
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Merge multiple enrichment results into a single output.
+         * @description Merge multiple enrichment results into a single output.
          *
          *     Combines results from multiple LLM models using either:
          *     - Rule-based merge (default): Majority voting, median, union, etc.
@@ -1656,9 +1521,7 @@ export type paths = {
         put?: never;
         /**
          * Start Fusion Stream
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Start a streaming fusion job.
+         * @description Start a streaming fusion job.
          *
          *     Returns a job_id for SSE streaming via GET /api/llm/stream/{job_id}.
          */
@@ -1678,17 +1541,13 @@ export type paths = {
         };
         /**
          * List Global Keys
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     List all global provider API keys (organization_id IS NULL).
+         * @description List all global provider API keys (organization_id IS NULL).
          */
         get: operations["list_global_keys_api_global_keys_get"];
         put?: never;
         /**
          * Create Global Key
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Create a global API key for a provider.
+         * @description Create a global API key for a provider.
          *
          *     Multiple keys per provider are allowed for load balancing.
          */
@@ -1711,18 +1570,14 @@ export type paths = {
         post?: never;
         /**
          * Delete Global Key
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Delete a global API key.
+         * @description Delete a global API key.
          */
         delete: operations["delete_global_key_api_global_keys__key_id__delete"];
         options?: never;
         head?: never;
         /**
          * Update Global Key
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Update a global API key.
+         * @description Update a global API key.
          */
         patch: operations["update_global_key_api_global_keys__key_id__patch"];
         trace?: never;
@@ -1738,9 +1593,7 @@ export type paths = {
         put?: never;
         /**
          * Enable Global Key
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Re-enable a disabled global API key.
+         * @description Re-enable a disabled global API key.
          */
         post: operations["enable_global_key_api_global_keys__key_id__enable_post"];
         delete?: never;
@@ -1760,9 +1613,7 @@ export type paths = {
         put?: never;
         /**
          * Check Global Key Health
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Test if a global API key is valid.
+         * @description Test if a global API key is valid.
          */
         post: operations["check_global_key_health_api_global_keys__key_id__health_check_post"];
         delete?: never;
@@ -1782,9 +1633,7 @@ export type paths = {
         put?: never;
         /**
          * Test All Global Keys
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Test all global API keys and update their health status.
+         * @description Test all global API keys and update their health status.
          */
         post: operations["test_all_global_keys_api_global_keys_test_all_post"];
         delete?: never;
@@ -1804,9 +1653,7 @@ export type paths = {
         put?: never;
         /**
          * Cancel Job
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Cancel a pending or running LLM job.
+         * @description Cancel a pending or running LLM job.
          *
          *     Works for all job types (schema_generation, single_enrichment).
          */
@@ -1828,9 +1675,7 @@ export type paths = {
         put?: never;
         /**
          * Continue Job
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Resume a paused LLM job.
+         * @description Resume a paused LLM job.
          *
          *     Used for classification mismatch (no body) and interactive sample-generation
          *     clarification (body carries the user's answers, which the paused planner loop
@@ -1872,9 +1717,7 @@ export type paths = {
         };
         /**
          * Stream Job Progress
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Stream progress events for any LLM job via SSE.
+         * @description Stream progress events for any LLM job via SSE.
          *
          *     Works for all job types (schema_generation, single_enrichment).
          *     The job_type field in events indicates which type of job this is.
@@ -1897,17 +1740,13 @@ export type paths = {
         };
         /**
          * List Org Keys
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     List all API keys for the user's organization.
+         * @description List all API keys for the user's organization.
          */
         get: operations["list_org_keys_api_org_keys_get"];
         put?: never;
         /**
          * Create Org Key
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Create an API key for a provider in the user's organization.
+         * @description Create an API key for a provider in the user's organization.
          *
          *     Multiple keys per provider are allowed for load balancing.
          */
@@ -1930,18 +1769,14 @@ export type paths = {
         post?: never;
         /**
          * Delete Org Key
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Delete an organization API key.
+         * @description Delete an organization API key.
          */
         delete: operations["delete_org_key_api_org_keys__key_id__delete"];
         options?: never;
         head?: never;
         /**
          * Update Org Key
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Update an organization API key.
+         * @description Update an organization API key.
          */
         patch: operations["update_org_key_api_org_keys__key_id__patch"];
         trace?: never;
@@ -1957,9 +1792,7 @@ export type paths = {
         put?: never;
         /**
          * Enable Org Key
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Re-enable a disabled organization API key.
+         * @description Re-enable a disabled organization API key.
          */
         post: operations["enable_org_key_api_org_keys__key_id__enable_post"];
         delete?: never;
@@ -1979,9 +1812,7 @@ export type paths = {
         put?: never;
         /**
          * Check Org Key Health
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Test if an organization API key is valid.
+         * @description Test if an organization API key is valid.
          */
         post: operations["check_org_key_health_api_org_keys__key_id__health_check_post"];
         delete?: never;
@@ -1999,16 +1830,12 @@ export type paths = {
         };
         /**
          * Get Embedding Model
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get the org's configured embedding model (null = semantic IDs disabled).
+         * @description Get the org's configured embedding model (null = semantic IDs disabled).
          */
         get: operations["get_embedding_model_api_org_keys_embedding_model_get"];
         /**
          * Set Embedding Model
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Set the org's embedding model.
+         * @description Set the org's embedding model.
          *
          *     Near-immutable: once any semantic concepts exist, the model can only be CLEARED
          *     (set to null), not switched to a different one — stored vectors live in a single
@@ -2029,17 +1856,12 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /**
-         * List Tunnels
-         * @description 🔒 **Requires: operator (level 1+)**
-         */
+        /** List Tunnels */
         get: operations["list_tunnels_api_org_keys_tunnels_get"];
         put?: never;
         /**
          * Create Tunnel
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Allocate a new tunnel for the caller's org.
+         * @description Allocate a new tunnel for the caller's org.
          *
          *     Returns the secret refresh token exactly once — store it securely on the
          *     laptop. The CLI presents it on every (re)connection to mint short-lived
@@ -2059,17 +1881,11 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get Tunnel
-         * @description 🔒 **Requires: operator (level 1+)**
-         */
+        /** Get Tunnel */
         get: operations["get_tunnel_api_org_keys_tunnels__tunnel_id__get"];
         put?: never;
         post?: never;
-        /**
-         * Revoke Tunnel
-         * @description 🔒 **Requires: owner (level 4+)**
-         */
+        /** Revoke Tunnel */
         delete: operations["revoke_tunnel_api_org_keys_tunnels__tunnel_id__delete"];
         options?: never;
         head?: never;
@@ -2087,9 +1903,7 @@ export type paths = {
         put?: never;
         /**
          * Rotate Tunnel
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Generate a new refresh token; the old one stops working immediately.
+         * @description Generate a new refresh token; the old one stops working immediately.
          */
         post: operations["rotate_tunnel_api_org_keys_tunnels__tunnel_id__rotate_post"];
         delete?: never;
@@ -2129,9 +1943,7 @@ export type paths = {
         };
         /**
          * List Sources
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     List selectable pricing scrapers with per-source freshness metadata.
+         * @description List selectable pricing scrapers with per-source freshness metadata.
          *
          *     Drives the Sync modal's multi-select scraper list: each entry carries its
          *     label, whether it relies on a web-search research pass, and the dates it was
@@ -2157,9 +1969,7 @@ export type paths = {
         put?: never;
         /**
          * Sync Prices
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Sync LLM model pricing from pricepertoken.com.
+         * @description Sync LLM model pricing from pricepertoken.com.
          *
          *     This endpoint scrapes model pricing data from pricepertoken.com and syncs it
          *     with the local database. It can:
@@ -2191,17 +2001,13 @@ export type paths = {
         };
         /**
          * List Providers
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     List all providers with model counts and org key info.
+         * @description List all providers with model counts and org key info.
          */
         get: operations["list_providers_api_providers_get"];
         put?: never;
         /**
          * Create Provider
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Create a new provider.
+         * @description Create a new provider.
          */
         post: operations["create_provider_api_providers_post"];
         delete?: never;
@@ -2219,18 +2025,14 @@ export type paths = {
         };
         /**
          * Get Provider
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get a single provider by ID with org key info.
+         * @description Get a single provider by ID with org key info.
          */
         get: operations["get_provider_api_providers__provider_id__get"];
         put?: never;
         post?: never;
         /**
          * Delete Provider
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Delete a provider and all its models.
+         * @description Delete a provider and all its models.
          *
          *     Manually created providers can always be deleted.
          *     Synced providers can be deleted if they have no models.
@@ -2241,9 +2043,7 @@ export type paths = {
         head?: never;
         /**
          * Update Provider
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Update a provider.
+         * @description Update a provider.
          */
         patch: operations["update_provider_api_providers__provider_id__patch"];
         trace?: never;
@@ -2259,9 +2059,7 @@ export type paths = {
         put?: never;
         /**
          * Discover Provider Models
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Discover available models from a provider and auto-import the new ones.
+         * @description Discover available models from a provider and auto-import the new ones.
          *
          *     For Ollama providers, lists models via /api/tags, fetches per-model details
          *     via /api/show in parallel, then INSERTs each new chat-capable model into
@@ -2290,9 +2088,7 @@ export type paths = {
         put?: never;
         /**
          * Create Model
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Create a new model under a provider.
+         * @description Create a new model under a provider.
          *
          *     Owners always create org-scoped models for their organization.
          *     System admins can create global (organization_id=None) or org-scoped models.
@@ -2315,9 +2111,7 @@ export type paths = {
         put?: never;
         /**
          * Test Provider Connection
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Test connectivity to a provider.
+         * @description Test connectivity to a provider.
          */
         post: operations["test_provider_connection_api_providers__provider_id__test_connection_post"];
         delete?: never;
@@ -2337,9 +2131,7 @@ export type paths = {
         put?: never;
         /**
          * Bulk Delete Providers
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Delete multiple providers and their models.
+         * @description Delete multiple providers and their models.
          *
          *     Skips synced providers with models and providers with linked enrichment records.
          *     Non-admin users can only delete their own org providers.
@@ -2362,9 +2154,7 @@ export type paths = {
         put?: never;
         /**
          * Bulk Delete Preview
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Preview the impact of deleting providers.
+         * @description Preview the impact of deleting providers.
          *
          *     Returns organization API keys that would be cascade-deleted.
          */
@@ -2386,9 +2176,7 @@ export type paths = {
         put?: never;
         /**
          * Bulk Toggle Providers
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Enable or disable all models under the selected providers.
+         * @description Enable or disable all models under the selected providers.
          *
          *     When enabling, skips providers without API keys configured. Non-admins may
          *     only toggle providers scoped to their own organization; global / other-org
@@ -2411,9 +2199,7 @@ export type paths = {
         };
         /**
          * Export Config
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Export providers, models, and (admin only) canonical specs as JSON.
+         * @description Export providers, models, and (admin only) canonical specs as JSON.
          *
          *     Each provider/model is tagged with a portable `scope` ("global" or
          *     "organization") instead of a concrete org UUID, so an "organization"-scoped
@@ -2446,9 +2232,7 @@ export type paths = {
         put?: never;
         /**
          * Import Config
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Import providers, models, and specs from JSON (always an upsert).
+         * @description Import providers, models, and specs from JSON (always an upsert).
          *
          *     Existing rows are matched by natural key and updated in place; missing ones
          *     are created. Nothing is deleted and no API keys are touched.
@@ -2479,9 +2263,7 @@ export type paths = {
         };
         /**
          * Get Model
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get a single model by ID.
+         * @description Get a single model by ID.
          *
          *     For base rows, returns the resolved view (org override > global override
          *     > base). Override rows themselves are rejected — callers should look up
@@ -2492,9 +2274,7 @@ export type paths = {
         post?: never;
         /**
          * Delete Model
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Delete a model.
+         * @description Delete a model.
          *
          *     Only manually-created models can be deleted. By default the request is
          *     rejected with HTTP 409 when enrichment records still reference the model;
@@ -2511,9 +2291,7 @@ export type paths = {
         head?: never;
         /**
          * Update Model
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Update a single model (override-routed for synced, direct for manual).
+         * @description Update a single model (override-routed for synced, direct for manual).
          *
          *     See ``_apply_model_update`` for the routing + authorization rules. Returns
          *     the resolved (merged) view so the UI sees exactly what the user will see.
@@ -2533,9 +2311,7 @@ export type paths = {
         post?: never;
         /**
          * Delete Model Override
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Delete the entire override row for a base model (revert all fields).
+         * @description Delete the entire override row for a base model (revert all fields).
          *
          *     Query param ``organization_id`` chooses which override to delete:
          *     - system admin: omit to delete the global override; pass a UUID to
@@ -2560,9 +2336,7 @@ export type paths = {
         post?: never;
         /**
          * Clear Model Override Field
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Revert a single field on the override row to the base value.
+         * @description Revert a single field on the override row to the base value.
          *
          *     Auto-deletes the override row if no overridden fields remain afterwards.
          */
@@ -2581,9 +2355,7 @@ export type paths = {
         };
         /**
          * List All Models
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     List all models across all providers with availability info.
+         * @description List all models across all providers with availability info.
          *
          *     Source rows for the same (provider, model, scope) are **collapsed by default**
          *     into one merged row (same merge rule as /enrichment/options), which keeps the
@@ -2617,9 +2389,7 @@ export type paths = {
         put?: never;
         /**
          * Bulk Delete Models
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Delete multiple models by ID.
+         * @description Delete multiple models by ID.
          *
          *     By default skips models with linked enrichment records (reported in
          *     ``errors``). When ``data.force`` is true the guard is skipped — records
@@ -2644,9 +2414,7 @@ export type paths = {
         put?: never;
         /**
          * Bulk Toggle Models
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Enable or disable specific models by ID.
+         * @description Enable or disable specific models by ID.
          *
          *     When enabling, skips models whose providers have no API keys configured.
          *     Non-admins may only toggle models scoped to their own organization; global /
@@ -2672,9 +2440,7 @@ export type paths = {
         put?: never;
         /**
          * Bulk Update Models
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Apply the same field changes to many models at once.
+         * @description Apply the same field changes to many models at once.
          *
          *     ``data.updates`` carries only the fields to change (PATCH semantics). Each
          *     model is routed individually through ``_apply_model_update`` (override row
@@ -2701,9 +2467,7 @@ export type paths = {
         put?: never;
         /**
          * Cleanup Deactivated Models
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Sweep auto-deactivated models (and any now-orphaned canonical specs).
+         * @description Sweep auto-deactivated models (and any now-orphaned canonical specs).
          *
          *     Targets base rows whose ``deactivation_reason`` is one of the requested
          *     auto/transient reasons (``model_not_found``, ``unsupported``,
@@ -2733,9 +2497,7 @@ export type paths = {
         };
         /**
          * List Model Overrides Endpoint
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     List LLM model overrides.
+         * @description List LLM model overrides.
          *
          *     - System admins see all overrides across every organization plus globals.
          *     - Owners see only their own org's overrides (globals are admin-managed).
@@ -2760,9 +2522,7 @@ export type paths = {
         put?: never;
         /**
          * Get Models Usage
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Return enrichment-record counts for the given model ids.
+         * @description Return enrichment-record counts for the given model ids.
          *
          *     Used by the delete-confirmation modal to warn the user about historical
          *     records that will keep their denormalised model name even after deletion.
@@ -2787,9 +2547,7 @@ export type paths = {
         put?: never;
         /**
          * Start Model Validation
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Start a model validation job.
+         * @description Start a model validation job.
          *
          *     Validates models by sending a minimal test prompt. Models that fail with
          *     'model not found' are auto-deactivated. Previously auto-deactivated models
@@ -2813,9 +2571,7 @@ export type paths = {
         };
         /**
          * Get Last Validation Results
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get the last validation results from system config.
+         * @description Get the last validation results from system config.
          */
         get: operations["get_last_validation_results_api_providers_validate_last_results_get"];
         put?: never;
@@ -2835,9 +2591,7 @@ export type paths = {
         };
         /**
          * List Records
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     List enrichment records with filtering and pagination.
+         * @description List enrichment records with filtering and pagination.
          */
         get: operations["list_records_api_records_get"];
         put?: never;
@@ -2857,9 +2611,7 @@ export type paths = {
         };
         /**
          * Get Record
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get a single enrichment record by ID.
+         * @description Get a single enrichment record by ID.
          */
         get: operations["get_record_api_records__record_id__get"];
         put?: never;
@@ -2881,9 +2633,7 @@ export type paths = {
         put?: never;
         /**
          * Batch Delete Records
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Delete multiple enrichment records by IDs.
+         * @description Delete multiple enrichment records by IDs.
          *
          *     By default, records are soft-deleted. Admin users can set hard_delete=True
          *     for permanent deletion.
@@ -2906,9 +2656,7 @@ export type paths = {
         put?: never;
         /**
          * Batch Restore Records
-         * @description 🔒 **Requires: admin (level 5+)**
-         *
-         *     Restore soft-deleted records. Admin only.
+         * @description Restore soft-deleted records. Admin only.
          */
         post: operations["batch_restore_records_api_records_batch_restore_post"];
         delete?: never;
@@ -2926,9 +2674,7 @@ export type paths = {
         };
         /**
          * List Jobs
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     List enrichment jobs with pagination (grouped by job_id).
+         * @description List enrichment jobs with pagination (grouped by job_id).
          */
         get: operations["list_jobs_api_records_jobs_get"];
         put?: never;
@@ -2948,9 +2694,7 @@ export type paths = {
         };
         /**
          * Get Stats
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get aggregated statistics for enrichment records.
+         * @description Get aggregated statistics for enrichment records.
          */
         get: operations["get_stats_api_records_stats_get"];
         put?: never;
@@ -2972,9 +2716,7 @@ export type paths = {
         put?: never;
         /**
          * Start Schema Generation Stream
-         * @description 🔒 **Requires: editor (level 2+)**
-         *
-         *     Start schema generation with streaming progress.
+         * @description Start schema generation with streaming progress.
          *
          *     Returns a job_id that can be used to:
          *     - GET /api/llm/stream/{job_id} - SSE stream of progress events
@@ -2998,9 +2740,7 @@ export type paths = {
         put?: never;
         /**
          * Synchronous schema generation
-         * @description 🔒 **Requires: editor (level 2+)**
-         *
-         *     Blocks until schema generation finishes and returns the generated schema. Designed for non-streaming clients such as the MCP server, Make.com, Zapier, or curl. Returns HTTP 504 on timeout, 502 on generation failure, 499 if cancelled.
+         * @description Blocks until schema generation finishes and returns the generated schema. Designed for non-streaming clients such as the MCP server, Make.com, Zapier, or curl. Returns HTTP 504 on timeout, 502 on generation failure, 499 if cancelled.
          */
         post: operations["generate_schema_sync_api_schema_generate_sync_post"];
         delete?: never;
@@ -3020,9 +2760,7 @@ export type paths = {
         put?: never;
         /**
          * Start Sample Generation Stream
-         * @description 🔒 **Requires: editor (level 2+)**
-         *
-         *     Start sample JSON generation with streaming progress.
+         * @description Start sample JSON generation with streaming progress.
          *
          *     Returns a job_id for SSE streaming via GET /api/llm/stream/{job_id}.
          */
@@ -3042,17 +2780,13 @@ export type paths = {
         };
         /**
          * List Saved Schemas
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     List all saved schemas for the current organization, sorted by pinned first, then by updated_at desc.
+         * @description List all saved schemas for the current organization, sorted by pinned first, then by updated_at desc.
          */
         get: operations["list_saved_schemas_api_schema_saved_get"];
         put?: never;
         /**
          * Save Schema
-         * @description 🔒 **Requires: editor (level 2+)**
-         *
-         *     Save a new schema. Auto-generates unique name if name already exists.
+         * @description Save a new schema. Auto-generates unique name if name already exists.
          */
         post: operations["save_schema_api_schema_saved_post"];
         delete?: never;
@@ -3070,27 +2804,21 @@ export type paths = {
         };
         /**
          * Get Saved Schema
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Get a single saved schema by ID. System admins can access any org's schemas.
+         * @description Get a single saved schema by ID. System admins can access any org's schemas.
          */
         get: operations["get_saved_schema_api_schema_saved__schema_id__get"];
         put?: never;
         post?: never;
         /**
          * Delete Saved Schema
-         * @description 🔒 **Requires: editor (level 2+)**
-         *
-         *     Soft delete a schema (can be restored within 30 seconds).
+         * @description Soft delete a schema (can be restored within 30 seconds).
          */
         delete: operations["delete_saved_schema_api_schema_saved__schema_id__delete"];
         options?: never;
         head?: never;
         /**
          * Update Saved Schema
-         * @description 🔒 **Requires: editor (level 2+)**
-         *
-         *     Update a saved schema (rename, tags, pin status). System admins can update any org's schemas.
+         * @description Update a saved schema (rename, tags, pin status). System admins can update any org's schemas.
          */
         patch: operations["update_saved_schema_api_schema_saved__schema_id__patch"];
         trace?: never;
@@ -3106,9 +2834,7 @@ export type paths = {
         put?: never;
         /**
          * Duplicate Saved Schema
-         * @description 🔒 **Requires: editor (level 2+)**
-         *
-         *     Duplicate a schema into the user's organization.
+         * @description Duplicate a schema into the user's organization.
          */
         post: operations["duplicate_saved_schema_api_schema_saved__schema_id__duplicate_post"];
         delete?: never;
@@ -3129,9 +2855,7 @@ export type paths = {
         post?: never;
         /**
          * Permanently Delete Schema
-         * @description 🔒 **Requires: editor (level 2+)**
-         *
-         *     Permanently delete a schema (cannot be undone).
+         * @description Permanently delete a schema (cannot be undone).
          */
         delete: operations["permanently_delete_schema_api_schema_saved__schema_id__permanent_delete"];
         options?: never;
@@ -3150,9 +2874,7 @@ export type paths = {
         put?: never;
         /**
          * Generate Schema From Prompt
-         * @description 🔒 **Requires: editor (level 2+)**
-         *
-         *     Generate a modified schema based on a natural language prompt (sync version).
+         * @description Generate a modified schema based on a natural language prompt (sync version).
          *
          *     NOTE: Consider using /saved/{schema_id}/prompt/stream for streaming progress.
          *
@@ -3178,9 +2900,7 @@ export type paths = {
         put?: never;
         /**
          * Start Schema Prompt Stream
-         * @description 🔒 **Requires: editor (level 2+)**
-         *
-         *     Start schema prompt editing with streaming progress.
+         * @description Start schema prompt editing with streaming progress.
          *
          *     Returns a job_id that can be used to:
          *     - GET /api/llm/stream/{job_id} - SSE stream of progress events
@@ -3204,9 +2924,7 @@ export type paths = {
         put?: never;
         /**
          * Restore Saved Schema
-         * @description 🔒 **Requires: editor (level 2+)**
-         *
-         *     Restore a soft-deleted schema.
+         * @description Restore a soft-deleted schema.
          */
         post: operations["restore_saved_schema_api_schema_saved__schema_id__restore_post"];
         delete?: never;
@@ -3246,9 +2964,7 @@ export type paths = {
         put?: never;
         /**
          * Start Enrichment Stream
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Start enrichment with streaming progress.
+         * @description Start enrichment with streaming progress.
          *
          *     Returns a job_id that can be used to:
          *     - GET /api/llm/stream/{job_id} - SSE stream of progress events
@@ -3272,9 +2988,7 @@ export type paths = {
         put?: never;
         /**
          * Synchronous single-entity enrichment
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Blocks until the enrichment job finishes and returns the final fused (or best single-model) result. Designed for non-streaming clients such as Make.com, Zapier, or curl. Returns HTTP 422 with classification context if the entity is rejected by pre-flight classification, 504 on timeout, 502 on enrichment failure.
+         * @description Blocks until the enrichment job finishes and returns the final fused (or best single-model) result. Designed for non-streaming clients such as Make.com, Zapier, or curl. Returns HTTP 422 with classification context if the entity is rejected by pre-flight classification, 504 on timeout, 502 on enrichment failure.
          */
         post: operations["enrich_sync_api_single_enrich_sync_post"];
         delete?: never;
@@ -3294,9 +3008,7 @@ export type paths = {
         put?: never;
         /**
          * Retry Failed Expertises
-         * @description 🔒 **Requires: operator (level 1+)**
-         *
-         *     Retry failed expertises for an existing enrichment record.
+         * @description Retry failed expertises for an existing enrichment record.
          *
          *     Loads the record, identifies failed expertises from enrichment_prompts,
          *     re-runs only those, and merges results back into the record.
@@ -3340,9 +3052,7 @@ export type paths = {
         put?: never;
         /**
          * Confirm Device Code
-         * @description 🔒 **Requires: owner (level 4+)**
-         *
-         *     Browser-side: the logged-in user confirms a pairing.
+         * @description Browser-side: the logged-in user confirms a pairing.
          *
          *     Same effect as POST /api/org-keys/tunnels except the resulting refresh
          *     token is delivered out-of-band to the CLI via the polling channel rather
@@ -10681,6 +10391,13 @@ export type components = {
              * @description Model composite key
              */
             model: string;
+            /**
+             * Sample Inputs
+             * @description Optional guided-form inputs (entity type, typical example, naming, extra instructions) that produced the sample; persisted under generation_params.sample_inputs so the sample panel can be fully restored when the schema is reopened.
+             */
+            sample_inputs?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * StreamGenerateResponse
@@ -11077,6 +10794,13 @@ export type components = {
              * @description Model composite key
              */
             model: string;
+            /**
+             * Sample Inputs
+             * @description Optional guided-form inputs (entity type, typical example, naming, extra instructions) that produced the sample; persisted under generation_params.sample_inputs so the sample panel can be fully restored when the schema is reopened.
+             */
+            sample_inputs?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Timeout Seconds
              * @description How long to wait for schema generation to finish before returning 504
@@ -12220,6 +11944,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AttachmentUploadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_attachments_metadata_api_attachments_metadata_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachmentVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentRef"][];
                 };
             };
             /** @description Validation Error */
