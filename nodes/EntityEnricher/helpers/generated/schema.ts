@@ -3685,7 +3685,7 @@ export type components = {
             config_hash?: string | null;
             /**
              * Cost Score
-             * @description Cost vs the cheapest result in the scenario (min_cost/this_cost; 1.0 = cheapest)
+             * @description Cost vs the scenario's successful results, log-scale min-max (1.0 = cheapest, 0.0 = dearest; free results anchor at the top)
              */
             cost_score?: number | null;
             /** Cost Usd */
@@ -3780,7 +3780,7 @@ export type components = {
             scenario_id: string;
             /**
              * Speed Score
-             * @description Wall-clock speed vs the fastest result in the scenario (min_time/this_time; 1.0 = fastest)
+             * @description Wall-clock speed vs the scenario's successful results, log-scale min-max (1.0 = fastest, 0.0 = slowest)
              */
             speed_score?: number | null;
             /** Strategy Used */
@@ -6638,6 +6638,12 @@ export type components = {
              * @default true
              */
             active_only: boolean;
+            /**
+             * Include Benchmark Failed
+             * @description Include models auto-deactivated by a failed benchmark run (deactivation_reason='benchmark_failed'). Only relevant when active_only=False; by default these stay excluded so a health check doesn't re-validate a model that was disabled for poor benchmark quality.
+             * @default false
+             */
+            include_benchmark_failed: boolean;
             /**
              * Model Ids
              * @description Specific model IDs to validate. If None, validates all models with API keys.
