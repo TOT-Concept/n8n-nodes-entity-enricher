@@ -540,7 +540,11 @@ export type paths = {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update My Profile
+         * @description Update the current user's profile (display name, avatar, UI locale).
+         */
+        patch: operations["update_my_profile_api_auth_me_patch"];
         trace?: never;
     };
     "/api/auth/organization": {
@@ -10925,6 +10929,18 @@ export type components = {
              */
             action: "approve" | "reject";
         };
+        /** UserProfileUpdate */
+        UserProfileUpdate: {
+            /** Avatar Url */
+            avatar_url?: string | null;
+            /** Display Name */
+            display_name?: string | null;
+            /**
+             * Locale
+             * @description Preferred UI language (must be a supported locale)
+             */
+            locale?: string | null;
+        };
         /** UserResponse */
         UserResponse: {
             /** Auth Provider */
@@ -10949,6 +10965,8 @@ export type components = {
              * Format: uuid
              */
             id: string;
+            /** Locale */
+            locale?: string | null;
             /**
              * Role
              * @enum {string}
@@ -11002,6 +11020,8 @@ export type components = {
              * Format: uuid
              */
             id: string;
+            /** Locale */
+            locale?: string | null;
             organization?: components["schemas"]["OrganizationResponse"] | null;
             /**
              * Profile Limits
@@ -11325,6 +11345,7 @@ export type TunnelCredentialCreate = components['schemas']['TunnelCredentialCrea
 export type TunnelCredentialCreateResponse = components['schemas']['TunnelCredentialCreateResponse'];
 export type TunnelCredentialResponse = components['schemas']['TunnelCredentialResponse'];
 export type UserApprovalRequest = components['schemas']['UserApprovalRequest'];
+export type UserProfileUpdate = components['schemas']['UserProfileUpdate'];
 export type UserResponse = components['schemas']['UserResponse'];
 export type UserRoleUpdate = components['schemas']['UserRoleUpdate'];
 export type UserSessionResponse = components['schemas']['UserSessionResponse'];
@@ -12318,6 +12339,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_my_profile_api_auth_me_patch: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
                 };
             };
             /** @description Validation Error */
