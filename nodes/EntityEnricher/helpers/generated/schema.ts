@@ -1113,6 +1113,29 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/billing/plans/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Public Plans
+         * @description Unauthenticated plan list for the public pricing page.
+         *
+         *     Only active + public plans; SubscriptionPlanWithLimits carries no Stripe IDs
+         *     or org-specific data, so exposing it without auth is safe.
+         */
+        get: operations["get_public_plans_api_billing_plans_public_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/billing/portal": {
         parameters: {
             query?: never;
@@ -1730,6 +1753,61 @@ export type paths = {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/consent/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Consent Details */
+        get: operations["get_consent_details_api_oauth_consent__request_id__get"];
+        put?: never;
+        /** Decide Consent */
+        post: operations["decide_consent_api_oauth_consent__request_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Grants
+         * @description Owners+ see all grants in the org; others see their own.
+         */
+        get: operations["list_grants_api_oauth_grants_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/grants/{grant_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Grant */
+        delete: operations["revoke_grant_api_oauth_grants__grant_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2709,6 +2787,29 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/schema/analyze-sample": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyze Sample Determinism
+         * @description Analyze a raw sample JSON for non-deterministic property names (stateless).
+         *
+         *     Never mutates the sample — returns a report of flagged properties with
+         *     suggested renames the caller (UI one-click, or an agent) can apply.
+         */
+        post: operations["analyze_sample_determinism_api_schema_analyze_sample_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schema/generate/stream": {
         parameters: {
             query?: never;
@@ -2825,6 +2926,30 @@ export type paths = {
          * @description Update a saved schema (rename, tags, pin status). System admins can update any org's schemas.
          */
         patch: operations["update_saved_schema_api_schema_saved__schema_id__patch"];
+        trace?: never;
+    };
+    "/api/schema/saved/{schema_id}/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyze Saved Schema Determinism
+         * @description Analyze a saved schema and write `non_determinism` onto its properties.
+         *
+         *     Incremental by default (`force=false`): only properties still missing the
+         *     attribute are analyzed (covers imports, manual edits, renames). `force=true`
+         *     re-analyzes every property.
+         */
+        post: operations["analyze_saved_schema_determinism_api_schema_saved__schema_id__analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/schema/saved/{schema_id}/duplicate": {
@@ -3184,6 +3309,29 @@ export type components = {
              * Format: uuid
              */
             organization_id: string;
+        };
+        /**
+         * AnalyzeSampleRequest
+         * @description Request to analyze a raw sample JSON for non-deterministic property names.
+         */
+        AnalyzeSampleRequest: {
+            /**
+             * Model
+             * @description Model composite key
+             */
+            model: string;
+            /**
+             * Protected Fields
+             * @description Leaf names the user owns (guided-form fields / pasted keys): still flagged, but no rename is proposed for them.
+             */
+            protected_fields?: string[] | null;
+            /**
+             * Sample Json
+             * @description The sample object to analyze
+             */
+            sample_json: {
+                [key: string]: unknown;
+            };
         };
         /** ApiKeyCreate */
         ApiKeyCreate: {
@@ -3905,6 +4053,12 @@ export type components = {
              */
             scoring_threshold?: number | null;
             /**
+             * Skip Incapable Models
+             * @description Skip models whose capability flags can't read the scenario's binary attachments. False = run them anyway to probe possibly-wrong flags.
+             * @default true
+             */
+            skip_incapable_models: boolean;
+            /**
              * Strategy
              * @default single_pass
              */
@@ -3977,6 +4131,11 @@ export type components = {
             scoring_judge_model_key?: string | null;
             /** Scoring Threshold */
             scoring_threshold?: number | null;
+            /**
+             * Skip Incapable Models
+             * @default true
+             */
+            skip_incapable_models: boolean;
             /** Strategy */
             strategy: string;
             /**
@@ -4050,6 +4209,11 @@ export type components = {
             scoring_judge_model_key?: string | null;
             /** Scoring Threshold */
             scoring_threshold?: number | null;
+            /**
+             * Skip Incapable Models
+             * @default true
+             */
+            skip_incapable_models: boolean;
             /** Strategy */
             strategy: string;
             /**
@@ -4089,6 +4253,8 @@ export type components = {
             scoring_judge_model_key?: string | null;
             /** Scoring Threshold */
             scoring_threshold?: number | null;
+            /** Skip Incapable Models */
+            skip_incapable_models?: boolean | null;
             /** Strategy */
             strategy?: string | null;
         };
@@ -4440,6 +4606,45 @@ export type components = {
              */
             total_fields: number;
         };
+        /** ConsentDecisionRequest */
+        ConsentDecisionRequest: {
+            /** Approved */
+            approved: boolean;
+        };
+        /**
+         * ConsentDecisionResponse
+         * @description The SPA performs the final redirect back to the client itself.
+         */
+        ConsentDecisionResponse: {
+            /** Redirect Url */
+            redirect_url: string;
+        };
+        /**
+         * ConsentDetailsResponse
+         * @description What the consent page shows before the user approves.
+         */
+        ConsentDetailsResponse: {
+            /** Client Name */
+            client_name: string;
+            /** Client Uri */
+            client_uri?: string | null;
+            /**
+             * Granted Role
+             * @enum {string}
+             */
+            granted_role: "owner" | "editor" | "operator";
+            /** Logo Uri */
+            logo_uri?: string | null;
+            /** Organization Name */
+            organization_name: string;
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /** Scope */
+            scope?: string | null;
+        };
         /**
          * ContinueJobRequest
          * @description Optional body for resuming a paused job.
@@ -4710,6 +4915,35 @@ export type components = {
              * @default 0
              */
             deleted: number;
+        };
+        /**
+         * DeterminismCheckResponse
+         * @description Report returned by both analyzer routes — flagged findings only, plus counts.
+         */
+        DeterminismCheckResponse: {
+            /**
+             * Analyzed Count
+             * @default 0
+             */
+            analyzed_count: number;
+            /**
+             * Findings
+             * @description Medium/high findings only (deterministic props omitted)
+             */
+            findings?: components["schemas"]["NonDeterminismFinding"][];
+            /** Record Id */
+            record_id?: string | null;
+            /** @description Updated schema (schema-analyze route only) */
+            schema?: components["schemas"]["GeneratedJsonSchema-Output"] | null;
+            /** Schema Id */
+            schema_id?: string | null;
+            /**
+             * Summary
+             * @description Counts per level, e.g. {low, medium, high}
+             */
+            summary?: {
+                [key: string]: number;
+            };
         };
         /** DeviceCodeConfirmRequest */
         DeviceCodeConfirmRequest: {
@@ -5308,6 +5542,17 @@ export type components = {
         GenerateSampleRequest: {
             /** Attachment Ids */
             attachment_ids?: string[] | null;
+            /**
+             * Auto Answer
+             * @description Governs the attachment planner's clarification questions. None → resolved by origin (interactive for web/mcp, auto otherwise). True → never pause: proceed with the planner's default answers (headless-safe). False → pause and wait for answers.
+             */
+            auto_answer?: boolean | null;
+            /**
+             * Enable Web Search
+             * @description Ground the sample with the model's builtin web-search tool (ignored if the model lacks supports_web_search)
+             * @default false
+             */
+            enable_web_search: boolean;
             /** Entity Type */
             entity_type: string;
             /** Extra Instructions */
@@ -6671,6 +6916,114 @@ export type components = {
             /** Total Models */
             total_models: number;
         };
+        /**
+         * NonDeterminismFinding
+         * @description One analyzed property. `low` = clean (no badge); `medium`/`high` = flagged.
+         */
+        NonDeterminismFinding: {
+            /**
+             * Applied Name
+             * @description Set when a rename was auto-applied in-job (generated samples only)
+             */
+            applied_name?: string | null;
+            /**
+             * Cause
+             * @description Why it varies (only for flagged properties)
+             */
+            cause?: ("temporal" | "ambiguous" | "subjective" | "multi_valued") | null;
+            /**
+             * Level
+             * @description Reproducibility band
+             * @enum {string}
+             */
+            level: "low" | "medium" | "high";
+            /**
+             * Note
+             * @description Reason + remedy, in the requester's UI locale
+             * @default
+             */
+            note: string;
+            /**
+             * Path
+             * @description Dotted path of the analyzed property
+             */
+            path: string;
+            /**
+             * Restructure
+             * @description True when the remedy is a restructure (scalar → keyed array), not a rename
+             * @default false
+             */
+            restructure: boolean;
+            /**
+             * Suggested Description
+             * @description A rewritten property description that pins the missing frame (period/unit/scope; for arrays: cardinality + ordering criterion). The preferred, non-breaking remedy for schema properties — applying it never changes the data contract, unlike a rename.
+             */
+            suggested_description?: string | null;
+            /**
+             * Suggested Names
+             * @description 1-3 more-deterministic name proposals (never duplicating parent context)
+             */
+            suggested_names?: string[];
+        };
+        /**
+         * NonDeterminismInfo
+         * @description Advisory flag: how much a property's enriched value drifts across runs.
+         *
+         *     Written post-generation by the non-determinism analyzer, NEVER by the
+         *     generation/edit LLM (it is stripped from every prompt). Its lifecycle
+         *     follows the property — renaming the property, deleting it, or editing its
+         *     description drops the flag, and a missing attribute means "never analyzed"
+         *     (drives incremental re-analysis). `level="low"` is a clean marker (no
+         *     badge); `medium`/`high` flag drift.
+         */
+        NonDeterminismInfo: {
+            /**
+             * Level
+             * @description Non-determinism severity: low = reproducible across models/runs; medium/high = the value is likely to vary (temporal / ambiguous / subjective / multi-valued)
+             * @enum {string}
+             */
+            level: "low" | "medium" | "high";
+            /**
+             * Note
+             * @description Human-readable reason + remedy, in the requester's UI locale. Omitted (never empty-string) for clean low-level markers.
+             */
+            note?: string | null;
+        };
+        /** OAuthGrantListItem */
+        OAuthGrantListItem: {
+            /** Client Id */
+            client_id: string;
+            /** Client Name */
+            client_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Granted Role
+             * @enum {string}
+             */
+            granted_role: "owner" | "editor" | "operator";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Used At */
+            last_used_at?: string | null;
+            /** Scope */
+            scope?: string | null;
+            /** User Display Name */
+            user_display_name?: string | null;
+            /** User Email */
+            user_email?: string | null;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
         /** OrganizationResponse */
         OrganizationResponse: {
             /**
@@ -7195,6 +7548,8 @@ export type components = {
              * @description If true, enrichment returns values in all requested languages
              */
             multilingual?: boolean | null;
+            /** @description Advisory: how likely this property's enriched value is to vary across models/runs. Written by the non-determinism analyzer post-generation; stripped from every LLM prompt; dropped when the property is renamed, removed, or its description edited. Absent = never analyzed. */
+            non_determinism?: components["schemas"]["NonDeterminismInfo"] | null;
             /**
              * Nullable
              * @description True if this property can be null
@@ -7265,6 +7620,8 @@ export type components = {
              * @description If true, enrichment returns values in all requested languages
              */
             multilingual?: boolean | null;
+            /** @description Advisory: how likely this property's enriched value is to vary across models/runs. Written by the non-determinism analyzer post-generation; stripped from every LLM prompt; dropped when the property is renamed, removed, or its description edited. Absent = never analyzed. */
+            non_determinism?: components["schemas"]["NonDeterminismInfo"] | null;
             /**
              * Nullable
              * @description True if this property can be null
@@ -8196,6 +8553,13 @@ export type components = {
         RunBenchmarkJobResponse: {
             /** Job Id */
             job_id: string;
+            /**
+             * Skipped Models
+             * @description Models dropped by the scenario's skip-incapable-models run policy, keyed by composite key with the missing capability as value
+             */
+            skipped_models?: {
+                [key: string]: string;
+            };
             /** Total Models */
             total_models: number;
         };
@@ -8230,6 +8594,12 @@ export type components = {
             is_pinned: boolean;
             /** Name */
             name: string;
+            /**
+             * Non Determinism Enabled
+             * @description Whether non-determinism analysis is enabled for this schema (analyzer post-pass on generation, analyze routes, 'varies' badges in the UI).
+             * @default true
+             */
+            non_determinism_enabled: boolean;
             /** Sample Json */
             sample_json?: {
                 [key: string]: unknown;
@@ -8306,6 +8676,11 @@ export type components = {
             is_pinned: boolean;
             /** Name */
             name: string;
+            /**
+             * Non Determinism Enabled
+             * @default true
+             */
+            non_determinism_enabled: boolean;
             /** Sample Json */
             sample_json?: {
                 [key: string]: unknown;
@@ -8332,6 +8707,8 @@ export type components = {
             is_pinned?: boolean | null;
             /** Name */
             name?: string | null;
+            /** Non Determinism Enabled */
+            non_determinism_enabled?: boolean | null;
             /** Sample Json */
             sample_json?: {
                 [key: string]: unknown;
@@ -11132,6 +11509,7 @@ export type components = {
     pathItems: never;
 };
 export type AllocateCreditsRequest = components['schemas']['AllocateCreditsRequest'];
+export type AnalyzeSampleRequest = components['schemas']['AnalyzeSampleRequest'];
 export type ApiKeyCreate = components['schemas']['ApiKeyCreate'];
 export type ApiKeyCreateResponse = components['schemas']['ApiKeyCreateResponse'];
 export type ApiKeyResponse = components['schemas']['ApiKeyResponse'];
@@ -11180,6 +11558,9 @@ export type CleanupDeactivatedResponse = components['schemas']['CleanupDeactivat
 export type CleanupSpecInfo = components['schemas']['CleanupSpecInfo'];
 export type ConfigExport = components['schemas']['ConfigExport'];
 export type ConflictReport = components['schemas']['ConflictReport'];
+export type ConsentDecisionRequest = components['schemas']['ConsentDecisionRequest'];
+export type ConsentDecisionResponse = components['schemas']['ConsentDecisionResponse'];
+export type ConsentDetailsResponse = components['schemas']['ConsentDetailsResponse'];
 export type ContinueJobRequest = components['schemas']['ContinueJobRequest'];
 export type CostStatsRow = components['schemas']['CostStatsRow'];
 export type CostSummary = components['schemas']['CostSummary'];
@@ -11192,6 +11573,7 @@ export type CustomPromptRequest = components['schemas']['CustomPromptRequest'];
 export type CustomPromptResponse = components['schemas']['CustomPromptResponse'];
 export type DeleteBenchmarkResultsRequest = components['schemas']['DeleteBenchmarkResultsRequest'];
 export type DeleteBenchmarkResultsResponse = components['schemas']['DeleteBenchmarkResultsResponse'];
+export type DeterminismCheckResponse = components['schemas']['DeterminismCheckResponse'];
 export type DeviceCodeConfirmRequest = components['schemas']['DeviceCodeConfirmRequest'];
 export type DeviceCodePollRequest = components['schemas']['DeviceCodePollRequest'];
 export type DeviceCodePollResponse = components['schemas']['DeviceCodePollResponse'];
@@ -11247,6 +11629,9 @@ export type ModelUsageRequest = components['schemas']['ModelUsageRequest'];
 export type ModelUsageResponse = components['schemas']['ModelUsageResponse'];
 export type ModelValidationRequest = components['schemas']['ModelValidationRequest'];
 export type ModelValidationResponse = components['schemas']['ModelValidationResponse'];
+export type NonDeterminismFinding = components['schemas']['NonDeterminismFinding'];
+export type NonDeterminismInfo = components['schemas']['NonDeterminismInfo'];
+export type OAuthGrantListItem = components['schemas']['OAuthGrantListItem'];
 export type OrganizationResponse = components['schemas']['OrganizationResponse'];
 export type OrganizationSearchResult = components['schemas']['OrganizationSearchResult'];
 export type OrganizationSubscription = components['schemas']['OrganizationSubscription'];
@@ -13644,6 +14029,26 @@ export interface operations {
             };
         };
     };
+    get_public_plans_api_billing_plans_public_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionPlanWithLimits"][];
+                };
+            };
+        };
+    };
     create_billing_portal_api_billing_portal_post: {
         parameters: {
             query?: {
@@ -14859,6 +15264,154 @@ export interface operations {
                 content: {
                     "application/json": unknown;
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_consent_details_api_oauth_consent__request_id__get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsentDetailsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_consent_api_oauth_consent__request_id__post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsentDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsentDecisionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_grants_api_oauth_grants_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthGrantListItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_grant_api_oauth_grants__grant_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                grant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -16723,6 +17276,47 @@ export interface operations {
             };
         };
     };
+    analyze_sample_determinism_api_schema_analyze_sample_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                "Accept-Language"?: string | null;
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalyzeSampleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeterminismCheckResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     start_schema_generation_stream_api_schema_generate_stream_post: {
         parameters: {
             query?: {
@@ -16810,6 +17404,7 @@ export interface operations {
                 token?: string | null;
             };
             header?: {
+                "Accept-Language"?: string | null;
                 authorization?: string | null;
                 "X-API-Key"?: string | null;
                 "X-Client-Origin"?: string | null;
@@ -17019,6 +17614,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SavedSchemaResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyze_saved_schema_determinism_api_schema_saved__schema_id__analyze_post: {
+        parameters: {
+            query: {
+                force?: boolean;
+                model: string;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                "Accept-Language"?: string | null;
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeterminismCheckResponse"];
                 };
             };
             /** @description Validation Error */
