@@ -5560,6 +5560,12 @@ export type components = {
             /** Fields */
             fields?: string[];
             /**
+             * Language
+             * @description Output language code for generated sample values AND field names (e.g. 'en', 'fr'); applies even when the attachment is in another language. Default English.
+             * @default en
+             */
+            language: string;
+            /**
              * Model
              * @description Model composite key
              */
@@ -10542,6 +10548,12 @@ export type components = {
              * @description Stable question id, echoed back in the answer
              */
             id: string;
+            /**
+             * Label
+             * @description Short tab label (1–3 words) for the question
+             * @default
+             */
+            label: string;
             /**
              * Options
              * @description Selectable choices (may be empty)
