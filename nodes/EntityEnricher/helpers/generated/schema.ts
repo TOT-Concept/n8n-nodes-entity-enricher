@@ -8251,7 +8251,10 @@ export type components = {
             origin?: string | null;
             /** Output Tokens */
             output_tokens?: number | null;
-            /** Processing Time Ms */
+            /**
+             * Processing Time Ms
+             * @description Sum of individual LLM-call durations (enrichment_prompts). Exceeds wall_clock_ms when expertise calls run in parallel.
+             */
             processing_time_ms?: number | null;
             /**
              * Prompt Count
@@ -8307,6 +8310,11 @@ export type components = {
             type: string;
             /** Validation Errors */
             validation_errors?: string[];
+            /**
+             * Wall Clock Ms
+             * @description Wall-clock duration of the run(s) that produced this record (first LLM call start to last call end), accumulated across retries. Null for legacy records.
+             */
+            wall_clock_ms?: number | null;
         };
         /**
          * RecordsListResponse
@@ -8430,7 +8438,10 @@ export type components = {
             origin?: string | null;
             /** Output Tokens */
             output_tokens?: number | null;
-            /** Processing Time Ms */
+            /**
+             * Processing Time Ms
+             * @description Sum of individual LLM-call durations (enrichment_prompts). Exceeds wall_clock_ms when expertise calls run in parallel.
+             */
             processing_time_ms?: number | null;
             /**
              * Prompt Count
@@ -8470,6 +8481,11 @@ export type components = {
              * @description Record type: 'enrichment', 'schema_generation', 'schema_edit', 'playground'
              */
             type: string;
+            /**
+             * Wall Clock Ms
+             * @description Wall-clock duration of the run(s) that produced this record (first LLM call start to last call end), accumulated across retries. Null for legacy records.
+             */
+            wall_clock_ms?: number | null;
         };
         /** RefreshTokenRequest */
         RefreshTokenRequest: {
@@ -8862,7 +8878,10 @@ export type components = {
              * @default false
              */
             partial_success: boolean;
-            /** Processing Time Ms */
+            /**
+             * Processing Time Ms
+             * @description Wall-clock duration of the run (first LLM call start to last call end); parallel expertise calls overlap, so this can be smaller than the sum of the expertise_breakdown durations.
+             */
             processing_time_ms?: number | null;
             /** Record Id */
             record_id?: string | null;
@@ -10786,6 +10805,11 @@ export type components = {
              */
             generate_semantic_ids: boolean;
             /**
+             * Generation Strategy
+             * @description Override the server's schema-generation strategy for this request: 'staged' (pipeline of small single-concern calls, small-model friendly) or 'monolithic' (legacy single call). Omit to use the server default.
+             */
+            generation_strategy?: ("staged" | "monolithic") | null;
+            /**
              * Model
              * @description Model composite key
              */
@@ -11188,6 +11212,11 @@ export type components = {
              * @default false
              */
             generate_semantic_ids: boolean;
+            /**
+             * Generation Strategy
+             * @description Override the server's schema-generation strategy for this request: 'staged' (pipeline of small single-concern calls, small-model friendly) or 'monolithic' (legacy single call). Omit to use the server default.
+             */
+            generation_strategy?: ("staged" | "monolithic") | null;
             /**
              * Model
              * @description Model composite key
