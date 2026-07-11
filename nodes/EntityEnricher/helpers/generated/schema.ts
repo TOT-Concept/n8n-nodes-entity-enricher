@@ -3965,6 +3965,13 @@ export type components = {
             enrichment_record_id?: string | null;
             /** Error Message */
             error_message?: string | null;
+            /**
+             * Generation Meta
+             * @description Type-specific run metadata (sample_generation: determinism_report, resolved_type; schema_generation: property_count, expertise_count)
+             */
+            generation_meta?: {
+                [key: string]: unknown;
+            } | null;
             /** Input Tokens */
             input_tokens?: number | null;
             /** Output Tokens */
@@ -4016,7 +4023,7 @@ export type components = {
             enable_strict_structured_output: boolean;
             /**
              * Entity Data
-             * @description Fixed entity input (search keys / raw JSON)
+             * @description Fixed entity input (enrichment: search keys / raw JSON; schema_generation: the input sample JSON)
              */
             entity_data?: {
                 [key: string]: unknown;
@@ -4031,12 +4038,22 @@ export type components = {
              * @default 2
              */
             repetitions: number;
+            /** @description Sample-generation task inputs (required for that type) */
+            sample_params?: components["schemas"]["SampleGenTaskParams"] | null;
+            /**
+             * Scenario Type
+             * @description Task this scenario benchmarks; immutable after create
+             * @default enrichment
+             * @enum {string}
+             */
+            scenario_type: "enrichment" | "sample_generation" | "schema_generation";
+            /** @description Schema-generation task options */
+            schema_gen_params?: components["schemas"]["SchemaGenTaskParams"] | null;
             /**
              * Schema Id
-             * Format: uuid
-             * @description Saved schema this scenario enriches against
+             * @description Saved schema this scenario enriches against (required for enrichment)
              */
-            schema_id: string;
+            schema_id?: string | null;
             /**
              * Scoring Embedding Model Key
              * @description Embedding-model override for cosine matching; null = org default
@@ -4119,6 +4136,14 @@ export type components = {
             result_count: number;
             /** Results */
             results?: components["schemas"]["BenchmarkResultResponse"][];
+            sample_params?: components["schemas"]["SampleGenTaskParams"] | null;
+            /**
+             * Scenario Type
+             * @default enrichment
+             * @enum {string}
+             */
+            scenario_type: "enrichment" | "sample_generation" | "schema_generation";
+            schema_gen_params?: components["schemas"]["SchemaGenTaskParams"] | null;
             /** Schema Id */
             schema_id?: string | null;
             /** Schema Name */
@@ -4197,6 +4222,14 @@ export type components = {
              * @default 0
              */
             result_count: number;
+            sample_params?: components["schemas"]["SampleGenTaskParams"] | null;
+            /**
+             * Scenario Type
+             * @default enrichment
+             * @enum {string}
+             */
+            scenario_type: "enrichment" | "sample_generation" | "schema_generation";
+            schema_gen_params?: components["schemas"]["SchemaGenTaskParams"] | null;
             /** Schema Id */
             schema_id?: string | null;
             /** Schema Name */
@@ -4245,6 +4278,8 @@ export type components = {
             name?: string | null;
             /** Repetitions */
             repetitions?: number | null;
+            sample_params?: components["schemas"]["SampleGenTaskParams"] | null;
+            schema_gen_params?: components["schemas"]["SchemaGenTaskParams"] | null;
             /** Schema Id */
             schema_id?: string | null;
             /** Scoring Embedding Model Key */
@@ -8109,6 +8144,9 @@ export type components = {
         /**
          * QualityDetail
          * @description Full per-result scoring breakdown stored in ``benchmark_results.quality_detail``.
+         *
+         *     ``fields``/``arrays`` are populated for enrichment scenarios; ``rubric`` for
+         *     sample-generation; ``schema_comparison`` for schema-generation.
          */
         QualityDetail: {
             /** Arrays */
@@ -8123,6 +8161,8 @@ export type components = {
             hallucination_rate: number;
             /** Overall */
             overall: number;
+            rubric?: components["schemas"]["SampleRubricDetail"] | null;
+            schema_comparison?: components["schemas"]["SchemaComparisonDetail"] | null;
         };
         /**
          * QualityFieldScore
@@ -8569,6 +8609,72 @@ export type components = {
             target_schema?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
         };
         /**
+         * RubricCoverageDetail
+         * @description Deterministic requested-field coverage (sample-generation rubric).
+         */
+        RubricCoverageDetail: {
+            /**
+             * Requested
+             * @description Per requested field: {field, matched_key|null}
+             */
+            requested?: {
+                [key: string]: unknown;
+            }[];
+            /** Score */
+            score: number;
+        };
+        /**
+         * RubricDeterminismDetail
+         * @description Deterministic determinism-safety sub-score derived from the flow's own report.
+         */
+        RubricDeterminismDetail: {
+            /**
+             * Analyzed Count
+             * @default 0
+             */
+            analyzed_count: number;
+            /**
+             * High
+             * @default 0
+             */
+            high: number;
+            /**
+             * Medium
+             * @default 0
+             */
+            medium: number;
+            /**
+             * Over Specialization
+             * @default false
+             */
+            over_specialization: boolean;
+            /**
+             * Risk
+             * @description 1 - score; surfaced as the hallucination-risk column
+             */
+            risk: number;
+            /**
+             * Score
+             * @description Safety 0..1 (1 = no non-determinism findings)
+             */
+            score: number;
+        };
+        /**
+         * RubricJudgeDetail
+         * @description One judge-graded rubric dimension with its cited issues.
+         */
+        RubricJudgeDetail: {
+            /** Issues */
+            issues?: string[];
+            /** Score */
+            score: number;
+            /**
+             * Untraceable
+             * @description Values the judge could not trace to the attached source (attachment path)
+             */
+            untraceable?: string[];
+        };
+        /**
          * RunBenchmarkJobResponse
          * @description Response after starting a benchmark run (progress streams over the LLM job SSE).
          */
@@ -8595,6 +8701,57 @@ export type components = {
              * @description Model composite keys to benchmark (active set)
              */
             model_keys: string[];
+        };
+        /**
+         * SampleGenTaskParams
+         * @description Fixed sample-generation inputs (mirrors GenerateSampleRequest minus the model).
+         */
+        SampleGenTaskParams: {
+            /**
+             * Enable Web Search
+             * @default false
+             */
+            enable_web_search: boolean;
+            /** Entity Type */
+            entity_type: string;
+            /** Extra Instructions */
+            extra_instructions?: string | null;
+            /**
+             * Fields
+             * @description Field names the sample must include (drives the coverage sub-score)
+             */
+            fields?: string[];
+            /**
+             * Language
+             * @default en
+             */
+            language: string;
+            /**
+             * Naming Convention
+             * @default auto
+             * @enum {string}
+             */
+            naming_convention: "auto" | "snake_case" | "camelCase";
+            /** Typical Object */
+            typical_object?: string | null;
+        };
+        /**
+         * SampleRubricDetail
+         * @description Per-result rubric breakdown for sample-generation scenarios (no gold reference).
+         */
+        SampleRubricDetail: {
+            coverage?: components["schemas"]["RubricCoverageDetail"] | null;
+            /** @description Null on the attachment path (flow skips the analyzer) */
+            determinism?: components["schemas"]["RubricDeterminismDetail"] | null;
+            naming_structure?: components["schemas"]["RubricJudgeDetail"] | null;
+            value_realism?: components["schemas"]["RubricJudgeDetail"] | null;
+            /**
+             * Weights
+             * @description Effective (renormalized) sub-score weights
+             */
+            weights?: {
+                [key: string]: number;
+            };
         };
         /**
          * SavedSchemaCreate
@@ -8740,6 +8897,51 @@ export type components = {
             tags?: string[] | null;
         };
         /**
+         * SchemaComparisonDetail
+         * @description Per-result comparator breakdown for schema-generation scenarios.
+         */
+        SchemaComparisonDetail: {
+            expertise?: components["schemas"]["SchemaExpertiseDetail"] | null;
+            /** Extra Paths */
+            extra_paths?: string[];
+            /** Matched */
+            matched?: components["schemas"]["SchemaPropMatch"][];
+            /** Missed Paths */
+            missed_paths?: string[];
+            /** Weights */
+            weights?: {
+                [key: string]: number;
+            };
+        };
+        /**
+         * SchemaExpertiseDetail
+         * @description Expertise-partition similarity (domain names irrelevant, membership is what counts).
+         */
+        SchemaExpertiseDetail: {
+            /**
+             * Mapping
+             * @description Per reference domain: {ref_domain, best_cand_domain, f1}
+             */
+            mapping?: {
+                [key: string]: unknown;
+            }[];
+            /** Score */
+            score: number;
+        };
+        /**
+         * SchemaGenTaskParams
+         * @description Fixed schema-generation options (the input sample JSON lives in entity_data).
+         */
+        SchemaGenTaskParams: {
+            /** Extra Instructions */
+            extra_instructions?: string | null;
+            /**
+             * Generate Semantic Ids
+             * @default false
+             */
+            generate_semantic_ids: boolean;
+        };
+        /**
          * SchemaPromptRequest
          * @description Request model for AI-assisted schema modification.
          */
@@ -8786,6 +8988,32 @@ export type components = {
             model: string;
             /** Prompt */
             prompt: string;
+        };
+        /**
+         * SchemaPropMatch
+         * @description One matched candidate↔reference property pair with its per-dimension scores.
+         */
+        SchemaPropMatch: {
+            /** Cand Path */
+            cand_path: string;
+            /** Desc Score */
+            desc_score?: number | null;
+            /**
+             * Flag Diffs
+             * @description Behavioral flags that disagree (is_key, nullable, ...)
+             */
+            flag_diffs?: string[];
+            /** Flags Score */
+            flags_score: number;
+            /**
+             * Method
+             * @description exact | embedding | judge
+             */
+            method: string;
+            /** Ref Path */
+            ref_path: string;
+            /** Type Score */
+            type_score: number;
         };
         /**
          * ScoreBenchmarkJobResponse
@@ -10821,6 +11049,12 @@ export type components = {
             sample_inputs?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Save Schema
+             * @description Auto-save the generated schema as a saved schema (default). False skips the save AND the determinism post-pass — used when the schema is a throwaway draft, e.g. generating a benchmark gold reference.
+             * @default true
+             */
+            save_schema: boolean;
         };
         /**
          * StreamGenerateResponse
@@ -11229,6 +11463,12 @@ export type components = {
             sample_inputs?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Save Schema
+             * @description Auto-save the generated schema as a saved schema (default). False skips the save AND the determinism post-pass — used when the schema is a throwaway draft, e.g. generating a benchmark gold reference.
+             * @default true
+             */
+            save_schema: boolean;
             /**
              * Timeout Seconds
              * @description How long to wait for schema generation to finish before returning 504
@@ -11711,16 +11951,25 @@ export type RefreshTokenRequest = components['schemas']['RefreshTokenRequest'];
 export type RefreshTokenResponse = components['schemas']['RefreshTokenResponse'];
 export type RegisterRequest = components['schemas']['RegisterRequest'];
 export type RetryExpertisesRequest = components['schemas']['RetryExpertisesRequest'];
+export type RubricCoverageDetail = components['schemas']['RubricCoverageDetail'];
+export type RubricDeterminismDetail = components['schemas']['RubricDeterminismDetail'];
+export type RubricJudgeDetail = components['schemas']['RubricJudgeDetail'];
 export type RunBenchmarkJobResponse = components['schemas']['RunBenchmarkJobResponse'];
 export type RunBenchmarkRequest = components['schemas']['RunBenchmarkRequest'];
+export type SampleGenTaskParams = components['schemas']['SampleGenTaskParams'];
+export type SampleRubricDetail = components['schemas']['SampleRubricDetail'];
 export type SavedSchemaCreate = components['schemas']['SavedSchemaCreate'];
 export type SavedSchemaListItem = components['schemas']['SavedSchemaListItem'];
 export type SavedSchemaListResponse = components['schemas']['SavedSchemaListResponse'];
 export type SavedSchemaResponse = components['schemas']['SavedSchemaResponse'];
 export type SavedSchemaUpdate = components['schemas']['SavedSchemaUpdate'];
+export type SchemaComparisonDetail = components['schemas']['SchemaComparisonDetail'];
+export type SchemaExpertiseDetail = components['schemas']['SchemaExpertiseDetail'];
+export type SchemaGenTaskParams = components['schemas']['SchemaGenTaskParams'];
 export type SchemaPromptRequest = components['schemas']['SchemaPromptRequest'];
 export type SchemaPromptResponse = components['schemas']['SchemaPromptResponse'];
 export type SchemaPromptStreamRequest = components['schemas']['SchemaPromptStreamRequest'];
+export type SchemaPropMatch = components['schemas']['SchemaPropMatch'];
 export type ScoreBenchmarkJobResponse = components['schemas']['ScoreBenchmarkJobResponse'];
 export type ScoreBenchmarkRequest = components['schemas']['ScoreBenchmarkRequest'];
 export type SemanticConceptRef = components['schemas']['SemanticConceptRef'];
