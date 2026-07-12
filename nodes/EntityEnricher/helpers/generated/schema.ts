@@ -3837,11 +3837,16 @@ export type components = {
             config_hash?: string | null;
             /**
              * Cost Score
-             * @description Cost vs the scenario's successful results, log-scale min-max (1.0 = cheapest, 0.0 = dearest; free results anchor at the top)
+             * @description Cost vs the scenario's successful results, log-scale min-max (1.0 = cheapest, 0.0 = dearest; free results anchor at the top). sample_generation: cost is per distinct property (coverness count)
              */
             cost_score?: number | null;
             /** Cost Usd */
             cost_usd?: number | null;
+            /**
+             * Coverness Count
+             * @description sample_generation only: mean distinct-property count across successful reps (arrays merged). Basis of the read-time coverness ratio shown as Completeness and of the per-property speed/cost scores
+             */
+            coverness_count?: number | null;
             /** Enrichment Record Id */
             enrichment_record_id?: string | null;
             /** Error Message */
@@ -3932,7 +3937,7 @@ export type components = {
             scenario_id: string;
             /**
              * Speed Score
-             * @description Wall-clock speed vs the scenario's successful results, log-scale min-max (1.0 = fastest, 0.0 = slowest)
+             * @description Wall-clock speed vs the scenario's successful results, log-scale min-max (1.0 = fastest, 0.0 = slowest). sample_generation: time is per distinct property (coverness count), since output size is open-ended
              */
             speed_score?: number | null;
             /** Strategy Used */
@@ -3961,6 +3966,11 @@ export type components = {
         BenchmarkRunMetric: {
             /** Cost Usd */
             cost_usd?: number | null;
+            /**
+             * Coverness Count
+             * @description sample_generation: distinct leaf properties in this rep's sample (array items merged), counted once at run time so reads never re-walk the JSON
+             */
+            coverness_count?: number | null;
             /** Enrichment Record Id */
             enrichment_record_id?: string | null;
             /** Error Message */
@@ -8609,19 +8619,36 @@ export type components = {
             target_schema?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
         };
         /**
-         * RubricCoverageDetail
-         * @description Deterministic requested-field coverage (sample-generation rubric).
+         * RubricCovernessDetail
+         * @description Read-time coverness (distinct-property richness vs the scenario's richest peer).
+         *
+         *     Injected into the returned rubric by ``BenchmarkRepository.list_results`` — never
+         *     stored. ``effective`` = ratio × judged correctness (volume-gaming guard); the
+         *     displayed overall = COVERNESS_WEIGHT·effective + (1-COVERNESS_WEIGHT)·stored rubric.
          */
-        RubricCoverageDetail: {
+        RubricCovernessDetail: {
             /**
-             * Requested
-             * @description Per requested field: {field, matched_key|null}
+             * Count
+             * @description This result's distinct leaf properties (arrays merged)
              */
-            requested?: {
-                [key: string]: unknown;
-            }[];
-            /** Score */
-            score: number;
+            count: number;
+            /**
+             * Effective
+             * @description ratio × mean(naming, realism)
+             */
+            effective: number;
+            /**
+             * Max Count
+             * @description Richest successful peer's count in the scenario
+             */
+            max_count: number;
+            /**
+             * Ratio
+             * @description count / max_count (the Completeness column)
+             */
+            ratio: number;
+            /** Weight */
+            weight: number;
         };
         /**
          * RubricDeterminismDetail
@@ -8717,11 +8744,6 @@ export type components = {
             /** Extra Instructions */
             extra_instructions?: string | null;
             /**
-             * Fields
-             * @description Field names the sample must include (drives the coverage sub-score)
-             */
-            fields?: string[];
-            /**
              * Language
              * @default en
              */
@@ -8738,9 +8760,12 @@ export type components = {
         /**
          * SampleRubricDetail
          * @description Per-result rubric breakdown for sample-generation scenarios (no gold reference).
+         *
+         *     ``coverness`` is filled at read time only (peer-relative); the stored detail keeps it
+         *     None. Old stored rows may carry an extra legacy ``coverage`` key — ignored on load.
          */
         SampleRubricDetail: {
-            coverage?: components["schemas"]["RubricCoverageDetail"] | null;
+            coverness?: components["schemas"]["RubricCovernessDetail"] | null;
             /** @description Null on the attachment path (flow skips the analyzer) */
             determinism?: components["schemas"]["RubricDeterminismDetail"] | null;
             naming_structure?: components["schemas"]["RubricJudgeDetail"] | null;
@@ -8940,6 +8965,11 @@ export type components = {
              * @default false
              */
             generate_semantic_ids: boolean;
+            /**
+             * Generation Strategy
+             * @description Generation pipeline; null defers to the server default (staged)
+             */
+            generation_strategy?: ("staged" | "monolithic") | null;
         };
         /**
          * SchemaPromptRequest
@@ -11951,7 +11981,7 @@ export type RefreshTokenRequest = components['schemas']['RefreshTokenRequest'];
 export type RefreshTokenResponse = components['schemas']['RefreshTokenResponse'];
 export type RegisterRequest = components['schemas']['RegisterRequest'];
 export type RetryExpertisesRequest = components['schemas']['RetryExpertisesRequest'];
-export type RubricCoverageDetail = components['schemas']['RubricCoverageDetail'];
+export type RubricCovernessDetail = components['schemas']['RubricCovernessDetail'];
 export type RubricDeterminismDetail = components['schemas']['RubricDeterminismDetail'];
 export type RubricJudgeDetail = components['schemas']['RubricJudgeDetail'];
 export type RunBenchmarkJobResponse = components['schemas']['RunBenchmarkJobResponse'];
