@@ -3991,6 +3991,11 @@ export type components = {
             } | null;
             /** Input Tokens */
             input_tokens?: number | null;
+            /**
+             * On Topic Fraction
+             * @description sample_generation: judge-graded fraction (0-1) of this rep's properties that are entity-relevant and plausibly valid; persisted at scoring time, gates the read-time coverness basis
+             */
+            on_topic_fraction?: number | null;
             /** Output Tokens */
             output_tokens?: number | null;
             /** Processing Time Ms */
@@ -8748,11 +8753,13 @@ export type components = {
         };
         /**
          * RubricCovernessDetail
-         * @description Read-time coverness (distinct-property richness vs the scenario's richest peer).
+         * @description Read-time coverness (trusted richness vs the scenario's best peer).
          *
          *     Injected into the returned rubric by ``BenchmarkRepository.list_results`` — never
-         *     stored. ``effective`` = ratio × judged correctness (volume-gaming guard); the
-         *     displayed overall = COVERNESS_WEIGHT·effective + (1-COVERNESS_WEIGHT)·stored rubric.
+         *     stored. ``trusted`` = count × on_topic × judged correctness (volume-gaming +
+         *     scope-creep guard); the peer baseline ``max_trusted`` is the best per-model MEAN
+         *     basis, so one lucky rep can't set the scale. The displayed overall =
+         *     COVERNESS_WEIGHT·effective + (1-COVERNESS_WEIGHT)·stored rubric.
          */
         RubricCovernessDetail: {
             /**
@@ -8762,57 +8769,33 @@ export type components = {
             count: number;
             /**
              * Effective
-             * @description ratio × mean(naming, realism)
+             * @description sqrt(ratio) × mean(naming, realism)
              */
             effective: number;
             /**
-             * Max Count
-             * @description Richest successful peer's count in the scenario
+             * Max Trusted
+             * @description Best peer's mean trusted basis in the scenario
+             * @default 0
              */
-            max_count: number;
+            max_trusted: number;
+            /**
+             * On Topic
+             * @description Judge-graded fraction of entity-relevant properties (v3 scores only)
+             */
+            on_topic?: number | null;
             /**
              * Ratio
-             * @description count / max_count (the Completeness column)
+             * @description min(1, trusted / max_trusted) (the Completeness column)
              */
             ratio: number;
+            /**
+             * Trusted
+             * @description count × on_topic × mean(naming, realism)
+             * @default 0
+             */
+            trusted: number;
             /** Weight */
             weight: number;
-        };
-        /**
-         * RubricDeterminismDetail
-         * @description Deterministic determinism-safety sub-score derived from the flow's own report.
-         */
-        RubricDeterminismDetail: {
-            /**
-             * Analyzed Count
-             * @default 0
-             */
-            analyzed_count: number;
-            /**
-             * High
-             * @default 0
-             */
-            high: number;
-            /**
-             * Medium
-             * @default 0
-             */
-            medium: number;
-            /**
-             * Over Specialization
-             * @default false
-             */
-            over_specialization: boolean;
-            /**
-             * Risk
-             * @description 1 - score; surfaced as the hallucination-risk column
-             */
-            risk: number;
-            /**
-             * Score
-             * @description Safety 0..1 (1 = no non-determinism findings)
-             */
-            score: number;
         };
         /**
          * RubricJudgeDetail
@@ -8894,8 +8877,8 @@ export type components = {
          */
         SampleRubricDetail: {
             coverness?: components["schemas"]["RubricCovernessDetail"] | null;
-            /** @description Null on the attachment path (flow skips the analyzer) */
-            determinism?: components["schemas"]["RubricDeterminismDetail"] | null;
+            /** @description Judge-graded since v3 (analyzer-based before — old rows validate: extra keys ignored, score present) */
+            determinism?: components["schemas"]["RubricJudgeDetail"] | null;
             naming_structure?: components["schemas"]["RubricJudgeDetail"] | null;
             value_realism?: components["schemas"]["RubricJudgeDetail"] | null;
             /**
@@ -12112,7 +12095,6 @@ export type RefreshTokenResponse = components['schemas']['RefreshTokenResponse']
 export type RegisterRequest = components['schemas']['RegisterRequest'];
 export type RetryExpertisesRequest = components['schemas']['RetryExpertisesRequest'];
 export type RubricCovernessDetail = components['schemas']['RubricCovernessDetail'];
-export type RubricDeterminismDetail = components['schemas']['RubricDeterminismDetail'];
 export type RubricJudgeDetail = components['schemas']['RubricJudgeDetail'];
 export type RunBenchmarkJobResponse = components['schemas']['RunBenchmarkJobResponse'];
 export type RunBenchmarkRequest = components['schemas']['RunBenchmarkRequest'];
