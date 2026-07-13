@@ -10749,6 +10749,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Scoreable
+             * @description Benchmark runs only: whether this model's result will be scored
+             */
+            scoreable?: boolean | null;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
@@ -10968,6 +10973,416 @@ export type components = {
              * @description Human-readable choice
              */
             label: string;
+        };
+        /**
+         * SSEScoringCompleted
+         * @description Emitted when the scoring pass finishes, with the exact final counts.
+         */
+        SSEScoringCompleted: {
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default scoring_completed
+             * @constant
+             */
+            event: "scoring_completed";
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Last Error Summary */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Scored
+             * @description Results scored
+             */
+            scored: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total
+             * @description Results that were scoreable
+             */
+            total: number;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
+         * SSEScoringDegraded
+         * @description Emitted when no embedding model is available — scoring degrades to
+         *     exact/normalized matching only.
+         */
+        SSEScoringDegraded: {
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default scoring_degraded
+             * @constant
+             */
+            event: "scoring_degraded";
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Last Error Summary */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /**
+             * Reason
+             * @description Why the embedder is unavailable
+             */
+            reason?: string | null;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
+         * SSEScoringFailed
+         * @description Emitted when the scoring pass fails as a whole (e.g. unusable judge model).
+         *     The generation results are saved — the standalone Score action can retry.
+         */
+        SSEScoringFailed: {
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /**
+             * Event
+             * @default scoring_failed
+             * @constant
+             */
+            event: "scoring_failed";
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Last Error Summary */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
+         * SSEScoringProgress
+         * @description Emitted after each result is scored (or fails to score). Carries the per-model
+         *     mean quality so the run modal can badge rows as they are scored.
+         */
+        SSEScoringProgress: {
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /** Completeness */
+            completeness?: number | null;
+            /** Correctness */
+            correctness?: number | null;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /**
+             * Event
+             * @default scoring_progress
+             * @constant
+             */
+            event: "scoring_progress";
+            /** Hallucination Rate */
+            hallucination_rate?: number | null;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Last Error Summary */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /**
+             * Model
+             * @description Model composite key just scored
+             */
+            model?: string | null;
+            /**
+             * Overall
+             * @description Mean overall quality (0..1)
+             */
+            overall?: number | null;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Scored
+             * @description Results scored so far
+             */
+            scored: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Success
+             * @description Whether this model's scoring succeeded
+             * @default true
+             */
+            success: boolean;
+            /**
+             * Total
+             * @description Scoreable results known so far
+             */
+            total: number;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
+         * SSEScoringStarted
+         * @description Emitted when a benchmark scoring pass initializes. For a standalone scoring job
+         *     total_results is exact; for a benchmark run's interleaved scoring it is the run's
+         *     model count — an upper bound (failed models won't be scored). scoring_completed
+         *     carries the exact final counts.
+         */
+        SSEScoringStarted: {
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default scoring_started
+             * @constant
+             */
+            event: "scoring_started";
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Last Error Summary */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+            /**
+             * Total Results
+             * @description Number of results to score (upper bound)
+             */
+            total_results: number;
+        };
+        /**
+         * SSEScoringUnverifiedReference
+         * @description Emitted when scoring runs against a reference that is not verified.
+         */
+        SSEScoringUnverifiedReference: {
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default scoring_unverified_reference
+             * @constant
+             */
+            event: "scoring_unverified_reference";
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Last Error Summary */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
         };
         /**
          * SSEStrategySelected
@@ -12143,6 +12558,12 @@ export type SseModelStarted = components['schemas']['SSEModelStarted'];
 export type SseSampleClarificationPause = components['schemas']['SSESampleClarificationPause'];
 export type SseSampleQuestion = components['schemas']['SSESampleQuestion'];
 export type SseSampleQuestionOption = components['schemas']['SSESampleQuestionOption'];
+export type SseScoringCompleted = components['schemas']['SSEScoringCompleted'];
+export type SseScoringDegraded = components['schemas']['SSEScoringDegraded'];
+export type SseScoringFailed = components['schemas']['SSEScoringFailed'];
+export type SseScoringProgress = components['schemas']['SSEScoringProgress'];
+export type SseScoringStarted = components['schemas']['SSEScoringStarted'];
+export type SseScoringUnverifiedReference = components['schemas']['SSEScoringUnverifiedReference'];
 export type SseStrategySelected = components['schemas']['SSEStrategySelected'];
 export type StrategyInfo = components['schemas']['StrategyInfo'];
 export type StreamEnrichRequest = components['schemas']['StreamEnrichRequest'];
@@ -15701,7 +16122,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
+                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
                 };
             };
         };
