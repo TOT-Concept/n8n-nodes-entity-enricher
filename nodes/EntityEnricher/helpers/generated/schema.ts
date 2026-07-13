@@ -554,17 +554,24 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Get My Organization
+         * @description Get the current user's organization detail (any member).
+         */
+        get: operations["get_my_organization_api_auth_organization_get"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         /**
-         * Update Organization Name
-         * @description Update the current user's organization name. Requires owner+ role.
+         * Update Organization
+         * @description Update the current user's organization information. Requires owner+ role.
+         *
+         *     Partial update: omitted fields are unchanged, explicit nulls clear the value.
+         *     The slug is immutable (tunnel hostnames embed it).
          */
-        patch: operations["update_organization_name_api_auth_organization_patch"];
+        patch: operations["update_organization_api_auth_organization_patch"];
         trace?: never;
     };
     "/api/auth/organizations/join": {
@@ -1917,7 +1924,7 @@ export type paths = {
         get: operations["get_embedding_model_api_org_keys_embedding_model_get"];
         /**
          * Set Embedding Model
-         * @description Set the org's embedding model.
+         * @description Set the org's embedding model. Plan-gated (org default parameter).
          *
          *     Near-immutable: once any semantic concepts exist, the model can only be CLEARED
          *     (set to null), not switched to a different one — stored vectors live in a single
@@ -4303,6 +4310,30 @@ export type components = {
             /** Strategy */
             strategy?: string | null;
         };
+        /**
+         * BenchmarkScoreWeights
+         * @description Org-wide quality/speed/cost blend for benchmark overall scores.
+         *
+         *     Integer percentages that must sum to exactly 100 (mirrors the frontend
+         *     OverallWeights sliders).
+         */
+        BenchmarkScoreWeights: {
+            /**
+             * Cost
+             * @default 33
+             */
+            cost: number;
+            /**
+             * Quality
+             * @default 34
+             */
+            quality: number;
+            /**
+             * Speed
+             * @default 33
+             */
+            speed: number;
+        };
         /** BillingOverview */
         BillingOverview: {
             /** Available Plans */
@@ -5174,6 +5205,8 @@ export type components = {
              * @description Role of the API key used (for service accounts)
              */
             api_key_role?: string | null;
+            /** @description Org-wide quality/speed/cost blend for benchmark overall scores */
+            benchmark_score_weights?: components["schemas"]["BenchmarkScoreWeights"] | null;
             /**
              * Default Embedding Model
              * @description Org's embedding model (composite key) for semantic IDs; null = disabled
@@ -7075,6 +7108,70 @@ export type components = {
              */
             user_id: string;
         };
+        /**
+         * OrganizationDetailResponse
+         * @description Full organization detail for the Settings > Organization pages.
+         */
+        OrganizationDetailResponse: {
+            /** Address Line1 */
+            address_line1?: string | null;
+            /** Address Line2 */
+            address_line2?: string | null;
+            benchmark_score_weights: components["schemas"]["BenchmarkScoreWeights"];
+            /**
+             * Billing Page Access
+             * @default false
+             */
+            billing_page_access: boolean;
+            /** City */
+            city?: string | null;
+            /** Contact Email */
+            contact_email?: string | null;
+            /** Contact Phone */
+            contact_phone?: string | null;
+            /**
+             * Country Code
+             * @description ISO 3166-1 alpha-2
+             */
+            country_code?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Current Plan Sort Order */
+            current_plan_sort_order?: number | null;
+            /** Default Embedding Model */
+            default_embedding_model?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Logo Url */
+            logo_url?: string | null;
+            /**
+             * Member Count
+             * @default 0
+             */
+            member_count: number;
+            /** Name */
+            name: string;
+            /** Plan Name */
+            plan_name?: string | null;
+            /** Postal Code */
+            postal_code?: string | null;
+            /** Slug */
+            slug: string;
+            /** State Region */
+            state_region?: string | null;
+            /** Website */
+            website?: string | null;
+        };
         /** OrganizationResponse */
         OrganizationResponse: {
             /**
@@ -7159,10 +7256,41 @@ export type components = {
              */
             vat_verified: boolean;
         };
-        /** OrganizationUpdateName */
-        OrganizationUpdateName: {
+        /**
+         * OrganizationUpdate
+         * @description Partial update of organization information. Omitted fields are left unchanged;
+         *     explicit nulls clear the value. Slug is intentionally not updatable (tunnel hostnames
+         *     embed it). Requires owner+ role.
+         */
+        OrganizationUpdate: {
+            /** Address Line1 */
+            address_line1?: string | null;
+            /** Address Line2 */
+            address_line2?: string | null;
+            benchmark_score_weights?: components["schemas"]["BenchmarkScoreWeights"] | null;
+            /** City */
+            city?: string | null;
+            /** Contact Email */
+            contact_email?: string | null;
+            /** Contact Phone */
+            contact_phone?: string | null;
+            /**
+             * Country Code
+             * @description ISO 3166-1 alpha-2
+             */
+            country_code?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Logo Url */
+            logo_url?: string | null;
             /** Name */
-            name: string;
+            name?: string | null;
+            /** Postal Code */
+            postal_code?: string | null;
+            /** State Region */
+            state_region?: string | null;
+            /** Website */
+            website?: string | null;
         };
         /**
          * PendingUserResponse
@@ -11848,6 +11976,7 @@ export type BenchmarkScenarioCreate = components['schemas']['BenchmarkScenarioCr
 export type BenchmarkScenarioDetail = components['schemas']['BenchmarkScenarioDetail'];
 export type BenchmarkScenarioResponse = components['schemas']['BenchmarkScenarioResponse'];
 export type BenchmarkScenarioUpdate = components['schemas']['BenchmarkScenarioUpdate'];
+export type BenchmarkScoreWeights = components['schemas']['BenchmarkScoreWeights'];
 export type BillingOverview = components['schemas']['BillingOverview'];
 export type BillingPortalResponse = components['schemas']['BillingPortalResponse'];
 export type BillingSettingsUpdate = components['schemas']['BillingSettingsUpdate'];
@@ -11943,10 +12072,11 @@ export type ModelValidationResponse = components['schemas']['ModelValidationResp
 export type NonDeterminismFinding = components['schemas']['NonDeterminismFinding'];
 export type NonDeterminismInfo = components['schemas']['NonDeterminismInfo'];
 export type OAuthGrantListItem = components['schemas']['OAuthGrantListItem'];
+export type OrganizationDetailResponse = components['schemas']['OrganizationDetailResponse'];
 export type OrganizationResponse = components['schemas']['OrganizationResponse'];
 export type OrganizationSearchResult = components['schemas']['OrganizationSearchResult'];
 export type OrganizationSubscription = components['schemas']['OrganizationSubscription'];
-export type OrganizationUpdateName = components['schemas']['OrganizationUpdateName'];
+export type OrganizationUpdate = components['schemas']['OrganizationUpdate'];
 export type PendingUserResponse = components['schemas']['PendingUserResponse'];
 export type PerformanceStatsByInputTokenRange = components['schemas']['PerformanceStatsByInputTokenRange'];
 export type PerformanceStatsByLanguageCount = components['schemas']['PerformanceStatsByLanguageCount'];
@@ -13096,7 +13226,42 @@ export interface operations {
             };
         };
     };
-    update_organization_name_api_auth_organization_patch: {
+    get_my_organization_api_auth_organization_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_organization_api_auth_organization_patch: {
         parameters: {
             query?: {
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
@@ -13111,7 +13276,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["OrganizationUpdateName"];
+                "application/json": components["schemas"]["OrganizationUpdate"];
             };
         };
         responses: {
@@ -13121,7 +13286,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganizationResponse"];
+                    "application/json": components["schemas"]["OrganizationDetailResponse"];
                 };
             };
             /** @description Validation Error */
