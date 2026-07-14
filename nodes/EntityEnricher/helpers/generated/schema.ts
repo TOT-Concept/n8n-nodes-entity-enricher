@@ -2010,7 +2010,7 @@ export type paths = {
         };
         /**
          * List Provider Mappings
-         * @description List how provider names from pricepertoken.com will be mapped to database fields.
+         * @description List provider-name mappings (system admin only).
          *
          *     This is informational - shows the naming convention used when syncing providers.
          */
@@ -2032,7 +2032,7 @@ export type paths = {
         };
         /**
          * List Sources
-         * @description List selectable pricing scrapers with per-source freshness metadata.
+         * @description List selectable pricing scrapers with freshness metadata (system admin only).
          *
          *     Drives the Sync modal's multi-select scraper list: each entry carries its
          *     label, whether it relies on a web-search research pass, and the dates it was
@@ -2058,14 +2058,14 @@ export type paths = {
         put?: never;
         /**
          * Sync Prices
-         * @description Sync LLM model pricing from pricepertoken.com.
+         * @description Sync LLM model pricing from external sources (system admin only).
          *
-         *     This endpoint scrapes model pricing data from pricepertoken.com and syncs it
-         *     with the local database. It can:
+         *     This endpoint fetches model pricing data from the selected external registries
+         *     and syncs it with the global catalog. It can:
          *     - Add new providers
          *     - Add new models for existing or new providers
          *     - Update prices for existing models
-         *     - Deactivate models that are no longer on the source (only if source='pricepertoken')
+         *     - Deactivate source-owned models that no longer appear in that source
          *
          *     Args:
          *         request.dry_run: If True (default), returns preview of changes without applying them.
@@ -2486,6 +2486,38 @@ export type paths = {
          *     Requires system admin.
          */
         post: operations["bulk_delete_models_api_providers_models_bulk_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/providers/models/bulk-schema-generation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Set Schema Generation
+         * @description Bulk-set the schema-generation gate on models (benchmark disable actions).
+         *
+         *     ``disabled=True`` hides the models from the schema-generation AND
+         *     sample-generation pickers (folded into ``processing_disabled`` by
+         *     /enrichment/options); ``disabled=False`` re-enables. Scope routing:
+         *
+         *     - ``scope='global'`` (system admin only): writes the base rows directly —
+         *       the column is app-managed (never synced), so no override row is needed,
+         *       same rationale as the deactivation pair.
+         *     - ``scope='organization'``: org-owned base rows are written directly;
+         *       global base rows get the flag merged into the org's override row
+         *       (other override fields preserved). Enabling clears the org's opinion —
+         *       it cannot force a globally-disabled model back on (OR semantics).
+         */
+        post: operations["bulk_set_schema_generation_api_providers_models_bulk_schema_generation_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3892,6 +3924,13 @@ export type components = {
              */
             quality_complete?: number | null;
             /**
+             * Quality Config
+             * @description Scoring-config fingerprint (judge / scorer version) the quality was computed under
+             */
+            quality_config?: {
+                [key: string]: unknown;
+            } | null;
+            /**
              * Quality Correct
              * @description Correctness (precision-like): are filled values right
              */
@@ -3925,6 +3964,11 @@ export type components = {
              * @default false
              */
             quality_stale: boolean;
+            /**
+             * Reference Hash
+             * @description Hash of the reference this result's quality was scored against
+             */
+            reference_hash?: string | null;
             /**
              * Retries
              * @description Total LLM retries across the record's prompt calls (sum of attempts-1)
@@ -4087,6 +4131,11 @@ export type components = {
              */
             scoring_judge_model_key: string;
             /**
+             * Scoring Source
+             * @description Feed this scenario's results into the live per-model scores returned by /api/enrichment/options ('global' requires system admin); null = off
+             */
+            scoring_source?: ("organization" | "global") | null;
+            /**
              * Scoring Threshold
              * @description Match strictness (emb_high); null = default 0.86
              */
@@ -4176,6 +4225,8 @@ export type components = {
             scoring_embedding_model_key?: string | null;
             /** Scoring Judge Model Key */
             scoring_judge_model_key?: string | null;
+            /** Scoring Source */
+            scoring_source?: ("organization" | "global") | null;
             /** Scoring Threshold */
             scoring_threshold?: number | null;
             /**
@@ -4262,6 +4313,8 @@ export type components = {
             scoring_embedding_model_key?: string | null;
             /** Scoring Judge Model Key */
             scoring_judge_model_key?: string | null;
+            /** Scoring Source */
+            scoring_source?: ("organization" | "global") | null;
             /** Scoring Threshold */
             scoring_threshold?: number | null;
             /**
@@ -4308,6 +4361,8 @@ export type components = {
             scoring_embedding_model_key?: string | null;
             /** Scoring Judge Model Key */
             scoring_judge_model_key?: string | null;
+            /** Scoring Source */
+            scoring_source?: ("organization" | "global") | null;
             /** Scoring Threshold */
             scoring_threshold?: number | null;
             /** Skip Incapable Models */
@@ -4338,6 +4393,19 @@ export type components = {
              * @default 33
              */
             speed: number;
+        };
+        /**
+         * BenchmarkScoreWeightsByType
+         * @description Per-task quality/speed/cost blends, keyed by benchmark scenario type.
+         *
+         *     Each triple independently sums to 100. Drives the blended per-model
+         *     `overall` score that /api/enrichment/options computes from the org's
+         *     scoring-source benchmark scenarios.
+         */
+        BenchmarkScoreWeightsByType: {
+            enrichment?: components["schemas"]["BenchmarkScoreWeights"];
+            sample_generation?: components["schemas"]["BenchmarkScoreWeights"];
+            schema_generation?: components["schemas"]["BenchmarkScoreWeights"];
         };
         /** BillingOverview */
         BillingOverview: {
@@ -4439,6 +4507,27 @@ export type components = {
             /** Model Ids */
             model_ids: number[];
             updates: components["schemas"]["ModelUpdate"];
+        };
+        /**
+         * BulkSchemaGenerationRequest
+         * @description Request model for bulk-toggling the schema-generation gate on models.
+         *
+         *     ``disabled=True`` hides the models from the schema-generation and
+         *     sample-generation pickers; ``disabled=False`` re-enables them.
+         *     ``scope='organization'`` writes org-scoped override rows (owner+);
+         *     ``scope='global'`` writes the base model rows (system admin only).
+         */
+        BulkSchemaGenerationRequest: {
+            /** Disabled */
+            disabled: boolean;
+            /** Model Ids */
+            model_ids: number[];
+            /**
+             * Scope
+             * @default organization
+             * @enum {string}
+             */
+            scope: "organization" | "global";
         };
         /**
          * BulkToggleRequest
@@ -5210,8 +5299,8 @@ export type components = {
              * @description Role of the API key used (for service accounts)
              */
             api_key_role?: string | null;
-            /** @description Org-wide quality/speed/cost blend for benchmark overall scores */
-            benchmark_score_weights?: components["schemas"]["BenchmarkScoreWeights"] | null;
+            /** @description Org per-task quality/speed/cost blends for benchmark overall scores */
+            benchmark_score_weights?: components["schemas"]["BenchmarkScoreWeightsByType"] | null;
             /**
              * Default Embedding Model
              * @description Org's embedding model (composite key) for semantic IDs; null = disabled
@@ -5948,6 +6037,10 @@ export type components = {
             benchmark_intelligence?: number | null;
             /** Benchmark Intelligence Reasoning */
             benchmark_intelligence_reasoning?: number | null;
+            /** Benchmark Scores */
+            benchmark_scores?: {
+                [key: string]: components["schemas"]["ModelBenchmarkScores"];
+            } | null;
             /** Benchmarks Extra */
             benchmarks_extra?: {
                 [key: string]: number;
@@ -5984,6 +6077,11 @@ export type components = {
             } | null;
             /** Rpm */
             rpm?: number | null;
+            /**
+             * Schema Generation Disabled
+             * @default false
+             */
+            schema_generation_disabled: boolean;
             /** Supported Reasoning Efforts */
             supported_reasoning_efforts?: string[] | null;
             /**
@@ -6115,6 +6213,38 @@ export type components = {
              * Format: uuid
              */
             id: string;
+        };
+        /**
+         * ModelBenchmarkScores
+         * @description Live per-task benchmark scores for one model, aggregated from the org's
+         *     scoring-source scenarios of that task type (mean across scenarios).
+         *
+         *     quality/speed/cost are 0..1 (speed/cost peer-relative, re-derived at read
+         *     time); overall blends them with the org's per-task weights and is null when
+         *     any component is missing.
+         */
+        ModelBenchmarkScores: {
+            /** Cost */
+            cost?: number | null;
+            /** Overall */
+            overall?: number | null;
+            /** Quality */
+            quality?: number | null;
+            /**
+             * Scenario Count
+             * @default 0
+             */
+            scenario_count: number;
+            /** Scenario Names */
+            scenario_names?: string[];
+            /**
+             * Source
+             * @default organization
+             * @enum {string}
+             */
+            source: "organization" | "global";
+            /** Speed */
+            speed?: number | null;
         };
         /**
          * ModelChange
@@ -7122,7 +7252,7 @@ export type components = {
             address_line1?: string | null;
             /** Address Line2 */
             address_line2?: string | null;
-            benchmark_score_weights: components["schemas"]["BenchmarkScoreWeights"];
+            benchmark_score_weights: components["schemas"]["BenchmarkScoreWeightsByType"];
             /**
              * Billing Page Access
              * @default false
@@ -7272,7 +7402,7 @@ export type components = {
             address_line1?: string | null;
             /** Address Line2 */
             address_line2?: string | null;
-            benchmark_score_weights?: components["schemas"]["BenchmarkScoreWeights"] | null;
+            benchmark_score_weights?: components["schemas"]["BenchmarkScoreWeightsByType"] | null;
             /** City */
             city?: string | null;
             /** Contact Email */
@@ -7574,7 +7704,7 @@ export type components = {
             research_model_key?: string | null;
             /**
              * Source
-             * @description Single pricing source (back-compat). Ignored when `sources` is set. One of 'litellm', 'pricepertoken', 'together', 'cohere', 'moonshot'.
+             * @description Single pricing source (back-compat). Ignored when `sources` is set. One of 'litellm', 'pricepertoken', 'together', 'cohere', 'moonshot', 'zai'.
              * @default litellm
              */
             source: string;
@@ -12375,6 +12505,7 @@ export type BenchmarkScenarioDetail = components['schemas']['BenchmarkScenarioDe
 export type BenchmarkScenarioResponse = components['schemas']['BenchmarkScenarioResponse'];
 export type BenchmarkScenarioUpdate = components['schemas']['BenchmarkScenarioUpdate'];
 export type BenchmarkScoreWeights = components['schemas']['BenchmarkScoreWeights'];
+export type BenchmarkScoreWeightsByType = components['schemas']['BenchmarkScoreWeightsByType'];
 export type BillingOverview = components['schemas']['BillingOverview'];
 export type BillingPortalResponse = components['schemas']['BillingPortalResponse'];
 export type BillingSettingsUpdate = components['schemas']['BillingSettingsUpdate'];
@@ -12384,6 +12515,7 @@ export type BulkDeleteResult = components['schemas']['BulkDeleteResult'];
 export type BulkModelDeleteRequest = components['schemas']['BulkModelDeleteRequest'];
 export type BulkModelToggleRequest = components['schemas']['BulkModelToggleRequest'];
 export type BulkModelUpdateRequest = components['schemas']['BulkModelUpdateRequest'];
+export type BulkSchemaGenerationRequest = components['schemas']['BulkSchemaGenerationRequest'];
 export type BulkToggleRequest = components['schemas']['BulkToggleRequest'];
 export type BulkToggleResult = components['schemas']['BulkToggleResult'];
 export type BulkUpdateResult = components['schemas']['BulkUpdateResult'];
@@ -12452,6 +12584,7 @@ export type LlmModel = components['schemas']['LLMModel'];
 export type LoginRequest = components['schemas']['LoginRequest'];
 export type LoginResponse = components['schemas']['LoginResponse'];
 export type MissingAttachment = components['schemas']['MissingAttachment'];
+export type ModelBenchmarkScores = components['schemas']['ModelBenchmarkScores'];
 export type ModelChange = components['schemas']['ModelChange'];
 export type ModelCostRow = components['schemas']['ModelCostRow'];
 export type ModelCostStats = components['schemas']['ModelCostStats'];
@@ -16796,8 +16929,14 @@ export interface operations {
     };
     list_provider_mappings_api_pricing_providers_get: {
         parameters: {
-            query?: never;
-            header?: never;
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -16810,6 +16949,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -17633,6 +17781,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BulkDeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_set_schema_generation_api_providers_models_bulk_schema_generation_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkSchemaGenerationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkToggleResult"];
                 };
             };
             /** @description Validation Error */
