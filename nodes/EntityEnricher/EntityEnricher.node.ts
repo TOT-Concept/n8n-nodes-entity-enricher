@@ -8,7 +8,7 @@ import type {
 } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
-import { apiRequest } from './helpers/api';
+import { apiRequest, getBaseUrl } from './helpers/api';
 import type { EnrichmentOptionsResponse, ProfileLimits, SavedSchema } from './helpers/types';
 import { extractSearchKeys } from './helpers/validation';
 import * as addAttachment from './operations/addAttachment';
@@ -29,7 +29,7 @@ export class EntityEnricher implements INodeType {
 		icon: 'file:entity-enricher.svg',
 		group: ['transform'],
 		version: 1,
-		subtitle: '={{$parameter["resource"] + ": " + $parameter["operation"]}}',
+		subtitle: '={{$parameter["resource"] + ": " + $parameter["operation"].replace("Simple", " (simple)")}}',
 		description: 'Enrich entities with multi-model LLM fusion, multilingual output, and expertise-driven strategies',
 		documentationUrl: 'https://entityenricher.ai/docs/integrations/n8n',
 		codex: {
@@ -56,9 +56,36 @@ export class EntityEnricher implements INodeType {
 			{
 				name: 'entityEnricherApi',
 				required: true,
+				displayOptions: { show: { authentication: ['apiKey'] } },
+			},
+			{
+				name: 'entityEnricherOAuth2Api',
+				required: true,
+				displayOptions: { show: { authentication: ['oAuth2'] } },
 			},
 		],
 		properties: [
+			// ─── Authentication ───
+			{
+				displayName: 'Authentication',
+				name: 'authentication',
+				type: 'options',
+				noDataExpression: true,
+				options: [
+					{
+						name: 'API Key',
+						value: 'apiKey',
+						description: 'Organization access key — acts independently of any user account (recommended for durable service-to-service workflows)',
+					},
+					{
+						name: 'OAuth2',
+						value: 'oAuth2',
+						description: 'Connect with your Entity Enricher account — acts on your behalf with your own role, revocable under API Keys → Connected Apps',
+					},
+				],
+				default: 'apiKey',
+			},
+
 			// ─── Connection Info ───
 			{
 				displayName: 'Connected To',
@@ -67,7 +94,7 @@ export class EntityEnricher implements INodeType {
 				typeOptions: { loadOptionsMethod: 'getConnectionInfo' },
 				default: '',
 				noDataExpression: true,
-				description: 'Shows the organization and API key linked to the configured credentials',
+				description: 'Shows the organization and credential linked to the configured connection',
 			},
 
 			// ─── Resource ───
@@ -94,21 +121,37 @@ export class EntityEnricher implements INodeType {
 				type: 'options',
 				noDataExpression: true,
 				displayOptions: { show: { resource: ['enrichment'] } },
+				// The simple operations get NEW values while the advanced ones keep
+				// the historical 'enrichEntity' / 'batchEnrich' values — workflows
+				// saved before the split resolve to the advanced operations and keep
+				// their exact parameter set and behavior.
 				options: [
 					{
 						name: 'Enrich Entity',
-						value: 'enrichEntity',
-						description: 'Enrich a single entity with one or more LLM models',
+						value: 'enrichEntitySimple',
+						description: 'Enrich a single entity — pick a schema and Entity Enricher uses your organization\'s best model and strategy automatically',
 						action: 'Enrich a single entity',
 					},
 					{
+						name: 'Enrich Entity Advanced',
+						value: 'enrichEntity',
+						description: 'Enrich a single entity with full control: models, fusion, strategy, classification, structured output',
+						action: 'Enrich a single entity (advanced)',
+					},
+					{
 						name: 'Batch Enrich',
-						value: 'batchEnrich',
-						description: 'Enrich all input entities in a single batch',
+						value: 'batchEnrichSimple',
+						description: 'Enrich all input entities in a single batch — pick a schema and Entity Enricher uses your organization\'s best model and strategy automatically',
 						action: 'Batch enrich entities',
 					},
+					{
+						name: 'Batch Enrich Advanced',
+						value: 'batchEnrich',
+						description: 'Enrich all input entities in a single batch with full control: models, fusion, strategy, classification, structured output',
+						action: 'Batch enrich entities (advanced)',
+					},
 				],
-				default: 'enrichEntity',
+				default: 'enrichEntitySimple',
 			},
 			{
 				displayName: 'Operation',
@@ -211,6 +254,23 @@ export class EntityEnricher implements INodeType {
 
 			// ─── Enrichment Parameters ───
 
+			// The simple operations (enrichEntitySimple / batchEnrichSimple) show
+			// only the essentials: schema, binary upload, languages, web search.
+			// Everything else is pinned to defaults in the operation code and the
+			// server auto-picks model ('auto') + strategy.
+			{
+				displayName: 'This operation runs with your organization\'s best model (pinned default or top benchmark score) and automatic strategy. Manage defaults in <a href="https://entityenricher.ai/settings/org-defaults" target="_blank">Settings → Organization Defaults</a>, or use the Advanced operation for full control.',
+				name: 'simpleModeNotice',
+				type: 'notice',
+				default: '',
+				displayOptions: {
+					show: {
+						resource: ['enrichment'],
+						operation: ['enrichEntitySimple', 'batchEnrichSimple'],
+					},
+				},
+			},
+
 			// Schema (for enrichment + batch)
 			{
 				displayName: 'Schema',
@@ -226,7 +286,7 @@ export class EntityEnricher implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['enrichment'],
-						operation: ['enrichEntity', 'batchEnrich'],
+						operation: ['enrichEntity', 'batchEnrich', 'enrichEntitySimple', 'batchEnrichSimple'],
 					},
 				},
 			},
@@ -241,7 +301,8 @@ export class EntityEnricher implements INodeType {
 				},
 				required: true,
 				default: [],
-				description: 'LLM models to use for enrichment. Select 2+ for multi-model fusion.',
+				description:
+					'LLM models to use for enrichment. Select 2+ for multi-model fusion, or pick "Auto — best model" to let Entity Enricher use your organization\'s best-scoring model (single model, no fusion).',
 				hint: 'Need more models? <a href="https://entityenricher.ai/api-keys/ai-provider" target="_blank">Add API keys</a> to enable additional providers.',
 				displayOptions: {
 					show: {
@@ -258,11 +319,56 @@ export class EntityEnricher implements INodeType {
 				type: 'string',
 				default: '',
 				placeholder: 'uuid1, uuid2',
-				description: 'Comma-separated attachment UUIDs (from Add Attachment) to use as source material for the enrichment',
+				description: 'Comma-separated attachment UUIDs (from a prior Add Attachment step) to use as source material for the enrichment. Can be combined with "Upload Input Binary Files". For Batch Enrich, attachments apply to every entity in the job.',
 				displayOptions: {
 					show: {
 						resource: ['enrichment'],
 						operation: ['enrichEntity', 'batchEnrich'],
+					},
+				},
+			},
+
+			// Upload input binaries as attachments (enrichment + batch)
+			{
+				displayName: 'Upload Input Binary Files',
+				name: 'attachInputBinaries',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to upload the input item\'s binary files as attachments and use them as source material for this enrichment — no separate Add Attachment step needed. For Batch Enrich, files are gathered from all input items and apply to every entity in the job.',
+				displayOptions: {
+					show: {
+						resource: ['enrichment'],
+						operation: ['enrichEntity', 'batchEnrich', 'enrichEntitySimple', 'batchEnrichSimple'],
+					},
+				},
+			},
+			{
+				displayName: 'Binary Fields to Upload',
+				name: 'binaryPropertiesToAttach',
+				type: 'string',
+				default: '',
+				placeholder: 'data, document',
+				description: 'Comma-separated names of the binary properties to upload. Leave empty to upload every binary file on the item.',
+				hint: 'The upstream node must pass binary data through to this node — on an Edit Fields node, enable "Include Other Input Fields" (otherwise it strips binary data)',
+				displayOptions: {
+					show: {
+						resource: ['enrichment'],
+						operation: ['enrichEntity', 'batchEnrich'],
+						attachInputBinaries: [true],
+					},
+				},
+			},
+			{
+				displayName: 'Delete Uploaded Attachments After Enrichment',
+				name: 'deleteUploadedAttachments',
+				type: 'boolean',
+				default: true,
+				description: 'Whether to delete the attachments this node uploaded once the enrichment finishes (cleanup, even on failure). Attachments referenced via "Attachment IDs" are never deleted.',
+				displayOptions: {
+					show: {
+						resource: ['enrichment'],
+						operation: ['enrichEntity', 'batchEnrich'],
+						attachInputBinaries: [true],
 					},
 				},
 			},
@@ -306,14 +412,13 @@ export class EntityEnricher implements INodeType {
 
 			// ─── Attachment Parameters ───
 
-			// Binary property (add attachment)
+			// Binary properties (add attachment)
 			{
-				displayName: 'Input Binary Field',
+				displayName: 'Input Binary Fields',
 				name: 'binaryPropertyName',
 				type: 'string',
-				required: true,
 				default: 'data',
-				description: 'Name of the binary property on the input item that holds the file to upload',
+				description: 'Comma-separated names of the binary properties on the input item that hold the files to upload (one attachment is created per file, all sent in a single request). Leave empty to upload every binary file on the item.',
 				hint: 'Connect a node that outputs a file (e.g. HTTP Request with response format "File", or Read Binary File)',
 				displayOptions: {
 					show: {
@@ -327,7 +432,7 @@ export class EntityEnricher implements INodeType {
 				name: 'fileNameOverride',
 				type: 'string',
 				default: '',
-				description: 'Optional filename to use instead of the binary property\'s own file name. The extension matters — the server sniffs the format.',
+				description: 'Optional filename to use instead of the binary property\'s own file name. Only applies when uploading a single file. The extension matters — the server sniffs the format.',
 				displayOptions: {
 					show: {
 						resource: ['attachment'],
@@ -433,7 +538,7 @@ export class EntityEnricher implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['enrichment'],
-						operation: ['enrichEntity', 'batchEnrich'],
+						operation: ['enrichEntity', 'batchEnrich', 'enrichEntitySimple', 'batchEnrichSimple'],
 					},
 				},
 			},
@@ -506,7 +611,7 @@ export class EntityEnricher implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['enrichment'],
-						operation: ['enrichEntity', 'batchEnrich'],
+						operation: ['enrichEntity', 'batchEnrich', 'enrichEntitySimple', 'batchEnrichSimple'],
 					},
 				},
 			},
@@ -621,8 +726,7 @@ export class EntityEnricher implements INodeType {
 			},
 
 			async getSchemas(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const credentials = await this.getCredentials('entityEnricherApi');
-				const baseUrl = (credentials.baseUrl as string).replace(/\/$/, '');
+				const baseUrl = await getBaseUrl(this);
 				const response = await apiRequest(this, '/api/schema/saved') as { schemas: SavedSchema[] };
 				const schemas = response.schemas;
 
@@ -642,8 +746,7 @@ export class EntityEnricher implements INodeType {
 			},
 
 			async getModels(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const credentials = await this.getCredentials('entityEnricherApi');
-				const baseUrl = (credentials.baseUrl as string).replace(/\/$/, '');
+				const baseUrl = await getBaseUrl(this);
 				const options = await apiRequest(
 					this, '/api/enrichment/options',
 				) as EnrichmentOptionsResponse;
@@ -651,6 +754,19 @@ export class EntityEnricher implements INodeType {
 				const available = options.models.filter(
 					(m) => m.is_available && !m.processing_disabled?.enrichment,
 				);
+
+				// Benchmarked models first (highest overall enrichment score from the
+				// org's scoring-source benchmarks); unscored models keep the API's
+				// original order — mirrors the web app's model picker.
+				const sorted = available
+					.map((m, i) => ({ m, i, score: m.benchmark_scores?.enrichment?.overall ?? null }))
+					.sort((a, b) => {
+						if (a.score != null && b.score != null && a.score !== b.score) return b.score - a.score;
+						if (a.score != null && b.score == null) return -1;
+						if (a.score == null && b.score != null) return 1;
+						return a.i - b.i;
+					})
+					.map((x) => x.m);
 
 				const modelOptions: INodePropertyOptions[] = [];
 
@@ -664,13 +780,36 @@ export class EntityEnricher implements INodeType {
 					});
 				}
 
-				modelOptions.push(...available.map((m) => ({
-					name: formatModelLabel(m),
-					value: m.key,
-					description: m.input_price != null && m.output_price != null
-						? `in $${m.input_price.toFixed(2)}/out $${m.output_price.toFixed(2)}`
-						: undefined,
-				})));
+				// Auto entry — the server resolves 'auto' to the org's default model
+				// (pinned per-task default, else best blended benchmark score). Only
+				// offered when the API reports a resolvable default, since 'auto'
+				// would otherwise be rejected with HTTP 400.
+				const autoDefault = options.default_models?.enrichment;
+				if (autoDefault) {
+					modelOptions.push({
+						name: `✨ Auto — best model (currently ${autoDefault.display_name ?? autoDefault.key})`,
+						value: 'auto',
+						description:
+							"Let Entity Enricher pick your organization's best-scoring enrichment model. Resolves to a single model — no fusion.",
+					});
+				}
+
+				modelOptions.push(...sorted.map((m) => {
+					const scores = m.benchmark_scores?.enrichment;
+					const descriptionParts: string[] = [];
+					if (m.input_price != null && m.output_price != null) {
+						descriptionParts.push(`in $${m.input_price.toFixed(2)}/out $${m.output_price.toFixed(2)}`);
+					}
+					const breakdown = formatScoreBreakdown(scores);
+					if (breakdown) {
+						descriptionParts.push(breakdown);
+					}
+					return {
+						name: formatModelLabel(m, scores?.overall),
+						value: m.key,
+						description: descriptionParts.length ? descriptionParts.join(' · ') : undefined,
+					};
+				}));
 
 				modelOptions.push({
 					name: 'Add more models (manage API keys)',
@@ -724,6 +863,28 @@ export class EntityEnricher implements INodeType {
 			async getWebSearchOptions(
 				this: ILoadOptionsFunctions,
 			): Promise<INodePropertyOptions[]> {
+				// The simple operations have no Models field (the server auto-picks
+				// the model), so there is nothing to intersect capabilities with —
+				// offer both choices; the backend applies web search only to models
+				// that support it and silently ignores it otherwise.
+				let operation = '';
+				try {
+					const rawOperation = this.getCurrentNodeParameter('operation');
+					if (typeof rawOperation === 'string') operation = rawOperation;
+				} catch {
+					// Parameter not bound — treat as advanced
+				}
+				if (operation === 'enrichEntitySimple' || operation === 'batchEnrichSimple') {
+					return [
+						{ name: 'Off', value: 'off' },
+						{
+							name: 'On',
+							value: 'on',
+							description: 'Applied to the auto-selected model when it supports web search; ignored otherwise',
+						},
+					];
+				}
+
 				// Read currently-selected models from sibling parameter and intersect
 				// with API-reported web-search capability. Lock the dropdown to "Off"
 				// when no selected model supports web search.
@@ -934,16 +1095,21 @@ export class EntityEnricher implements INodeType {
 				searchKeys = extractSearchKeys(rootProps, '');
 			}
 
-			// Fetch profile limits for metadata output (reuses the options endpoint)
-			const includeMetadata = this.getNodeParameter('includeEnrichmentMetadata', 0, false) as boolean;
+			// Fetch profile limits for metadata output (reuses the options endpoint).
+			// The simple operations always run with clean output (no metadata), even
+			// if a stale includeEnrichmentMetadata value lingers from an advanced
+			// operation the node was previously configured with.
+			const isSimpleOperation = operation === 'enrichEntitySimple' || operation === 'batchEnrichSimple';
+			const includeMetadata = !isSimpleOperation
+				&& (this.getNodeParameter('includeEnrichmentMetadata', 0, false) as boolean);
 			if (includeMetadata) {
 				const options = await apiRequest(this, '/api/enrichment/options') as EnrichmentOptionsResponse;
 				profileLimits = extractProfileLimits(options);
 			}
 		}
 
-		// Batch Enrich processes all items at once
-		if (resource === 'enrichment' && operation === 'batchEnrich') {
+		// Batch Enrich (simple or advanced) processes all items at once
+		if (resource === 'enrichment' && (operation === 'batchEnrich' || operation === 'batchEnrichSimple')) {
 			returnData = await batchEnrich.execute(this, searchKeys, profileLimits);
 			return [returnData];
 		}
@@ -953,7 +1119,7 @@ export class EntityEnricher implements INodeType {
 			try {
 				let results: INodeExecutionData[] = [];
 
-				if (resource === 'enrichment' && operation === 'enrichEntity') {
+				if (resource === 'enrichment' && (operation === 'enrichEntity' || operation === 'enrichEntitySimple')) {
 					results = await enrichEntity.execute(this, i, searchKeys, profileLimits);
 				} else if (resource === 'record' && operation === 'getRecord') {
 					results = await getRecord.execute(this, i);
@@ -1019,19 +1185,44 @@ const MODEL_CAPABILITY_LABELS: Array<{ key: keyof LLMModelInfo; label: string }>
 ];
 
 /**
- * Build the dropdown label for a model: display name + capability glyphs.
+ * Build the dropdown label for a model: display name + optional benchmark
+ * badge + capability glyphs.
  *
+ * When `overallScore` (0..1, the blended benchmark score from the org's
+ * scoring-source scenarios) is provided, a "★ NN" badge follows the name.
  * Each capability the model declares contributes one emoji glyph (produced
  * by the Unicode escapes in MODEL_CAPABILITY_LABELS above). Capabilities
  * the model does not declare are omitted; a model with no advertised
  * capabilities renders just its display name.
  */
-function formatModelLabel(m: LLMModelInfo): string {
-	const base = m.display_name ?? m.key;
+function formatModelLabel(m: LLMModelInfo, overallScore?: number | null): string {
+	const badge = overallScore != null ? ` ★ ${Math.round(overallScore * 100)}` : '';
+	const base = `${m.display_name ?? m.key}${badge}`;
 	const caps = MODEL_CAPABILITY_LABELS
 		.filter(({ key }) => Boolean(m[key]))
 		.map(({ label }) => label);
 	return caps.length === 0 ? base : `${base} · ${caps.join(' · ')}`;
+}
+
+type ModelTaskScores = NonNullable<LLMModelInfo['benchmark_scores']>[string];
+
+/**
+ * Quality/Speed/Cost breakdown for a model's benchmark scores, e.g.
+ * "Quality 88 · Speed 90 · Cost 55 (2 scoring benchmarks)".
+ *
+ * Scores are 0..1 from the org's scoring-source benchmark scenarios
+ * (speed/cost are peer-relative); rendered as 0-100. Returns null when the
+ * model has no score for the task, and omits metrics without a value.
+ */
+function formatScoreBreakdown(scores: ModelTaskScores | null | undefined): string | null {
+	if (!scores) return null;
+	const parts: string[] = [];
+	if (scores.quality != null) parts.push(`Quality ${Math.round(scores.quality * 100)}`);
+	if (scores.speed != null) parts.push(`Speed ${Math.round(scores.speed * 100)}`);
+	if (scores.cost != null) parts.push(`Cost ${Math.round(scores.cost * 100)}`);
+	if (parts.length === 0) return null;
+	const count = scores.scenario_count ?? 0;
+	return `${parts.join(' · ')} (${count} scoring benchmark${count === 1 ? '' : 's'})`;
 }
 
 /**

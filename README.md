@@ -25,29 +25,42 @@ pnpm install n8n-nodes-entity-enricher
 ## Prerequisites
 
 1. An Entity Enricher instance (cloud or self-hosted)
-2. An API key (create one in **API Keys > App Access Keys**)
+2. A credential — either an API key (create one in **API Keys > App Access Keys**) or an OAuth2 connection (see below)
 
-### Credential Setup
+### Credential Setup — API Key (recommended for service-to-service)
 
 1. In n8n, go to **Credentials > New Credential**
 2. Search for **Entity Enricher API**
 3. Enter your API key (format: `ent_XXXXXXXXXXXX`)
 4. Set the Base URL (default: `https://entityenricher.ai`)
 
-The credential is verified against the API on save.
+The credential is verified against the API on save. An organization access key acts independently of any user account, so workflows keep running even if the person who created the key changes role or leaves the organization.
+
+### Credential Setup — OAuth2
+
+Connect with your Entity Enricher account instead of a static key. The connection acts on your behalf with your own role and is revocable anytime under Entity Enricher → **API Keys → Connected Apps**.
+
+1. In n8n, go to **Credentials > New Credential** and search for **Entity Enricher OAuth2 API**
+2. Copy the **OAuth Redirect URL** n8n displays on the credential
+3. In Entity Enricher, go to **Settings → API Keys → OAuth Clients** (owner role required), create a client with that redirect URL, and copy its **Client ID**
+4. Paste the Client ID into the n8n credential (set the Base URL if you self-host) and click **Connect my account**
+
+The flow is OAuth 2.1 authorization code + PKCE with rotating refresh tokens. On the node, pick the credential type with the **Authentication** parameter (API Key / OAuth2).
 
 ## Operations
 
 | Category | Operation | Description |
 |----------|-----------|-------------|
-| **Enrichment** | Enrich Entity | Enrich a single entity using one or more LLM models with SSE streaming |
-| **Enrichment** | Batch Enrich | Enrich all input items as a single batch with parallel execution |
+| **Enrichment** | Enrich Entity | Enrich a single entity — just pick a schema; the best model and strategy are chosen automatically |
+| **Enrichment** | Enrich Entity Advanced | Enrich a single entity with full control: models, fusion, strategy, classification, structured output |
+| **Enrichment** | Batch Enrich | Enrich all input items as a single batch — automatic model and strategy |
+| **Enrichment** | Batch Enrich Advanced | Enrich all input items as a single batch with the full parameter set |
 | **Schema** | List Schemas | List available saved schemas |
 | **Schema** | Get Schema Details | Get full schema content with extracted search key properties |
 | **Record** | List Records | Query enrichment records with pagination and filters |
 | **Record** | Get Record | Retrieve a specific enrichment result by ID |
 | **Fusion** | Merge Results | Merge multiple model results with optional LLM arbitration |
-| **Attachment** | Add Attachment | Upload a binary property from the input item (multipart) and return its attachment ID |
+| **Attachment** | Add Attachment | Upload one or more binary properties from the input item (single multipart request) and return one item per attachment ID |
 | **Attachment** | Delete Attachment | Delete an attachment by ID — a handy post-enrichment cleanup step |
 | **Configuration** | Get Options | Get available models, languages, and strategies |
 
@@ -59,12 +72,29 @@ Enrich a single entity against a schema with one or more LLM models.
 
 ![Node configuration for single enrichment](https://entityenricher.ai/docs/N8NConnectorEnrichment-light.png)
 
+### Simple and advanced operations
+
+**Enrich Entity** and **Batch Enrich** (the defaults) show only the essentials:
+
+- **Schema**
+- **Upload Input Binary Files** (all binary files on the input, cleaned up after the run)
+- **Languages**
+- **Web Search**
+
+With these operations, Entity Enricher automatically runs with your organization's best model (the pinned per-task default, else the top benchmark-scored model — manage it in *Settings → Organization Defaults*) and the `auto` strategy, and outputs clean enriched data without metadata. If your organization has neither a pinned default nor a scoring benchmark, the node fails with instructions — pin a default or use an Advanced operation.
+
+**Enrich Entity Advanced** and **Batch Enrich Advanced** expose the full parameter set described below. Workflows created before this split keep the full parameter set and their exact behavior.
+
+### Advanced parameters
+
 - **Schema**: Select from saved schemas (dynamic dropdown, pinned schemas shown first)
-- **Models**: Choose one or more models (pricing displayed per model)
+- **Models**: Choose one or more models — sorted by your organization's benchmark score when scoring benchmarks are configured, with a ★ overall badge and a Quality/Speed/Cost breakdown next to pricing
+- **Auto — best model**: pick the "✨ Auto" entry (shown when your organization has scoring benchmarks) to let Entity Enricher use your best-scoring model — a pinned organization default wins when set. Auto resolves to a single model, so it never triggers fusion
 - **Languages**: Output languages (at least one required)
 - **Strategy**: `multi_expertise` (parallel per-domain) or `single_pass`
 - **Classification Model** *(optional)*: Pre-flight entity type verification to prevent hallucination
 - **Arbitration Model** *(optional)*: LLM-based conflict resolution when using multiple models
+- **Upload Input Binary Files** *(optional)*: Upload the input item's binary files as attachments and use them as source material — see [Document Attachments](#document-attachments)
 - **Timeout**: Max wait time (default: 5 minutes)
 
 **Output (default):**
@@ -105,6 +135,23 @@ Enrich all input items in a single batch with parallel execution and per-provide
 Each input item is treated as one entity. The node outputs one item per entity with the enrichment result, making it easy to chain with database upserts or further processing.
 
 ![Batch enrichment configuration](https://entityenricher.ai/docs/N8NConnectorBatchEnrich-light.png)
+
+## Document Attachments
+
+Feed source documents (PDF, image, audio, office/text) into an enrichment so the models extract facts from your files instead of relying only on their training data.
+
+**Inline upload (recommended):** toggle **Upload Input Binary Files** on Enrich Entity or Batch Enrich. The node uploads the input item's binary files as attachments (one multipart request), feeds their IDs into the enrichment, and — with **Delete Uploaded Attachments After Enrichment** (default: on) — cleans them up afterwards, even when the enrichment fails. No separate Add Attachment / Delete Attachment steps needed:
+
+```
+HTTP Request (file) ──▶ Edit Fields (entity JSON) ──▶ Enrich Entity
+```
+
+- **Binary Fields to Upload** limits which binary properties are uploaded (comma-separated); leave empty to upload every binary file on the item — merge several files onto one item to attach multiple documents
+- The upstream node must pass binary data through to the enrich node — on an Edit Fields node, enable *Include Other Input Fields* (otherwise it strips binary data)
+- On **Batch Enrich**, files are gathered from all input items and apply to **every entity in the job**
+- With **Include Enrichment Metadata**, the output lists `uploaded_attachment_ids` and whether they were deleted
+
+**Pre-uploaded attachments:** use the standalone **Add Attachment** operation when you want to upload once and enrich many entities against the same document(s), then reference the returned IDs in the **Attachment IDs** field (comma-separated). These are never auto-deleted — pair with **Delete Attachment** for cleanup. Both sources can be combined in one enrichment.
 
 ## Key Features
 

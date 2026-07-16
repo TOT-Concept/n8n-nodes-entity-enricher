@@ -1,6 +1,7 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
 import type { SSEEvent, GenericSSEEvent } from './types';
 import { TERMINAL_EVENTS } from './types';
+import { getBaseUrl, getCredentialType } from './api';
 
 /**
  * Structural type for the streaming response body returned by n8n's
@@ -31,28 +32,31 @@ export async function consumeSSEStream(
 	jobId: string,
 	timeoutMs: number,
 ): Promise<SSEEvent[]> {
-	const credentials = await context.getCredentials('entityEnricherApi');
-	const baseUrl = (credentials.baseUrl as string).replace(/\/$/, '');
-	const apiKey = credentials.apiKey as string;
+	const baseUrl = await getBaseUrl(context);
 
 	const events: SSEEvent[] = [];
 	const controller = new AbortController();
 	let stream: StreamBody | undefined;
 
 	try {
-		const response = await context.helpers.httpRequest({
-			method: 'GET',
-			url: `${baseUrl}/api/llm/stream/${jobId}`,
-			headers: {
-				'X-API-Key': apiKey,
-				'X-Client-Origin': 'n8n',
-				Accept: 'text/event-stream',
+		// Auth header (X-API-Key or Bearer) is injected by the selected
+		// credential type; OAuth 401s throw so n8n's refresh-retry engages.
+		const response = await context.helpers.httpRequestWithAuthentication.call(
+			context,
+			getCredentialType(context),
+			{
+				method: 'GET',
+				url: `${baseUrl}/api/llm/stream/${jobId}`,
+				headers: {
+					'X-Client-Origin': 'n8n',
+					Accept: 'text/event-stream',
+				},
+				encoding: 'stream',
+				returnFullResponse: true,
+				timeout: timeoutMs,
+				abortSignal: controller.signal,
 			},
-			encoding: 'stream',
-			returnFullResponse: true,
-			timeout: timeoutMs,
-			abortSignal: controller.signal,
-		}) as { statusCode: number; body: StreamBody };
+		) as { statusCode: number; body: StreamBody };
 
 		if (response.statusCode < 200 || response.statusCode >= 300) {
 			throw new Error(`SSE stream failed (${response.statusCode})`);
@@ -83,7 +87,7 @@ export async function consumeSSEStream(
 					const classification = (event as GenericSSEEvent).classification as
 						| { status?: string; entity_description?: string; reasoning?: string }
 						| undefined;
-					await cancelJob(context, baseUrl, apiKey, jobId);
+					await cancelJob(context, baseUrl, jobId);
 					const status = classification?.status ?? 'unknown';
 					const description = classification?.entity_description ?? 'entity';
 					const reasoning = classification?.reasoning ?? '';
@@ -111,7 +115,7 @@ export async function consumeSSEStream(
 			err.code === 'ECONNABORTED' ||
 			/abort|timeout/i.test(message);
 		if (aborted) {
-			await cancelJob(context, baseUrl, apiKey, jobId);
+			await cancelJob(context, baseUrl, jobId);
 			throw new Error(
 				`Enrichment timed out after ${Math.round(timeoutMs / 1000)}s. Job ${jobId} has been cancelled.`,
 			);
@@ -152,14 +156,13 @@ function parseSSEMessage(message: string): SSEEvent | null {
 async function cancelJob(
 	context: IExecuteFunctions,
 	baseUrl: string,
-	apiKey: string,
 	jobId: string,
 ): Promise<void> {
 	try {
-		await context.helpers.httpRequest({
+		await context.helpers.httpRequestWithAuthentication.call(context, getCredentialType(context), {
 			method: 'POST',
 			url: `${baseUrl}/api/llm/cancel/${jobId}`,
-			headers: { 'X-API-Key': apiKey, 'X-Client-Origin': 'n8n' },
+			headers: { 'X-Client-Origin': 'n8n' },
 			ignoreHttpStatusErrors: true,
 		});
 	} catch {

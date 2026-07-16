@@ -17,6 +17,117 @@ interface ApiRequestOptions {
 	form?: FormData;
 }
 
+/** The node's `authentication` parameter values. */
+export type AuthenticationType = 'apiKey' | 'oAuth2';
+
+const CREDENTIAL_TYPE_BY_AUTH: Record<AuthenticationType, string> = {
+	apiKey: 'entityEnricherApi',
+	oAuth2: 'entityEnricherOAuth2Api',
+};
+
+/**
+ * Resolve the node's selected authentication type.
+ * Works in both execute and loadOptions contexts.
+ * Nodes saved before the parameter existed default to the API-key credential.
+ */
+export function getAuthenticationType(
+	context: IExecuteFunctions | ILoadOptionsFunctions,
+): AuthenticationType {
+	try {
+		const value = 'getInputData' in context
+			? (context as IExecuteFunctions).getNodeParameter('authentication', 0, 'apiKey')
+			: (context as ILoadOptionsFunctions).getNodeParameter('authentication', 'apiKey');
+		return value === 'oAuth2' ? 'oAuth2' : 'apiKey';
+	} catch {
+		return 'apiKey';
+	}
+}
+
+/** n8n credential type name matching the node's selected authentication. */
+export function getCredentialType(context: IExecuteFunctions | ILoadOptionsFunctions): string {
+	return CREDENTIAL_TYPE_BY_AUTH[getAuthenticationType(context)];
+}
+
+/**
+ * Base URL of the connected Entity Enricher instance.
+ * Both credential types carry a `baseUrl` property.
+ */
+export async function getBaseUrl(context: IExecuteFunctions | ILoadOptionsFunctions): Promise<string> {
+	const credentials = await context.getCredentials(getCredentialType(context));
+	return (credentials.baseUrl as string).replace(/\/$/, '');
+}
+
+interface FullResponse {
+	statusCode: number;
+	body: unknown;
+	headers: Record<string, string>;
+}
+
+/**
+ * Mine an error thrown by n8n's HTTP helpers for the HTTP status + body.
+ * Error shapes differ between n8n versions / axios layers, so probe all of
+ * them; returns undefined for non-HTTP errors (network failure, abort, …).
+ */
+function extractErrorResponse(error: unknown): FullResponse | undefined {
+	const err = error as {
+		statusCode?: number | string;
+		httpCode?: number | string;
+		response?: { statusCode?: number; status?: number; body?: unknown; data?: unknown };
+		cause?: { response?: { statusCode?: number; status?: number; body?: unknown; data?: unknown }; statusCode?: number | string };
+	};
+	const statusCode = Number(
+		err.statusCode
+		?? err.httpCode
+		?? err.response?.statusCode
+		?? err.response?.status
+		?? err.cause?.response?.statusCode
+		?? err.cause?.response?.status
+		?? err.cause?.statusCode
+		?? NaN,
+	);
+	if (!Number.isFinite(statusCode) || statusCode < 100) return undefined;
+	const body = err.response?.body ?? err.response?.data ?? err.cause?.response?.body ?? err.cause?.response?.data;
+	return { statusCode, body, headers: {} };
+}
+
+/**
+ * Perform an HTTP request with the node's selected credential attached.
+ *
+ * - API key: the credential's `authenticate` block injects `X-API-Key`;
+ *   non-2xx statuses are returned (not thrown) via ignoreHttpStatusErrors.
+ * - OAuth2: n8n injects the Bearer token and transparently refreshes it on a
+ *   401 — that retry only engages when the request *throws*, so HTTP errors
+ *   stay throwing here and are converted back into a FullResponse afterwards.
+ *
+ * Never throws for HTTP-level errors; network/abort errors propagate.
+ */
+export async function authenticatedRequest(
+	context: IExecuteFunctions | ILoadOptionsFunctions,
+	requestOptions: IHttpRequestOptions,
+): Promise<FullResponse> {
+	const authType = getAuthenticationType(context);
+	const credentialType = CREDENTIAL_TYPE_BY_AUTH[authType];
+
+	if (authType === 'apiKey') {
+		return await context.helpers.httpRequestWithAuthentication.call(context, credentialType, {
+			...requestOptions,
+			returnFullResponse: true,
+			ignoreHttpStatusErrors: true,
+		}) as FullResponse;
+	}
+
+	try {
+		return await context.helpers.httpRequestWithAuthentication.call(context, credentialType, {
+			...requestOptions,
+			returnFullResponse: true,
+		}) as FullResponse;
+	} catch (error: unknown) {
+		const extracted = extractErrorResponse(error);
+		if (extracted) return extracted;
+		throw error;
+	}
+}
+
 /**
  * Format an API error message, handling FastAPI's nested detail structure.
  *
@@ -34,8 +145,11 @@ function formatApiError(
 	// Handle nested dict detail from FastAPI HTTPException
 	if (typeof rawDetail === 'object' && rawDetail !== null) {
 		const inner = rawDetail as Record<string, unknown>;
-		// Inner detail contains the human-readable message
-		const message = typeof inner.detail === 'string' ? inner.detail : undefined;
+		// The human-readable text lives in `detail` on plan-limit errors and in
+		// `message` on others (e.g. the 400 no_default_model auto-select error).
+		const message = typeof inner.detail === 'string'
+			? inner.detail
+			: (typeof inner.message === 'string' ? inner.message : undefined);
 		const code = inner.code as string | undefined;
 
 		if (statusCode === 402 && message) {
@@ -85,22 +199,18 @@ export async function apiRequest(
 	path: string,
 	options: ApiRequestOptions = {},
 ): Promise<unknown> {
-	const credentials = await context.getCredentials('entityEnricherApi');
-	const baseUrl = (credentials.baseUrl as string).replace(/\/$/, '');
-	const apiKey = credentials.apiKey as string;
+	const baseUrl = await getBaseUrl(context);
 
 	const requestOptions: IHttpRequestOptions = {
 		method: (options.method ?? 'GET') as IHttpRequestMethods,
 		url: `${baseUrl}${path}`,
 		headers: {
-			'X-API-Key': apiKey,
+			// Auth header (X-API-Key or Bearer) is injected per credential type
 			'X-Client-Origin': 'n8n',
 			// Content-Type defaults to JSON; dropped below for multipart uploads
 			// so the HTTP client can set the boundary itself.
 			'Content-Type': 'application/json',
 		},
-		returnFullResponse: true,
-		ignoreHttpStatusErrors: true,
 	};
 
 	if (options.form !== undefined) {
@@ -110,11 +220,7 @@ export async function apiRequest(
 		requestOptions.body = JSON.stringify(options.body);
 	}
 
-	const response = await context.helpers.httpRequest(requestOptions) as {
-		statusCode: number;
-		body: unknown;
-		headers: Record<string, string>;
-	};
+	const response = await authenticatedRequest(context, requestOptions);
 
 	if (response.statusCode >= 200 && response.statusCode < 300) {
 		return response.body;

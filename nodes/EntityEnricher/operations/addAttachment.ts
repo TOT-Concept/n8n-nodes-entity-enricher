@@ -1,14 +1,15 @@
 import type { IDataObject, IExecuteFunctions, INodeExecutionData } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
-import { apiRequest } from '../helpers/api';
-import type { AttachmentUploadResponse } from '../helpers/types';
+import { resolveBinaryPropertyNames, uploadBinaries } from '../helpers/attachments';
 
 /**
- * Upload a binary file from the input item to Entity Enricher.
+ * Upload binary files from the input item to Entity Enricher.
  *
- * Reads the named binary property, sends it as multipart/form-data to
- * POST /api/attachments, and returns the attachment metadata (including the
- * `id` to pass in `attachmentIds` of a subsequent Enrich Entity step).
+ * Reads the named binary properties (or every binary property when the field
+ * is left empty), sends them in a single multipart/form-data request to
+ * POST /api/attachments, and returns one output item per uploaded file with
+ * its metadata (including the `id` to pass in `attachmentIds` of a subsequent
+ * Enrich Entity step).
  */
 export async function execute(
 	context: IExecuteFunctions,
@@ -21,32 +22,32 @@ export async function execute(
 		'fileNameOverride', itemIndex, '',
 	) as string;
 
-	const item = context.getInputData()[itemIndex];
-	const binary = item.binary?.[binaryPropertyName];
-	if (!binary) {
+	const propertyNames = resolveBinaryPropertyNames(
+		context, itemIndex, binaryPropertyName, { requireAll: true },
+	);
+	if (!propertyNames.length) {
 		throw new NodeOperationError(
 			context.getNode(),
-			`No binary data found in property "${binaryPropertyName}". Connect a node that outputs a file (e.g. HTTP Request, Read Binary File).`,
+			'The input item has no binary data. Connect a node that outputs a file '
+			+ '(e.g. HTTP Request, Read Binary File).',
+			{ itemIndex },
+		);
+	}
+	if (fileNameOverride && propertyNames.length > 1) {
+		throw new NodeOperationError(
+			context.getNode(),
+			'File Name Override only applies when uploading a single file — '
+			+ `${propertyNames.length} binary properties resolved (${propertyNames.join(', ')}).`,
 			{ itemIndex },
 		);
 	}
 
-	const buffer = await context.helpers.getBinaryDataBuffer(itemIndex, binaryPropertyName);
-	const filename = fileNameOverride || binary.fileName || 'file';
-	const contentType = binary.mimeType || 'application/octet-stream';
+	const uploaded = await uploadBinaries(
+		context, itemIndex, propertyNames, fileNameOverride || undefined,
+	);
 
-	const form = new FormData();
-	// Copy into a fresh ArrayBuffer-backed view so the Blob part type is exact
-	// (Node Buffers are typed as ArrayBufferLike, which Blob rejects).
-	form.append('files', new Blob([Uint8Array.from(buffer)], { type: contentType }), filename);
-
-	const response = await apiRequest(context, '/api/attachments', {
-		method: 'POST',
-		form,
-	}) as AttachmentUploadResponse[];
-
-	// The endpoint returns a list (multipart can carry several files); this
-	// operation uploads exactly one, so surface the single response object.
-	const uploaded = Array.isArray(response) ? response[0] : response;
-	return [{ json: uploaded as unknown as IDataObject, pairedItem: itemIndex }];
+	return uploaded.map((attachment) => ({
+		json: attachment as unknown as IDataObject,
+		pairedItem: itemIndex,
+	}));
 }

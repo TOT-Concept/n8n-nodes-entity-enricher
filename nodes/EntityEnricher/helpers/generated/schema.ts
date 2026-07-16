@@ -1765,6 +1765,41 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/oauth/clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Org Oauth Clients */
+        get: operations["list_org_oauth_clients_api_oauth_clients_get"];
+        put?: never;
+        /** Create Org Oauth Client */
+        post: operations["create_org_oauth_client_api_oauth_clients_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/clients/{client_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Org Oauth Client */
+        delete: operations["delete_org_oauth_client_api_oauth_clients__client_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/oauth/consent/{request_id}": {
         parameters: {
             query?: never;
@@ -3356,7 +3391,8 @@ export type components = {
         AnalyzeSampleRequest: {
             /**
              * Model
-             * @description Model composite key
+             * @description Model composite key. 'auto' (default) lets the server pick the org's default schema-generation model (pinned or best benchmark score).
+             * @default auto
              */
             model: string;
             /**
@@ -3762,9 +3798,9 @@ export type components = {
             languages: string[];
             /**
              * Models
-             * @description Model composite keys to use for enrichment
+             * @description Model composite keys to use for enrichment. Optional: omit the field (or use the literal 'auto' entry) to let the server pick the organization's default model — pinned per-task default if set, else the best blended benchmark score. Auto resolves to a single model.
              */
-            models: string[];
+            models?: string[];
             /**
              * Schema Id
              * @description Saved schema ID (alternative to inline target_schema)
@@ -5065,6 +5101,46 @@ export type components = {
             success: boolean;
         };
         /**
+         * DefaultModelSelection
+         * @description The model auto-selection resolves to for one task type.
+         *
+         *     Resolution order: the org's pinned per-task default (Settings > Organization >
+         *     Defaults), else the eligible model with the highest blended `overall`
+         *     benchmark score from the org's scoring-source scenarios (global fallback).
+         */
+        DefaultModelSelection: {
+            /** Display Name */
+            display_name?: string | null;
+            /**
+             * Key
+             * @description Model composite key (provider::model)
+             */
+            key: string;
+            /**
+             * Overall
+             * @description Blended overall score behind the pick (None for a pinned model without scores)
+             */
+            overall?: number | null;
+            /**
+             * Pinned
+             * @description True when the org pinned this model explicitly instead of using the best score
+             * @default false
+             */
+            pinned: boolean;
+            /**
+             * Scenario Count
+             * @default 0
+             */
+            scenario_count: number;
+            /** Scenario Names */
+            scenario_names?: string[];
+            /**
+             * Source
+             * @description Where the scoring-source scenarios came from (None for an unscored pinned model)
+             */
+            source?: ("organization" | "global") | null;
+        };
+        /**
          * DeleteBenchmarkResultsRequest
          * @description Request model for deleting a scenario's results for specific models.
          */
@@ -5306,6 +5382,13 @@ export type components = {
              * @description Org's embedding model (composite key) for semantic IDs; null = disabled
              */
             default_embedding_model?: string | null;
+            /**
+             * Default Models
+             * @description What 'auto' model selection currently resolves to, keyed by task type (enrichment / schema_generation / sample_generation). Sparse: tasks with no pinned default and no scoring-source scores are omitted; null when nothing resolves
+             */
+            default_models?: {
+                [key: string]: components["schemas"]["DefaultModelSelection"];
+            } | null;
             /** Languages */
             languages: {
                 [key: string]: string;
@@ -5739,7 +5822,8 @@ export type components = {
             language: string;
             /**
              * Model
-             * @description Model composite key
+             * @description Model composite key. Optional: 'auto' (default) lets the server pick the organization's default sample-generation model — the pinned per-task default if set, else the model with the best blended overall score from scoring-source benchmarks.
+             * @default auto
              */
             model: string;
             /**
@@ -7278,6 +7362,7 @@ export type components = {
             current_plan_sort_order?: number | null;
             /** Default Embedding Model */
             default_embedding_model?: string | null;
+            default_task_models?: components["schemas"]["TaskModelDefaults"];
             /** Description */
             description?: string | null;
             /**
@@ -7414,6 +7499,7 @@ export type components = {
              * @description ISO 3166-1 alpha-2
              */
             country_code?: string | null;
+            default_task_models?: components["schemas"]["TaskModelDefaults"] | null;
             /** Description */
             description?: string | null;
             /** Logo Url */
@@ -7426,6 +7512,41 @@ export type components = {
             state_region?: string | null;
             /** Website */
             website?: string | null;
+        };
+        /**
+         * OrgOAuthClientCreateRequest
+         * @description Owner-created public client (PKCE-only) bound to the organization.
+         *
+         *     Public because the primary consumer is n8n's PKCE grant type, which does
+         *     not send a client secret at token exchange; PKCE is the proof of
+         *     possession, per OAuth 2.1.
+         */
+        OrgOAuthClientCreateRequest: {
+            /** Client Name */
+            client_name: string;
+            /** Redirect Uris */
+            redirect_uris: string[];
+        };
+        /** OrgOAuthClientItem */
+        OrgOAuthClientItem: {
+            /**
+             * Active Grants
+             * @default 0
+             */
+            active_grants: number;
+            /** Client Id */
+            client_id: string;
+            /** Client Name */
+            client_name: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Last Used At */
+            last_used_at?: string | null;
+            /** Redirect Uris */
+            redirect_uris: string[];
         };
         /**
          * PendingUserResponse
@@ -9224,7 +9345,8 @@ export type components = {
             attachment_ids?: string[] | null;
             /**
              * Model
-             * @description Model composite key (e.g., 'openai::gpt-4o-mini')
+             * @description Model composite key (e.g., 'openai::gpt-4o-mini'). 'auto' (default) lets the server pick the org's default schema-generation model (pinned or best benchmark score).
+             * @default auto
              */
             model: string;
             /** Prompt */
@@ -9254,7 +9376,8 @@ export type components = {
             attachment_ids?: string[] | null;
             /**
              * Model
-             * @description Model composite key
+             * @description Model composite key. 'auto' (default) lets the server pick the org's default schema-generation model (pinned or best benchmark score).
+             * @default auto
              */
             model: string;
             /** Prompt */
@@ -10790,6 +10913,103 @@ export type components = {
             total_models: number;
         };
         /**
+         * SSEModelAutoSelected
+         * @description Emitted once when the server auto-selects the model for a job.
+         *
+         *     Only sent when the client omitted the model (or passed the 'auto' sentinel)
+         *     for enrichment, schema generation, or sample generation. Carries the pick's
+         *     provenance — pinned org default vs best blended benchmark score — so UIs can
+         *     show a badge and API clients can log which model actually ran.
+         */
+        SSEModelAutoSelected: {
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default model_auto_selected
+             * @constant
+             */
+            event: "model_auto_selected";
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Last Error Summary */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /**
+             * Model
+             * @description The concrete model composite key that will run
+             */
+            model: string;
+            /**
+             * Overall
+             * @description Blended overall benchmark score behind the pick (None for an unscored pinned model)
+             */
+            overall?: number | null;
+            /**
+             * Pinned
+             * @description True when the org's pinned per-task default model was used instead of the best score
+             * @default false
+             */
+            pinned: boolean;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Scenario Count
+             * @description How many scoring-source scenarios fed the score
+             * @default 0
+             */
+            scenario_count: number;
+            /** Scenario Names */
+            scenario_names?: string[];
+            /**
+             * Source
+             * @description Scoring-source provenance: 'organization' or 'global' (None for an unscored pinned model)
+             */
+            source?: string | null;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Task Type
+             * @description Task the model was selected for: enrichment / schema_generation / sample_generation
+             */
+            task_type: string;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
          * SSEModelCompleted
          * @description Emitted when a model finishes enrichment. The result field contains the
          *     SingleEnrichmentResponse data (model, success, result, tokens, cost, etc.).
@@ -11667,9 +11887,9 @@ export type components = {
             languages: string[];
             /**
              * Models
-             * @description Model composite keys
+             * @description Model composite keys. Optional: omit the field (or use the literal 'auto' entry) to let the server pick the organization's default model — the pinned per-task default if set, else the model with the best blended overall score from scoring-source benchmarks. Auto always resolves to a single model, so it never triggers fusion.
              */
-            models: string[];
+            models?: string[];
             /** Schema Id */
             schema_id?: string | null;
             /**
@@ -11725,7 +11945,8 @@ export type components = {
             generation_strategy?: ("staged" | "monolithic") | null;
             /**
              * Model
-             * @description Model composite key
+             * @description Model composite key. Optional: 'auto' (default) lets the server pick the organization's default schema-generation model — the pinned per-task default if set, else the model with the best blended overall score from scoring-source benchmarks.
+             * @default auto
              */
             model: string;
             /**
@@ -12085,9 +12306,9 @@ export type components = {
             languages: string[];
             /**
              * Models
-             * @description Model composite keys
+             * @description Model composite keys. Optional: omit the field (or use the literal 'auto' entry) to let the server pick the organization's default model — the pinned per-task default if set, else the model with the best blended overall score from scoring-source benchmarks. Auto always resolves to a single model, so it never triggers fusion.
              */
-            models: string[];
+            models?: string[];
             /** Schema Id */
             schema_id?: string | null;
             /**
@@ -12139,7 +12360,8 @@ export type components = {
             generation_strategy?: ("staged" | "monolithic") | null;
             /**
              * Model
-             * @description Model composite key
+             * @description Model composite key. Optional: 'auto' (default) lets the server pick the organization's default schema-generation model — the pinned per-task default if set, else the model with the best blended overall score from scoring-source benchmarks.
+             * @default auto
              */
             model: string;
             /**
@@ -12161,6 +12383,22 @@ export type components = {
              * @default 300
              */
             timeout_seconds: number;
+        };
+        /**
+         * TaskModelDefaults
+         * @description Org-pinned default model per task type (composite keys, None = pick by score).
+         *
+         *     A pinned model wins over the best-benchmark-score pick when clients request
+         *     the 'auto' model (or omit it) for enrichment / schema generation / sample
+         *     generation.
+         */
+        TaskModelDefaults: {
+            /** Enrichment */
+            enrichment?: string | null;
+            /** Sample Generation */
+            sample_generation?: string | null;
+            /** Schema Generation */
+            schema_generation?: string | null;
         };
         /**
          * TestConnectionResponse
@@ -12541,6 +12779,7 @@ export type CreditTransaction = components['schemas']['CreditTransaction'];
 export type CreditTransactionList = components['schemas']['CreditTransactionList'];
 export type CustomPromptRequest = components['schemas']['CustomPromptRequest'];
 export type CustomPromptResponse = components['schemas']['CustomPromptResponse'];
+export type DefaultModelSelection = components['schemas']['DefaultModelSelection'];
 export type DeleteBenchmarkResultsRequest = components['schemas']['DeleteBenchmarkResultsRequest'];
 export type DeleteBenchmarkResultsResponse = components['schemas']['DeleteBenchmarkResultsResponse'];
 export type DeterminismCheckResponse = components['schemas']['DeterminismCheckResponse'];
@@ -12608,6 +12847,8 @@ export type OrganizationResponse = components['schemas']['OrganizationResponse']
 export type OrganizationSearchResult = components['schemas']['OrganizationSearchResult'];
 export type OrganizationSubscription = components['schemas']['OrganizationSubscription'];
 export type OrganizationUpdate = components['schemas']['OrganizationUpdate'];
+export type OrgOAuthClientCreateRequest = components['schemas']['OrgOAuthClientCreateRequest'];
+export type OrgOAuthClientItem = components['schemas']['OrgOAuthClientItem'];
 export type PendingUserResponse = components['schemas']['PendingUserResponse'];
 export type PerformanceStatsByInputTokenRange = components['schemas']['PerformanceStatsByInputTokenRange'];
 export type PerformanceStatsByLanguageCount = components['schemas']['PerformanceStatsByLanguageCount'];
@@ -12686,6 +12927,7 @@ export type SseFusionStarted = components['schemas']['SSEFusionStarted'];
 export type SseJobCancelled = components['schemas']['SSEJobCancelled'];
 export type SseJobCompleted = components['schemas']['SSEJobCompleted'];
 export type SseJobFailed = components['schemas']['SSEJobFailed'];
+export type SseModelAutoSelected = components['schemas']['SSEModelAutoSelected'];
 export type SseModelCompleted = components['schemas']['SSEModelCompleted'];
 export type SseModelStarted = components['schemas']['SSEModelStarted'];
 export type SseSampleClarificationPause = components['schemas']['SSESampleClarificationPause'];
@@ -12710,6 +12952,7 @@ export type SubscriptionPlanInput = components['schemas']['SubscriptionPlanInput
 export type SubscriptionPlanWithLimits = components['schemas']['SubscriptionPlanWithLimits'];
 export type SyncEnrichRequest = components['schemas']['SyncEnrichRequest'];
 export type SyncGenerateRequest = components['schemas']['SyncGenerateRequest'];
+export type TaskModelDefaults = components['schemas']['TaskModelDefaults'];
 export type TestConnectionResponse = components['schemas']['TestConnectionResponse'];
 export type TunnelAccessTokenResponse = components['schemas']['TunnelAccessTokenResponse'];
 export type TunnelCredentialCreate = components['schemas']['TunnelCredentialCreate'];
@@ -16255,7 +16498,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
+                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
                 };
             };
         };
@@ -16285,6 +16528,115 @@ export interface operations {
                 content: {
                     "application/json": unknown;
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_org_oauth_clients_api_oauth_clients_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgOAuthClientItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_org_oauth_client_api_oauth_clients_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgOAuthClientCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgOAuthClientItem"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_org_oauth_client_api_oauth_clients__client_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -18704,9 +19056,9 @@ export interface operations {
     };
     analyze_saved_schema_determinism_api_schema_saved__schema_id__analyze_post: {
         parameters: {
-            query: {
+            query?: {
                 force?: boolean;
-                model: string;
+                model?: string;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
