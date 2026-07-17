@@ -5389,6 +5389,13 @@ export type components = {
             default_models?: {
                 [key: string]: components["schemas"]["DefaultModelSelection"];
             } | null;
+            /**
+             * Default Models Web Search
+             * @description What 'auto' resolves to when web search is enabled (the pick is restricted to supports_web_search models), keyed by task type (enrichment / sample_generation). Sparse: a task is omitted when no web-search-capable model resolves — 'auto' with web search on is then rejected with 400
+             */
+            default_models_web_search?: {
+                [key: string]: components["schemas"]["DefaultModelSelection"];
+            } | null;
             /** Languages */
             languages: {
                 [key: string]: string;
