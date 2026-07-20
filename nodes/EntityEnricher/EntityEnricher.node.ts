@@ -20,6 +20,9 @@ import * as getRecord from './operations/getRecord';
 import * as getSchemaDetails from './operations/getSchemaDetails';
 import * as listRecords from './operations/listRecords';
 import * as listSchemas from './operations/listSchemas';
+import * as listDatabases from './operations/listDatabases';
+import * as fetchDeltas from './operations/fetchDeltas';
+import * as ackDeltas from './operations/ackDeltas';
 import * as mergeResults from './operations/mergeResults';
 
 export class EntityEnricher implements INodeType {
@@ -109,6 +112,7 @@ export class EntityEnricher implements INodeType {
 					{ name: 'Record', value: 'record' },
 					{ name: 'Attachment', value: 'attachment' },
 					{ name: 'Fusion', value: 'fusion' },
+					{ name: 'Database', value: 'database' },
 					{ name: 'Configuration', value: 'configuration' },
 				],
 				default: 'enrichment',
@@ -234,6 +238,78 @@ export class EntityEnricher implements INodeType {
 					},
 				],
 				default: 'mergeResults',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: { show: { resource: ['database'] } },
+				options: [
+					{
+						name: 'List Databases',
+						value: 'listDatabases',
+						description: 'List the schema databases (entity-layer sync) of a schema',
+						action: 'List schema databases',
+					},
+					{
+						name: 'Fetch Deltas',
+						value: 'fetchDeltas',
+						description: 'Fetch the next window of database deltas (SQL + JSON), optionally leasing them',
+						action: 'Fetch database deltas',
+					},
+					{
+						name: 'Acknowledge Deltas',
+						value: 'ackDeltas',
+						description: 'Acknowledge applied deltas up to an ID (releases the lease; may purge per database options)',
+						action: 'Acknowledge database deltas',
+					},
+				],
+				default: 'fetchDeltas',
+			},
+			{
+				displayName: 'Schema',
+				name: 'schemaId',
+				type: 'options',
+				typeOptions: { loadOptionsMethod: 'getSchemas' },
+				required: true,
+				default: '',
+				description: 'Schema whose databases to list',
+				displayOptions: { show: { resource: ['database'], operation: ['listDatabases'] } },
+			},
+			{
+				displayName: 'Database ID',
+				name: 'databaseId',
+				type: 'string',
+				required: true,
+				default: '',
+				description: 'ID of the schema database (from List Databases or the web app)',
+				displayOptions: { show: { resource: ['database'], operation: ['fetchDeltas', 'ackDeltas'] } },
+			},
+			{
+				displayName: 'Since (Cursor)',
+				name: 'since',
+				type: 'number',
+				default: 0,
+				description: 'Return deltas with ID greater than this cursor (0 = from the beginning)',
+				displayOptions: { show: { resource: ['database'], operation: ['fetchDeltas'] } },
+			},
+			{
+				displayName: 'Claim (Lease)',
+				name: 'claim',
+				type: 'boolean',
+				default: true,
+				description: 'Whether to lease the returned deltas (FIFO window, requires Acknowledge Deltas). Disable for a replayable read-only fetch.',
+				displayOptions: { show: { resource: ['database'], operation: ['fetchDeltas'] } },
+			},
+			{
+				displayName: 'Acknowledge Up To ID',
+				name: 'upToId',
+				type: 'number',
+				required: true,
+				default: 0,
+				description: 'Acknowledge every delta with ID lower than or equal to this value (use the highest applied delta ID)',
+				displayOptions: { show: { resource: ['database'], operation: ['ackDeltas'] } },
 			},
 			{
 				displayName: 'Operation',
@@ -1070,6 +1146,12 @@ export class EntityEnricher implements INodeType {
 		}
 		if (resource === 'configuration' && operation === 'getOptions') {
 			returnData = await getOptions.execute(this);
+			return [returnData];
+		}
+		if (resource === 'database') {
+			if (operation === 'listDatabases') returnData = await listDatabases.execute(this);
+			else if (operation === 'fetchDeltas') returnData = await fetchDeltas.execute(this);
+			else if (operation === 'ackDeltas') returnData = await ackDeltas.execute(this);
 			return [returnData];
 		}
 		if (resource === 'record' && operation === 'listRecords') {

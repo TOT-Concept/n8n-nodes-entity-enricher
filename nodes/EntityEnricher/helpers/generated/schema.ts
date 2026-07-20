@@ -1414,6 +1414,160 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/databases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Org Databases
+         * @description All registered databases of the org, across schemas — Databases page.
+         */
+        get: operations["list_org_databases_api_databases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/databases/{database_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Database */
+        get: operations["get_database_api_databases__database_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Database */
+        delete: operations["delete_database_api_databases__database_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Database */
+        patch: operations["update_database_api_databases__database_id__patch"];
+        trace?: never;
+    };
+    "/api/databases/{database_id}/ack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ack Changes */
+        post: operations["ack_changes_api_databases__database_id__ack_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/databases/{database_id}/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fetch Changes
+         * @description Cursor-based delta feed. claim=true leases the FIFO window (ack required);
+         *     claim=false is a pure idempotent read, replayable at will.
+         */
+        get: operations["fetch_changes_api_databases__database_id__changes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/databases/{database_id}/checksum": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Database Checksum
+         * @description Cheap convergence verification: per-table hash over (identity, revision).
+         */
+        get: operations["database_checksum_api_databases__database_id__checksum_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/databases/{database_id}/clear-acked": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clear Acked */
+        post: operations["clear_acked_api_databases__database_id__clear_acked_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/databases/{database_id}/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Snapshot
+         * @description Downloadable .sql snapshot: DDL preamble + upserts of current entity state.
+         */
+        get: operations["download_snapshot_api_databases__database_id__snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/databases/{database_id}/webhook-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Database Webhook Secret
+         * @description The per-database webhook signing key — viewable anytime by owners.
+         */
+        get: operations["get_database_webhook_secret_api_databases__database_id__webhook_secret_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/enrichment/cancel/{job_id}": {
         parameters: {
             query?: never;
@@ -3131,6 +3285,109 @@ export type paths = {
          */
         post: operations["restore_saved_schema_api_schema_saved__schema_id__restore_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schemas/{schema_id}/databases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Databases */
+        get: operations["list_databases_api_schemas__schema_id__databases_get"];
+        put?: never;
+        /** Create Database */
+        post: operations["create_database_api_schemas__schema_id__databases_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schemas/{schema_id}/databases/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate Schema For Database
+         * @description Dry-run of linking a database: errors + the database-key stamping preview.
+         */
+        post: operations["validate_schema_for_database_api_schemas__schema_id__databases_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schemas/{schema_id}/entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Schema Entities
+         * @description Browse the current entity state of a schema (shared by all its databases).
+         *
+         *     Empty when purge_entity_state removed delivered rows — the pending delta
+         *     feed is then the only remaining view of the data.
+         */
+        get: operations["list_schema_entities_api_schemas__schema_id__entities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schemas/{schema_id}/relational-map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Relational Map
+         * @description The schema→relational projection (tables, columns, junctions) for the ER diagram.
+         */
+        get: operations["get_relational_map_api_schemas__schema_id__relational_map_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schemas/{schema_id}/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Subscriptions */
+        get: operations["list_subscriptions_api_schemas__schema_id__subscriptions_get"];
+        put?: never;
+        /** Create Subscription */
+        post: operations["create_subscription_api_schemas__schema_id__subscriptions_post"];
+        /**
+         * Delete Subscription
+         * @description Delete by id or by exact url (used by connector trigger detach).
+         */
+        delete: operations["delete_subscription_api_schemas__schema_id__subscriptions_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -5101,6 +5358,36 @@ export type components = {
             success: boolean;
         };
         /**
+         * DatabaseChecksumResponse
+         * @description Cheap convergence verification: one hash per projected table.
+         */
+        DatabaseChecksumResponse: {
+            /** As Of Delta Id */
+            as_of_delta_id?: number | null;
+            /** Tables */
+            tables: {
+                [key: string]: string;
+            };
+        };
+        /**
+         * DatabaseValidationResult
+         * @description Dry-run result of linking a database to a schema (review step).
+         */
+        DatabaseValidationResult: {
+            /**
+             * Already Stamped
+             * @description True when the schema already carries database_key flags (no stamping needed)
+             * @default false
+             */
+            already_stamped: boolean;
+            /** Errors */
+            errors?: string[];
+            /** Stamped Keys */
+            stamped_keys?: components["schemas"]["EntityTypeKeys"][];
+            /** Valid */
+            valid: boolean;
+        };
+        /**
          * DefaultModelSelection
          * @description The model auto-selection resolves to for one task type.
          *
@@ -5161,6 +5448,81 @@ export type components = {
              * @default 0
              */
             deleted: number;
+        };
+        /** DeltaAckRequest */
+        DeltaAckRequest: {
+            /**
+             * Up To Id
+             * @description Acknowledge every delta with id <= this value
+             */
+            up_to_id: number;
+        };
+        /** DeltaAckResponse */
+        DeltaAckResponse: {
+            /** Acked */
+            acked: number;
+            /**
+             * Purged Deltas
+             * @default 0
+             */
+            purged_deltas: number;
+            /**
+             * Purged Entities
+             * @default 0
+             */
+            purged_entities: number;
+        };
+        /** DeltaBatchResponse */
+        DeltaBatchResponse: {
+            /** Deltas */
+            deltas: components["schemas"]["DeltaRow"][];
+            /**
+             * Has More
+             * @default false
+             */
+            has_more: boolean;
+            /**
+             * Lease Expires At
+             * @description Claimed rows are leased until this instant; ack before it elapses
+             */
+            lease_expires_at?: string | null;
+            /**
+             * Next Cursor
+             * @description Pass as ?since= on the next call; null when nothing was returned
+             */
+            next_cursor?: number | null;
+            /** Schema Content Hash */
+            schema_content_hash?: string | null;
+        };
+        /** DeltaRow */
+        DeltaRow: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Entity Type */
+            entity_type?: string | null;
+            /** Id */
+            id: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "data" | "schema";
+            /**
+             * Op
+             * @enum {string}
+             */
+            op: "upsert" | "delete" | "migrate";
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Revision */
+            revision?: number | null;
+            /** Sql */
+            sql: string;
         };
         /**
          * DeterminismCheckResponse
@@ -5565,6 +5927,75 @@ export type components = {
              * @constant
              */
             type: "object";
+        };
+        /** EntityStateListResponse */
+        EntityStateListResponse: {
+            /** Entities */
+            entities: components["schemas"]["EntityStateRow"][];
+            /**
+             * Entity Types
+             * @description Distinct entity types present for this schema (filter values)
+             */
+            entity_types?: string[];
+            /** Total */
+            total: number;
+        };
+        /**
+         * EntityStateRow
+         * @description Current-state row of one promoted entity (entities table).
+         */
+        EntityStateRow: {
+            /** Entity Type */
+            entity_type: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key Identity */
+            key_identity?: string | null;
+            /**
+             * Keys
+             * @description Key property values (entity_keys) for display/lookup
+             */
+            keys?: {
+                [key: string]: string;
+            };
+            /** Last Record Id */
+            last_record_id?: string | null;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Revision */
+            revision: number;
+            /** Semantic Id */
+            semantic_id?: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * EntityTypeKeys
+         * @description Database-key set for one entity type, with how it was picked.
+         */
+        EntityTypeKeys: {
+            /** Database Keys */
+            database_keys: string[];
+            /** Entity Type */
+            entity_type: string;
+            /**
+             * Path
+             * @description Schema path of the entity type ('' for the root object)
+             */
+            path: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "semantic_id" | "id_field" | "natural_keys" | "manual";
         };
         /**
          * ExpertiseBreakdown
@@ -7520,6 +7951,13 @@ export type components = {
             /** Website */
             website?: string | null;
         };
+        /** OrgDatabasesListResponse */
+        OrgDatabasesListResponse: {
+            /** Databases */
+            databases: components["schemas"]["SchemaDatabaseWithSchema"][];
+            /** Total */
+            total: number;
+        };
         /**
          * OrgOAuthClientCreateRequest
          * @description Owner-created public client (PKCE-only) bound to the organization.
@@ -7964,6 +8402,11 @@ export type components = {
              */
             $ref?: string | null;
             /**
+             * Database Key
+             * @description True = this property is part of its containing object's Database key: the upsert conflict target and DDL unique index shared by all schema databases (docs/ENTITY_LAYER.md). Stamped with defaults at first database link (semantic_id → Id-like field → natural keys); must be scalar and non-localized; required at write time. Stripped from every LLM prompt.
+             */
+            database_key?: boolean | null;
+            /**
              * Description
              * @description Human-readable description of what this property represents
              */
@@ -8035,6 +8478,11 @@ export type components = {
              * @description Reference to a definition in $defs (e.g., '#/$defs/Company')
              */
             $ref?: string | null;
+            /**
+             * Database Key
+             * @description True = this property is part of its containing object's Database key: the upsert conflict target and DDL unique index shared by all schema databases (docs/ENTITY_LAYER.md). Stamped with defaults at first database link (semantic_id → Id-like field → natural keys); must be scalar and non-localized; required at write time. Stripped from every LLM prompt.
+             */
+            database_key?: boolean | null;
             /**
              * Description
              * @description Human-readable description of what this property represents
@@ -8959,6 +9407,91 @@ export type components = {
             organization_slug: string;
         };
         /**
+         * RelationalChildTable
+         * @description Array of value objects → child table (parent keys + ordinal implied).
+         */
+        RelationalChildTable: {
+            /** Columns */
+            columns: components["schemas"]["RelationalColumn"][];
+            /** Property Name */
+            property_name: string;
+            /** Table */
+            table: string;
+        };
+        /** RelationalColumn */
+        RelationalColumn: {
+            /**
+             * Indexed
+             * @default false
+             */
+            indexed: boolean;
+            /**
+             * Is Key
+             * @default false
+             */
+            is_key: boolean;
+            /**
+             * Localized
+             * @default false
+             */
+            localized: boolean;
+            /** Name */
+            name: string;
+            /** Sql Type */
+            sql_type: string;
+        };
+        /**
+         * RelationalLinkTable
+         * @description Array of entities → junction table on the target's keys.
+         */
+        RelationalLinkTable: {
+            /** Property Name */
+            property_name: string;
+            /** Table */
+            table: string;
+            /** Target Keys */
+            target_keys: string[];
+            /** Target Type */
+            target_type: string;
+        };
+        /**
+         * RelationalMapResponse
+         * @description The schema→relational projection, as the frontend ER diagram consumes it.
+         */
+        RelationalMapResponse: {
+            /** Root Entity Type */
+            root_entity_type: string;
+            /** Tables */
+            tables: components["schemas"]["RelationalTable"][];
+        };
+        /**
+         * RelationalRef
+         * @description Promoted 1-1 reference → target-key columns on the parent row.
+         */
+        RelationalRef: {
+            /** Property Name */
+            property_name: string;
+            /** Target Keys */
+            target_keys: string[];
+            /** Target Type */
+            target_type: string;
+        };
+        /** RelationalTable */
+        RelationalTable: {
+            /** Children */
+            children?: components["schemas"]["RelationalChildTable"][];
+            /** Columns */
+            columns: components["schemas"]["RelationalColumn"][];
+            /** Entity Type */
+            entity_type: string;
+            /** Links */
+            links?: components["schemas"]["RelationalLinkTable"][];
+            /** Refs */
+            refs?: components["schemas"]["RelationalRef"][];
+            /** Table */
+            table: string;
+        };
+        /**
          * RetryExpertisesRequest
          * @description Request to retry failed expertises for an existing enrichment record.
          */
@@ -9306,6 +9839,246 @@ export type components = {
             weights?: {
                 [key: string]: number;
             };
+        };
+        /** SchemaDatabase */
+        SchemaDatabase: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Dialect */
+            dialect: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Max Threshold Timeout S */
+            max_threshold_timeout_s: number;
+            /** Name */
+            name: string;
+            /** Notify Debounce S */
+            notify_debounce_s: number;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** Page Limit */
+            page_limit: number;
+            /**
+             * Pending Deltas
+             * @default 0
+             */
+            pending_deltas: number;
+            /** Purge Entity State */
+            purge_entity_state: boolean;
+            /** Purge On Ack */
+            purge_on_ack: boolean;
+            /** Require Complete */
+            require_complete: boolean;
+            /**
+             * Saved Schema Id
+             * Format: uuid
+             */
+            saved_schema_id: string;
+            /** Schema Content Hash */
+            schema_content_hash?: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Webhook Url */
+            webhook_url?: string | null;
+        };
+        /** SchemaDatabaseCreateRequest */
+        SchemaDatabaseCreateRequest: {
+            /**
+             * Dialect
+             * @default postgres
+             * @constant
+             */
+            dialect: "postgres";
+            /**
+             * Max Threshold Timeout S
+             * @description Hard cap on the debounce: a notification fires at most this many seconds after the first unsent delta, even while new deltas keep resetting the timer
+             * @default 300
+             */
+            max_threshold_timeout_s: number;
+            /** Name */
+            name: string;
+            /**
+             * Notify Debounce S
+             * @description Quiet period before a delta-available notification: each new delta resets the timer, so a burst is announced once
+             * @default 30
+             */
+            notify_debounce_s: number;
+            /**
+             * Page Limit
+             * @description Delta batch size
+             * @default 100
+             */
+            page_limit: number;
+            /**
+             * Purge Entity State
+             * @description Also delete entity rows once every database of the schema acknowledged their latest revision (data minimization — not GDPR erasure; records remain)
+             * @default false
+             */
+            purge_entity_state: boolean;
+            /**
+             * Purge On Ack
+             * @description Delete delivered delta copies once acknowledged
+             * @default false
+             */
+            purge_on_ack: boolean;
+            /**
+             * Require Complete
+             * @description Admission gate: only enrichments with all non-nullable fields filled are recorded
+             * @default true
+             */
+            require_complete: boolean;
+        };
+        /** SchemaDatabaseCreateResponse */
+        SchemaDatabaseCreateResponse: {
+            database: components["schemas"]["SchemaDatabase"];
+            /** Stamped Keys */
+            stamped_keys?: components["schemas"]["EntityTypeKeys"][];
+            /**
+             * Webhook Secret
+             * @description Signing key for webhook payloads — also retrievable anytime via GET /databases/{id}/webhook-secret (owner)
+             */
+            webhook_secret?: string | null;
+        };
+        /** SchemaDatabasesListResponse */
+        SchemaDatabasesListResponse: {
+            /** Databases */
+            databases: components["schemas"]["SchemaDatabase"][];
+            /** Total */
+            total: number;
+        };
+        /** SchemaDatabaseUpdateRequest */
+        SchemaDatabaseUpdateRequest: {
+            /** Max Threshold Timeout S */
+            max_threshold_timeout_s?: number | null;
+            /** Name */
+            name?: string | null;
+            /** Notify Debounce S */
+            notify_debounce_s?: number | null;
+            /** Page Limit */
+            page_limit?: number | null;
+            /** Purge Entity State */
+            purge_entity_state?: boolean | null;
+            /** Purge On Ack */
+            purge_on_ack?: boolean | null;
+            /** Require Complete */
+            require_complete?: boolean | null;
+            /**
+             * Webhook Url
+             * @description Delta-available notification endpoint. Registered by the consumer (the n8n trigger sets it automatically); null detaches it
+             */
+            webhook_url?: string | null;
+        };
+        /**
+         * SchemaDatabaseWithSchema
+         * @description Org-wide listing row: database + the schema it mirrors.
+         */
+        SchemaDatabaseWithSchema: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Dialect */
+            dialect: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Max Threshold Timeout S */
+            max_threshold_timeout_s: number;
+            /** Name */
+            name: string;
+            /** Notify Debounce S */
+            notify_debounce_s: number;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** Page Limit */
+            page_limit: number;
+            /**
+             * Pending Deltas
+             * @default 0
+             */
+            pending_deltas: number;
+            /** Purge Entity State */
+            purge_entity_state: boolean;
+            /** Purge On Ack */
+            purge_on_ack: boolean;
+            /** Require Complete */
+            require_complete: boolean;
+            /**
+             * Saved Schema Id
+             * Format: uuid
+             */
+            saved_schema_id: string;
+            /** Schema Content Hash */
+            schema_content_hash?: string | null;
+            /** Schema Name */
+            schema_name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Webhook Url */
+            webhook_url?: string | null;
+        };
+        /** SchemaEventSubscription */
+        SchemaEventSubscription: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Saved Schema Id
+             * Format: uuid
+             */
+            saved_schema_id: string;
+            /** Source */
+            source: string;
+            /** Url */
+            url: string;
+        };
+        /** SchemaEventSubscriptionCreateRequest */
+        SchemaEventSubscriptionCreateRequest: {
+            /**
+             * Source
+             * @default manual
+             * @enum {string}
+             */
+            source: "manual" | "n8n" | "make";
+            /** Url */
+            url: string;
+        };
+        /** SchemaEventSubscriptionCreateResponse */
+        SchemaEventSubscriptionCreateResponse: {
+            /**
+             * Secret
+             * @description Shared secret for event signatures — returned once at creation
+             */
+            secret: string;
+            subscription: components["schemas"]["SchemaEventSubscription"];
         };
         /**
          * SchemaExpertiseDetail
@@ -9877,6 +10650,107 @@ export type components = {
              * @default 0
              */
             total_models: number;
+        };
+        /**
+         * SSEAttachmentCoherence
+         * @description Emitted once by sample generation with 2+ attachments, when the planner has
+         *     settled how the files relate. mode 'single_entity' merges values extracted from
+         *     ALL files; 'instances_of_type' takes values from `reference_attachment` only
+         *     (object_type is the narrowest common type of the instances, possibly a
+         *     generalization such as Vehicle for a car + a bicycle + a bus); 'incoherent'
+         *     aborts the job with error_code='incoherent_attachments' in the terminal payload.
+         */
+        SSEAttachmentCoherence: {
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default attachment_coherence
+             * @constant
+             */
+            event: "attachment_coherence";
+            /**
+             * Excluded Attachments
+             * @description Odd-one-out files dropped from generation
+             */
+            excluded_attachments?: components["schemas"]["SSEAttachmentFile"][];
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Last Error Summary */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /**
+             * Mode
+             * @description single_entity | instances_of_type | incoherent
+             */
+            mode: string;
+            /**
+             * Object Type
+             * @description Type the sample models (narrowest common type)
+             */
+            object_type?: string | null;
+            /**
+             * Reason
+             * @description Why the set is incoherent (incoherent mode only)
+             */
+            reason?: string | null;
+            /** @description Value-source file (instances_of_type only) */
+            reference_attachment?: components["schemas"]["SSEAttachmentFile"] | null;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
+         * SSEAttachmentFile
+         * @description One attached file referenced by the coherence verdict.
+         */
+        SSEAttachmentFile: {
+            /**
+             * Filename
+             * @description Original filename
+             */
+            filename?: string | null;
+            /**
+             * Index
+             * @description 1-based position in the job's attachment list
+             */
+            index: number;
         };
         /**
          * SSEBatchCompleted
@@ -12713,6 +13587,14 @@ export type components = {
             /** Status */
             status: string;
         };
+        /** WebhookSecretResponse */
+        WebhookSecretResponse: {
+            /**
+             * Webhook Secret
+             * @description Per-database signing key for webhook payloads (X-EE-Signature)
+             */
+            webhook_secret?: string | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -12786,9 +13668,15 @@ export type CreditTransaction = components['schemas']['CreditTransaction'];
 export type CreditTransactionList = components['schemas']['CreditTransactionList'];
 export type CustomPromptRequest = components['schemas']['CustomPromptRequest'];
 export type CustomPromptResponse = components['schemas']['CustomPromptResponse'];
+export type DatabaseChecksumResponse = components['schemas']['DatabaseChecksumResponse'];
+export type DatabaseValidationResult = components['schemas']['DatabaseValidationResult'];
 export type DefaultModelSelection = components['schemas']['DefaultModelSelection'];
 export type DeleteBenchmarkResultsRequest = components['schemas']['DeleteBenchmarkResultsRequest'];
 export type DeleteBenchmarkResultsResponse = components['schemas']['DeleteBenchmarkResultsResponse'];
+export type DeltaAckRequest = components['schemas']['DeltaAckRequest'];
+export type DeltaAckResponse = components['schemas']['DeltaAckResponse'];
+export type DeltaBatchResponse = components['schemas']['DeltaBatchResponse'];
+export type DeltaRow = components['schemas']['DeltaRow'];
 export type DeterminismCheckResponse = components['schemas']['DeterminismCheckResponse'];
 export type DeviceCodeConfirmRequest = components['schemas']['DeviceCodeConfirmRequest'];
 export type DeviceCodePollRequest = components['schemas']['DeviceCodePollRequest'];
@@ -12802,6 +13690,9 @@ export type EnrichmentOptionsResponse = components['schemas']['EnrichmentOptions
 export type EnrichmentPromptSummary = components['schemas']['EnrichmentPromptSummary'];
 export type EntityDefinitionInput = components['schemas']['EntityDefinition-Input'];
 export type EntityDefinitionOutput = components['schemas']['EntityDefinition-Output'];
+export type EntityStateListResponse = components['schemas']['EntityStateListResponse'];
+export type EntityStateRow = components['schemas']['EntityStateRow'];
+export type EntityTypeKeys = components['schemas']['EntityTypeKeys'];
 export type ExpertiseBreakdown = components['schemas']['ExpertiseBreakdown'];
 export type ExpertiseDomain = components['schemas']['ExpertiseDomain'];
 export type FieldConflict = components['schemas']['FieldConflict'];
@@ -12854,6 +13745,7 @@ export type OrganizationResponse = components['schemas']['OrganizationResponse']
 export type OrganizationSearchResult = components['schemas']['OrganizationSearchResult'];
 export type OrganizationSubscription = components['schemas']['OrganizationSubscription'];
 export type OrganizationUpdate = components['schemas']['OrganizationUpdate'];
+export type OrgDatabasesListResponse = components['schemas']['OrgDatabasesListResponse'];
 export type OrgOAuthClientCreateRequest = components['schemas']['OrgOAuthClientCreateRequest'];
 export type OrgOAuthClientItem = components['schemas']['OrgOAuthClientItem'];
 export type PendingUserResponse = components['schemas']['PendingUserResponse'];
@@ -12889,6 +13781,12 @@ export type RecordSummary = components['schemas']['RecordSummary'];
 export type RefreshTokenRequest = components['schemas']['RefreshTokenRequest'];
 export type RefreshTokenResponse = components['schemas']['RefreshTokenResponse'];
 export type RegisterRequest = components['schemas']['RegisterRequest'];
+export type RelationalChildTable = components['schemas']['RelationalChildTable'];
+export type RelationalColumn = components['schemas']['RelationalColumn'];
+export type RelationalLinkTable = components['schemas']['RelationalLinkTable'];
+export type RelationalMapResponse = components['schemas']['RelationalMapResponse'];
+export type RelationalRef = components['schemas']['RelationalRef'];
+export type RelationalTable = components['schemas']['RelationalTable'];
 export type RetryExpertisesRequest = components['schemas']['RetryExpertisesRequest'];
 export type RubricCovernessDetail = components['schemas']['RubricCovernessDetail'];
 export type RubricJudgeDetail = components['schemas']['RubricJudgeDetail'];
@@ -12902,6 +13800,15 @@ export type SavedSchemaListResponse = components['schemas']['SavedSchemaListResp
 export type SavedSchemaResponse = components['schemas']['SavedSchemaResponse'];
 export type SavedSchemaUpdate = components['schemas']['SavedSchemaUpdate'];
 export type SchemaComparisonDetail = components['schemas']['SchemaComparisonDetail'];
+export type SchemaDatabase = components['schemas']['SchemaDatabase'];
+export type SchemaDatabaseCreateRequest = components['schemas']['SchemaDatabaseCreateRequest'];
+export type SchemaDatabaseCreateResponse = components['schemas']['SchemaDatabaseCreateResponse'];
+export type SchemaDatabasesListResponse = components['schemas']['SchemaDatabasesListResponse'];
+export type SchemaDatabaseUpdateRequest = components['schemas']['SchemaDatabaseUpdateRequest'];
+export type SchemaDatabaseWithSchema = components['schemas']['SchemaDatabaseWithSchema'];
+export type SchemaEventSubscription = components['schemas']['SchemaEventSubscription'];
+export type SchemaEventSubscriptionCreateRequest = components['schemas']['SchemaEventSubscriptionCreateRequest'];
+export type SchemaEventSubscriptionCreateResponse = components['schemas']['SchemaEventSubscriptionCreateResponse'];
 export type SchemaExpertiseDetail = components['schemas']['SchemaExpertiseDetail'];
 export type SchemaGenTaskParams = components['schemas']['SchemaGenTaskParams'];
 export type SchemaPromptRequest = components['schemas']['SchemaPromptRequest'];
@@ -12919,6 +13826,8 @@ export type SourceSyncSummary = components['schemas']['SourceSyncSummary'];
 export type SpecExport = components['schemas']['SpecExport'];
 export type SseArbitrationCompleted = components['schemas']['SSEArbitrationCompleted'];
 export type SseArbitrationStarted = components['schemas']['SSEArbitrationStarted'];
+export type SseAttachmentCoherence = components['schemas']['SSEAttachmentCoherence'];
+export type SseAttachmentFile = components['schemas']['SSEAttachmentFile'];
 export type SseBatchCompleted = components['schemas']['SSEBatchCompleted'];
 export type SseBatchStarted = components['schemas']['SSEBatchStarted'];
 export type SseClassificationCompleted = components['schemas']['SSEClassificationCompleted'];
@@ -12976,6 +13885,7 @@ export type VatValidationRequest = components['schemas']['VatValidationRequest']
 export type VatValidationResult = components['schemas']['VatValidationResult'];
 export type VerifyCheckoutRequest = components['schemas']['VerifyCheckoutRequest'];
 export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutResponse'];
+export type WebhookSecretResponse = components['schemas']['WebhookSecretResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
     serve_index__get: {
@@ -15892,6 +16802,385 @@ export interface operations {
             };
         };
     };
+    list_org_databases_api_databases_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgDatabasesListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_database_api_databases__database_id__get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaDatabase"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_database_api_databases__database_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_database_api_databases__database_id__patch: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchemaDatabaseUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaDatabase"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ack_changes_api_databases__database_id__ack_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeltaAckRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeltaAckResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fetch_changes_api_databases__database_id__changes_get: {
+        parameters: {
+            query?: {
+                claim?: boolean;
+                format?: string;
+                lease_s?: number;
+                limit?: number | null;
+                since?: number;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeltaBatchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    database_checksum_api_databases__database_id__checksum_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseChecksumResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_acked_api_databases__database_id__clear_acked_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeltaAckResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_snapshot_api_databases__database_id__snapshot_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_database_webhook_secret_api_databases__database_id__webhook_secret_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSecretResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     cancel_job_api_enrichment_cancel__job_id__post: {
         parameters: {
             query?: {
@@ -16505,7 +17794,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
+                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
                 };
             };
         };
@@ -19285,6 +20574,313 @@ export interface operations {
                 content: {
                     "application/json": unknown;
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_databases_api_schemas__schema_id__databases_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaDatabasesListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_database_api_schemas__schema_id__databases_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchemaDatabaseCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaDatabaseCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_schema_for_database_api_schemas__schema_id__databases_validate_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseValidationResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_schema_entities_api_schemas__schema_id__entities_get: {
+        parameters: {
+            query?: {
+                entity_type?: string | null;
+                limit?: number;
+                offset?: number;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntityStateListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_relational_map_api_schemas__schema_id__relational_map_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelationalMapResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_subscriptions_api_schemas__schema_id__subscriptions_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaEventSubscription"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_subscription_api_schemas__schema_id__subscriptions_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchemaEventSubscriptionCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaEventSubscriptionCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_subscription_api_schemas__schema_id__subscriptions_delete: {
+        parameters: {
+            query?: {
+                subscription_id?: string | null;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+                url?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

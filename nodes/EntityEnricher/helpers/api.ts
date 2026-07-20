@@ -1,9 +1,18 @@
 import type {
 	IExecuteFunctions,
+	IHookFunctions,
 	IHttpRequestOptions,
 	ILoadOptionsFunctions,
 	IHttpRequestMethods,
+	IWebhookFunctions,
 } from 'n8n-workflow';
+
+/** Any n8n context that can read node parameters + credentials and issue HTTP calls. */
+export type RequestContext =
+	| IExecuteFunctions
+	| ILoadOptionsFunctions
+	| IHookFunctions
+	| IWebhookFunctions;
 import { NodeOperationError } from 'n8n-workflow';
 
 interface ApiRequestOptions {
@@ -31,7 +40,7 @@ const CREDENTIAL_TYPE_BY_AUTH: Record<AuthenticationType, string> = {
  * Nodes saved before the parameter existed default to the API-key credential.
  */
 export function getAuthenticationType(
-	context: IExecuteFunctions | ILoadOptionsFunctions,
+	context: RequestContext,
 ): AuthenticationType {
 	try {
 		const value = 'getInputData' in context
@@ -44,7 +53,7 @@ export function getAuthenticationType(
 }
 
 /** n8n credential type name matching the node's selected authentication. */
-export function getCredentialType(context: IExecuteFunctions | ILoadOptionsFunctions): string {
+export function getCredentialType(context: RequestContext): string {
 	return CREDENTIAL_TYPE_BY_AUTH[getAuthenticationType(context)];
 }
 
@@ -52,7 +61,7 @@ export function getCredentialType(context: IExecuteFunctions | ILoadOptionsFunct
  * Base URL of the connected Entity Enricher instance.
  * Both credential types carry a `baseUrl` property.
  */
-export async function getBaseUrl(context: IExecuteFunctions | ILoadOptionsFunctions): Promise<string> {
+export async function getBaseUrl(context: RequestContext): Promise<string> {
 	const credentials = await context.getCredentials(getCredentialType(context));
 	return (credentials.baseUrl as string).replace(/\/$/, '');
 }
@@ -102,7 +111,7 @@ function extractErrorResponse(error: unknown): FullResponse | undefined {
  * Never throws for HTTP-level errors; network/abort errors propagate.
  */
 export async function authenticatedRequest(
-	context: IExecuteFunctions | ILoadOptionsFunctions,
+	context: RequestContext,
 	requestOptions: IHttpRequestOptions,
 ): Promise<FullResponse> {
 	const authType = getAuthenticationType(context);
@@ -195,7 +204,7 @@ function formatApiError(
  * since n8n's default error handling strips the response body on non-2xx.
  */
 export async function apiRequest(
-	context: IExecuteFunctions | ILoadOptionsFunctions,
+	context: RequestContext,
 	path: string,
 	options: ApiRequestOptions = {},
 ): Promise<unknown> {
