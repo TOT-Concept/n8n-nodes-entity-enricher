@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- **Typed enrichment failure codes** — per-model results (and Batch Enrich per-entity results) now carry an `error_code` when they fail: `model_retired` (the provider retired the model, now auto-deactivated — reselect and retry), `rate_limited`, `context_length_exceeded`, or `provider_timeout`. The synchronous enrichment / schema-generation / sample-generation endpoints return matching HTTP statuses (422 for `model_retired` / `context_length_exceeded`, 429 for `rate_limited`, 504 for `provider_timeout`) instead of a blanket 502. Regenerated API types.
+
+
+## 1.6.0 (2026-07-21)
+
+### Changed
+
+- **Multi-schema databases** — a schema database can now be linked to several saved schemas (entity types shared between the schemas merge into the same tables, matched by database key). **List Databases** output rows replace the single `saved_schema_id`/`schema_content_hash` fields with a `schemas` array (`saved_schema_id`, `schema_name`, `schema_content_hash`, `linked_at` per linked schema). The `delta_available` webhook payload received by the **Entity Enricher Trigger** now carries `saved_schema_ids` (array); the legacy `saved_schema_id` key remains populated with the first linked schema for one release. **Fetch Database Deltas** responses add `schema_content_hashes` (per-schema version gates) alongside the deprecated single `schema_content_hash`, and delta batches may now include `kind: "schema"` DDL-migration rows (apply their `sql` like any other delta — they FIFO-precede the data rows that need them).
+- Regenerated API types from the backend OpenAPI schema.
+
 ## 1.5.0 (2026-07-16)
 
 ### Features

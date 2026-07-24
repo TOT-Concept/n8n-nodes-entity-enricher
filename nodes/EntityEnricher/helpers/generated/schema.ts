@@ -1414,6 +1414,120 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/database-sync/cancel/{user_code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Device Code */
+        post: operations["cancel_device_code_api_database_sync_cancel__user_code__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/database-sync/confirm/{user_code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Device Code
+         * @description Browser-side: the owner picks which database the client pairs with.
+         *
+         *     The refresh token is delivered out-of-band to the CLI via the polling
+         *     channel; the browser only sees credential metadata.
+         */
+        post: operations["confirm_device_code_api_database_sync_confirm__user_code__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/database-sync/device-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Device Code
+         * @description CLI starts a pairing flow. Public — the device_code is the secret.
+         */
+        post: operations["start_device_code_api_database_sync_device_code_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/database-sync/exchange": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Exchange Token */
+        post: operations["exchange_token_api_database_sync_exchange_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/database-sync/poll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Poll Device Code */
+        post: operations["poll_device_code_api_database_sync_poll_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/database-sync/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Snapshot As Client
+         * @description Bootstrap: the paired client fetches the .sql snapshot over its credential.
+         */
+        get: operations["download_snapshot_as_client_api_database_sync_snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/databases": {
         parameters: {
             query?: never;
@@ -1501,6 +1615,8 @@ export type paths = {
         /**
          * Database Checksum
          * @description Cheap convergence verification: per-table hash over (identity, revision).
+         *
+         *     Entities of every linked schema hash into their (possibly shared) table.
          */
         get: operations["database_checksum_api_databases__database_id__checksum_get"];
         put?: never;
@@ -1522,6 +1638,103 @@ export type paths = {
         put?: never;
         /** Clear Acked */
         post: operations["clear_acked_api_databases__database_id__clear_acked_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/databases/{database_id}/credential": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Database Credential
+         * @description The database's sync-client pairing state (null credential = unpaired).
+         */
+        get: operations["get_database_credential_api_databases__database_id__credential_get"];
+        put?: never;
+        /**
+         * Create Database Credential
+         * @description (Re)issue the database's sync-client credential — replaces any active one.
+         */
+        post: operations["create_database_credential_api_databases__database_id__credential_post"];
+        /** Revoke Database Credential */
+        delete: operations["revoke_database_credential_api_databases__database_id__credential_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/databases/{database_id}/relational-map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Database Relational Map
+         * @description Merged projection of every linked schema: shared entity types appear
+         *     once with the union of their columns, badged with the feeding schemas.
+         */
+        get: operations["get_database_relational_map_api_databases__database_id__relational_map_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/databases/{database_id}/schemas/{schema_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link Schema To Database
+         * @description Link another schema to the database. Shared entity types merge with the
+         *     existing tables (validated identical database keys); the consumer-side DDL
+         *     additions ship as a kind='schema' delta that FIFO-precedes the schema's
+         *     data deltas.
+         */
+        post: operations["link_schema_to_database_api_databases__database_id__schemas__schema_id__post"];
+        /**
+         * Unlink Schema From Database
+         * @description Unlink a schema: its types stop feeding this database. Already-synced
+         *     consumer tables and pending deltas stay (valid history); shared tables
+         *     still fed by the remaining schemas keep converging.
+         */
+        delete: operations["unlink_schema_from_database_api_databases__database_id__schemas__schema_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/databases/{database_id}/schemas/{schema_id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate Schema Link
+         * @description Dry-run of linking a schema to an existing database: cross-schema
+         *     errors, the merged (common) types, the new tables, and the key stamping
+         *     preview — common types adopt the existing table's database keys.
+         */
+        post: operations["validate_schema_link_api_databases__database_id__schemas__schema_id__validate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3073,7 +3286,7 @@ export type paths = {
         put?: never;
         /**
          * Synchronous schema generation
-         * @description Blocks until schema generation finishes and returns the generated schema. Designed for non-streaming clients such as the MCP server, Make.com, Zapier, or curl. Returns HTTP 504 on timeout, 502 on generation failure, 499 if cancelled.
+         * @description Blocks until schema generation finishes and returns the generated schema. Designed for non-streaming clients such as the MCP server, Make.com, Zapier, or curl. Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, 500 `schema_generation_empty` (no result), else 502 `schema_generation_failed`.
          */
         post: operations["generate_schema_sync_api_schema_generate_sync_post"];
         delete?: never;
@@ -3098,6 +3311,26 @@ export type paths = {
          *     Returns a job_id for SSE streaming via GET /api/llm/stream/{job_id}.
          */
         post: operations["start_sample_generation_stream_api_schema_sample_generate_stream_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schema/sample/generate/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Synchronous sample generation
+         * @description Blocks until sample generation finishes and returns the generated sample(s). Designed for non-streaming clients such as Make.com, Zapier, or curl — always runs with auto_answer=true (any attachment- planner clarification questions resolve to the planner's defaults rather than pausing, since a blocking call can't wait for a live answer). Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, 500 `sample_generation_empty` (no result), else 502 `sample_generation_failed`.
+         */
+        post: operations["generate_sample_sync_api_schema_sample_generate_sync_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3145,6 +3378,10 @@ export type paths = {
         /**
          * Delete Saved Schema
          * @description Soft delete a schema (can be restored within 30 seconds).
+         *
+         *     Blocked with 409 when the schema is used by a benchmark scenario or linked to a
+         *     database, unless `cascade=true` — which also deletes those benchmark scenarios
+         *     and unlinks/deletes the database registrations first.
          */
         delete: operations["delete_saved_schema_api_schema_saved__schema_id__delete"];
         options?: never;
@@ -3213,6 +3450,10 @@ export type paths = {
         /**
          * Permanently Delete Schema
          * @description Permanently delete a schema (cannot be undone).
+         *
+         *     Blocked with 409 when the schema is used by a benchmark scenario or linked to a
+         *     database, unless `cascade=true`. Postgres FK cascades then remove the benchmark
+         *     scenarios and database links (a database's other schema links are unaffected).
          */
         delete: operations["permanently_delete_schema_api_schema_saved__schema_id__permanent_delete"];
         options?: never;
@@ -3284,6 +3525,30 @@ export type paths = {
          * @description Restore a soft-deleted schema.
          */
         post: operations["restore_saved_schema_api_schema_saved__schema_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schema/saved/semantic-key-usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Semantic Key Usage
+         * @description Semantic-id identity usage of every saved schema in the org.
+         *
+         *     Backs the schema editor's cross-schema hint: which concept types other schemas
+         *     resolve against and which key paths feed their embed text, so source-key
+         *     selections can be aligned for cross-schema semantic-ID convergence.
+         */
+        get: operations["get_semantic_key_usage_api_schema_saved_semantic_key_usage_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3448,7 +3713,7 @@ export type paths = {
         put?: never;
         /**
          * Synchronous single-entity enrichment
-         * @description Blocks until the enrichment job finishes and returns the final fused (or best single-model) result. Designed for non-streaming clients such as Make.com, Zapier, or curl. Returns HTTP 422 with classification context if the entity is rejected by pre-flight classification, 504 on timeout, 502 on enrichment failure.
+         * @description Blocks until the enrichment job finishes and returns the final fused (or best single-model) result. Designed for non-streaming clients such as Make.com, Zapier, or curl. Returns HTTP 422 with classification context if the entity is rejected by pre-flight classification, 504 on timeout, and a typed failure otherwise: 422 `model_retired` (provider retired the model — reselect and retry) or `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, else 502 `enrichment_failed`.
          */
         post: operations["enrich_sync_api_single_enrich_sync_post"];
         delete?: never;
@@ -4040,14 +4305,14 @@ export type components = {
             enable_web_search: boolean;
             /**
              * Entities
-             * @description List of entities to enrich (max 100)
+             * @description List of entities to enrich. No fixed batch-size cap — the org's prompt-count quotas (daily/weekly/monthly) and credit balance are checked live as the batch runs and it stops early if either is exhausted, whether by this batch or concurrent activity.
              */
             entities: {
                 [key: string]: unknown;
             }[];
             /**
              * Languages
-             * @description Languages for multilingual fields
+             * @description ISO 639-1 codes. The first language is the primary one, used for all non-multilingual free-text fields; multilingual fields get one value per language.
              * @default [
              *       "en"
              *     ]
@@ -5019,6 +5284,39 @@ export type components = {
             id: number;
         };
         /**
+         * CommonTypeCompare
+         * @description One entity type a candidate schema shares with a database's schemas.
+         */
+        CommonTypeCompare: {
+            /**
+             * Columns Added
+             * @description Columns the candidate schema adds to the shared table
+             */
+            columns_added?: string[];
+            /**
+             * Database Keys
+             * @description Shared row identity — the merged table's unique conflict target
+             */
+            database_keys: string[];
+            /** Entity Type */
+            entity_type: string;
+            /**
+             * Identity Keys Candidate
+             * @description Candidate-side is_key property paths of the divergence (see identity_keys_existing)
+             */
+            identity_keys_candidate?: string[];
+            /**
+             * Identity Keys Existing
+             * @description Set (with identity_keys_candidate) when both sides key on a minted semantic_id but their is_key properties (incl. 1-1 nested) differ — semantic IDs would diverge, the link is blocked
+             */
+            identity_keys_existing?: string[];
+            /**
+             * Shared Columns
+             * @description Non-key columns fed by both sides — each schema's enrichments overwrite them in turn
+             */
+            shared_columns?: string[];
+        };
+        /**
          * ConfigExport
          * @description Full export format for providers, models, and canonical specs.
          *
@@ -5357,6 +5655,19 @@ export type components = {
             /** Success */
             success: boolean;
         };
+        /** DatabaseAccessTokenResponse */
+        DatabaseAccessTokenResponse: {
+            /** Access Token */
+            access_token: string;
+            /** Database Id */
+            database_id?: string | null;
+            /** Database Name */
+            database_name?: string | null;
+            /** Dialect */
+            dialect?: string | null;
+            /** Expires In */
+            expires_in: number;
+        };
         /**
          * DatabaseChecksumResponse
          * @description Cheap convergence verification: one hash per projected table.
@@ -5368,6 +5679,179 @@ export type components = {
             tables: {
                 [key: string]: string;
             };
+        };
+        /**
+         * DatabaseCredentialCreateResponse
+         * @description One-time response on creation — the only chance to read the refresh token.
+         */
+        DatabaseCredentialCreateResponse: {
+            credential: components["schemas"]["DatabaseCredentialResponse"];
+            /**
+             * Refresh Token
+             * @description JWT refresh token. The CLI stores it mode-600 in its per-database profile directory (e.g. ~/.config/ee-database/profiles/<database-id>/token).
+             */
+            refresh_token: string;
+            /**
+             * Server Url
+             * @description WS endpoint base URL (e.g. wss://entityenricher.ai).
+             */
+            server_url: string;
+        };
+        /**
+         * DatabaseCredentialResponse
+         * @description Credential as shown on the Databases page (no secret material).
+         */
+        DatabaseCredentialResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Is Connected
+             * @description Whether the client's WebSocket session is live (in-process registry; never persisted)
+             * @default false
+             */
+            is_connected: boolean;
+            /** Last Apply Delta Id */
+            last_apply_delta_id?: number | null;
+            /**
+             * Last Apply Error
+             * @description Last SQL apply failure reported by the client — explains a stalled queue head
+             */
+            last_apply_error?: string | null;
+            /** Last Apply Error At */
+            last_apply_error_at?: string | null;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /** Last Seen Ip */
+            last_seen_ip?: string | null;
+            /** Last Seen User Agent */
+            last_seen_user_agent?: string | null;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** Revoked At */
+            revoked_at?: string | null;
+            /**
+             * Schema Database Id
+             * Format: uuid
+             */
+            schema_database_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "revoked";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * DatabaseCredentialState
+         * @description Card state: the database's active credential, or null when unpaired.
+         */
+        DatabaseCredentialState: {
+            credential?: components["schemas"]["DatabaseCredentialResponse"] | null;
+        };
+        /** DatabaseDeviceCodeConfirmRequest */
+        DatabaseDeviceCodeConfirmRequest: {
+            /**
+             * Database Id
+             * Format: uuid
+             * @description The schema database to pair the client with
+             */
+            database_id: string;
+        };
+        /**
+         * DatabaseDevicePollResponse
+         * @description CLI poll result. On status='ok' carries everything the client persists.
+         */
+        DatabaseDevicePollResponse: {
+            /** Database Id */
+            database_id?: string | null;
+            /** Database Name */
+            database_name?: string | null;
+            /** Dialect */
+            dialect?: string | null;
+            /** Refresh Token */
+            refresh_token?: string | null;
+            /** Server Url */
+            server_url?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "ok" | "expired" | "cancelled" | "not_found";
+        };
+        /**
+         * DatabaseLinkValidationResult
+         * @description Dry-run of linking a schema to an existing database (compare step).
+         */
+        DatabaseLinkValidationResult: {
+            /**
+             * Adopted Key Language
+             * @description Key language the candidate schema will adopt from the database's already-linked schemas on link (multilingual database keys only; None when nothing is adopted)
+             */
+            adopted_key_language?: string | null;
+            /**
+             * Already Stamped
+             * @default false
+             */
+            already_stamped: boolean;
+            /**
+             * Common Types
+             * @description Entity types merged with the database's existing tables
+             */
+            common_types?: components["schemas"]["CommonTypeCompare"][];
+            /** Errors */
+            errors?: string[];
+            /**
+             * New Types
+             * @description Entity types that become new tables in the database
+             */
+            new_types?: string[];
+            /**
+             * No Common Types
+             * @description True when the candidate shares no entity type with the linked schemas — a dedicated database may fit better
+             * @default false
+             */
+            no_common_types: boolean;
+            /** Stamped Keys */
+            stamped_keys?: components["schemas"]["EntityTypeKeys"][];
+            /** Valid */
+            valid: boolean;
+        };
+        /**
+         * DatabaseRelationalMapResponse
+         * @description Merged projection of every schema linked to a database: shared entity
+         *     types appear once with the union of their columns.
+         */
+        DatabaseRelationalMapResponse: {
+            /** Root Entity Types */
+            root_entity_types: string[];
+            /** Tables */
+            tables: components["schemas"]["RelationalTable"][];
+        };
+        /** DatabaseSchemaLinkResponse */
+        DatabaseSchemaLinkResponse: {
+            database: components["schemas"]["SchemaDatabase"];
+            /**
+             * Ddl Delta Id
+             * @description Id of the queued additive DDL delta (None when the link needed no consumer-side DDL)
+             */
+            ddl_delta_id?: number | null;
+            /** Stamped Keys */
+            stamped_keys?: components["schemas"]["EntityTypeKeys"][];
         };
         /**
          * DatabaseValidationResult
@@ -5491,8 +5975,18 @@ export type components = {
              * @description Pass as ?since= on the next call; null when nothing was returned
              */
             next_cursor?: number | null;
-            /** Schema Content Hash */
+            /**
+             * Schema Content Hash
+             * @description Deprecated: hash of the single linked schema; null when several schemas are linked — use schema_content_hashes
+             */
             schema_content_hash?: string | null;
+            /**
+             * Schema Content Hashes
+             * @description Per linked schema (saved_schema_id → content hash) version gate
+             */
+            schema_content_hashes?: {
+                [key: string]: string | null;
+            };
         };
         /** DeltaRow */
         DeltaRow: {
@@ -5987,6 +6481,11 @@ export type components = {
             /** Entity Type */
             entity_type: string;
             /**
+             * Owned By
+             * @description Owning entity type when this type is a weak entity (owned relationship site); its rows are identified by the owner's keys plus database_keys (1-1-owned types by the owner alone — database_keys is then empty, source 'owner')
+             */
+            owned_by?: string | null;
+            /**
              * Path
              * @description Schema path of the entity type ('' for the root object)
              */
@@ -5995,7 +6494,7 @@ export type components = {
              * Source
              * @enum {string}
              */
-            source: "semantic_id" | "id_field" | "natural_keys" | "manual";
+            source: "semantic_id" | "id_field" | "natural_keys" | "manual" | "adopted" | "owner";
         };
         /**
          * ExpertiseBreakdown
@@ -6032,6 +6531,16 @@ export type components = {
              * @description Well-formatted display name for this expertise domain
              */
             name: string;
+        };
+        /**
+         * FailedModelSummary
+         * @description A requested model that produced no successful result in a sync run.
+         */
+        FailedModelSummary: {
+            /** Error Message */
+            error_message?: string | null;
+            /** Model */
+            model: string;
         };
         /**
          * FieldConflict
@@ -6270,8 +6779,17 @@ export type components = {
              * @default auto
              */
             naming_convention: string;
-            /** Typical Object */
-            typical_object?: string | null;
+            /**
+             * Sample Count
+             * @description How many samples of this entity type to generate in one job. Sample 1 defines the field set (full pipeline incl. determinism analysis); samples 2..N are parallel follow-up turns that keep the same fields and invent values for a different typical instance. Forced to 1 whenever attachment_ids is set.
+             * @default 1
+             */
+            sample_count: number;
+            /**
+             * Typical Objects
+             * @description Up to sample_count user-typed example instance descriptions (e.g. 'Apple Inc.'), one per generated sample in order. Samples beyond len(typical_objects) are auto-invented. Ignored when attachments are present (generation is grounded in the document).
+             */
+            typical_objects?: string[] | null;
         };
         /** GenerateSampleStreamResponse */
         GenerateSampleStreamResponse: {
@@ -6549,6 +7067,26 @@ export type components = {
              * @default false
              */
             delete_organization: boolean;
+        };
+        /**
+         * LinkedSchemaRef
+         * @description One schema linked to a database (schema_database_links row).
+         */
+        LinkedSchemaRef: {
+            /**
+             * Linked At
+             * Format: date-time
+             */
+            linked_at: string;
+            /**
+             * Saved Schema Id
+             * Format: uuid
+             */
+            saved_schema_id: string;
+            /** Schema Content Hash */
+            schema_content_hash?: string | null;
+            /** Schema Name */
+            schema_name: string;
         };
         /**
          * LLMModel
@@ -7954,7 +8492,7 @@ export type components = {
         /** OrgDatabasesListResponse */
         OrgDatabasesListResponse: {
             /** Databases */
-            databases: components["schemas"]["SchemaDatabaseWithSchema"][];
+            databases: components["schemas"]["SchemaDatabase"][];
             /** Total */
             total: number;
         };
@@ -8441,6 +8979,11 @@ export type components = {
              */
             nullable?: boolean | null;
             /**
+             * Owned
+             * @description True = this relationship property (array of entities, or 1-1 $ref / promoted inline object) OWNS its target: the target is a weak entity whose identity is scoped by this containing object (docs/ENTITY_LAYER.md → owned entities). Owned targets project as a child table with owner FK columns instead of a junction; an owned type has exactly one owning site and is referenced nowhere else. Absent/false = shared entity (default).
+             */
+            owned?: boolean | null;
+            /**
              * Preserve
              * @description If true, the original input value is preserved and not overwritten by the enriched value
              */
@@ -8453,10 +8996,20 @@ export type components = {
                 [key: string]: components["schemas"]["PropertySchema-Input"];
             } | null;
             /**
+             * Semantic Concept Type
+             * @description Only on the semantic_id property: overrides the concept type scoping embedding matches (default: the $def/entity name, or the object's JSON path for inline objects). Lets schemas naming the same entity differently share one concept space.
+             */
+            semantic_concept_type?: string | null;
+            /**
              * Semantic Id
              * @description True = this string property holds the embedding-based semantic ID of its containing object (the root entity, a 1-1 nested object, or an array item). Written post-enrichment (not by the LLM); mutually exclusive with is_key; at most one per object.
              */
             semantic_id?: boolean | null;
+            /**
+             * Semantic Source Keys
+             * @description Only on the semantic_id property: subset of is_key property paths (relative dotted paths from the containing object, 1-1 nested descendants included, e.g. 'title' or 'manufacturer.name') whose values compose the embedding text. None/absent = all keys (default). Lets several schemas converge on identical semantic IDs by selecting the keys they share.
+             */
+            semantic_source_keys?: string[] | null;
             /**
              * Semantic Threshold
              * @description Cosine similarity threshold for reusing an existing concept (default 0.92)
@@ -8518,6 +9071,11 @@ export type components = {
              */
             nullable?: boolean | null;
             /**
+             * Owned
+             * @description True = this relationship property (array of entities, or 1-1 $ref / promoted inline object) OWNS its target: the target is a weak entity whose identity is scoped by this containing object (docs/ENTITY_LAYER.md → owned entities). Owned targets project as a child table with owner FK columns instead of a junction; an owned type has exactly one owning site and is referenced nowhere else. Absent/false = shared entity (default).
+             */
+            owned?: boolean | null;
+            /**
              * Preserve
              * @description If true, the original input value is preserved and not overwritten by the enriched value
              */
@@ -8530,10 +9088,20 @@ export type components = {
                 [key: string]: components["schemas"]["PropertySchema-Output"];
             } | null;
             /**
+             * Semantic Concept Type
+             * @description Only on the semantic_id property: overrides the concept type scoping embedding matches (default: the $def/entity name, or the object's JSON path for inline objects). Lets schemas naming the same entity differently share one concept space.
+             */
+            semantic_concept_type?: string | null;
+            /**
              * Semantic Id
              * @description True = this string property holds the embedding-based semantic ID of its containing object (the root entity, a 1-1 nested object, or an array item). Written post-enrichment (not by the LLM); mutually exclusive with is_key; at most one per object.
              */
             semantic_id?: boolean | null;
+            /**
+             * Semantic Source Keys
+             * @description Only on the semantic_id property: subset of is_key property paths (relative dotted paths from the containing object, 1-1 nested descendants included, e.g. 'title' or 'manufacturer.name') whose values compose the embedding text. None/absent = all keys (default). Lets several schemas converge on identical semantic IDs by selecting the keys they share.
+             */
+            semantic_source_keys?: string[] | null;
             /**
              * Semantic Threshold
              * @description Cosine similarity threshold for reusing an existing concept (default 0.92)
@@ -9415,6 +9983,11 @@ export type components = {
             columns: components["schemas"]["RelationalColumn"][];
             /** Property Name */
             property_name: string;
+            /**
+             * Schema Names
+             * @description Schemas feeding this child table (database-scoped map only; null on single-schema maps)
+             */
+            schema_names?: string[] | null;
             /** Table */
             table: string;
         };
@@ -9437,6 +10010,11 @@ export type components = {
             localized: boolean;
             /** Name */
             name: string;
+            /**
+             * Schema Names
+             * @description Schemas feeding this column (database-scoped map only; null on single-schema maps)
+             */
+            schema_names?: string[] | null;
             /** Sql Type */
             sql_type: string;
         };
@@ -9447,6 +10025,11 @@ export type components = {
         RelationalLinkTable: {
             /** Property Name */
             property_name: string;
+            /**
+             * Schema Names
+             * @description Schemas feeding this junction table (database-scoped map only; null on single-schema maps)
+             */
+            schema_names?: string[] | null;
             /** Table */
             table: string;
             /** Target Keys */
@@ -9471,6 +10054,11 @@ export type components = {
         RelationalRef: {
             /** Property Name */
             property_name: string;
+            /**
+             * Schema Names
+             * @description Schemas declaring this reference (database-scoped map only; null on single-schema maps)
+             */
+            schema_names?: string[] | null;
             /** Target Keys */
             target_keys: string[];
             /** Target Type */
@@ -9486,8 +10074,34 @@ export type components = {
             entity_type: string;
             /** Links */
             links?: components["schemas"]["RelationalLinkTable"][];
+            /**
+             * Owned By
+             * @description Owning entity type when this table is a weak entity (owned relationship): rows carry _owner_* FK columns instead of a junction
+             */
+            owned_by?: string | null;
+            /**
+             * Owned Is Array
+             * @description Owned via an array site (1-N with _ordinal) vs a 1-1 site
+             * @default false
+             */
+            owned_is_array: boolean;
+            /**
+             * Owned Via
+             * @description The owning relationship property name on the owner type
+             */
+            owned_via?: string | null;
+            /**
+             * Owner Keys
+             * @description The owner's key column names the _owner_* columns derive from
+             */
+            owner_keys?: string[];
             /** Refs */
             refs?: components["schemas"]["RelationalRef"][];
+            /**
+             * Schema Names
+             * @description Schemas feeding this table (database-scoped map only; >1 entry marks a merged shared type)
+             */
+            schema_names?: string[] | null;
             /** Table */
             table: string;
         };
@@ -9780,6 +10394,11 @@ export type components = {
             id: string;
             /** Is Pinned */
             is_pinned: boolean;
+            /**
+             * Key Language
+             * @description Key-language lock for multilingual database keys: the language the '{prop}_key' identity tokens are written in. Stamped by the first enrichment that writes entity state (or adopted at database link time); read-only.
+             */
+            key_language?: string | null;
             /** Name */
             name: string;
             /**
@@ -9879,12 +10498,10 @@ export type components = {
             /** Require Complete */
             require_complete: boolean;
             /**
-             * Saved Schema Id
-             * Format: uuid
+             * Schemas
+             * @description Schemas linked to this database (their union is what it syncs)
              */
-            saved_schema_id: string;
-            /** Schema Content Hash */
-            schema_content_hash?: string | null;
+            schemas?: components["schemas"]["LinkedSchemaRef"][];
             /**
              * Updated At
              * Format: date-time
@@ -9978,64 +10595,6 @@ export type components = {
              * Webhook Url
              * @description Delta-available notification endpoint. Registered by the consumer (the n8n trigger sets it automatically); null detaches it
              */
-            webhook_url?: string | null;
-        };
-        /**
-         * SchemaDatabaseWithSchema
-         * @description Org-wide listing row: database + the schema it mirrors.
-         */
-        SchemaDatabaseWithSchema: {
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Dialect */
-            dialect: string;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Max Threshold Timeout S */
-            max_threshold_timeout_s: number;
-            /** Name */
-            name: string;
-            /** Notify Debounce S */
-            notify_debounce_s: number;
-            /**
-             * Organization Id
-             * Format: uuid
-             */
-            organization_id: string;
-            /** Page Limit */
-            page_limit: number;
-            /**
-             * Pending Deltas
-             * @default 0
-             */
-            pending_deltas: number;
-            /** Purge Entity State */
-            purge_entity_state: boolean;
-            /** Purge On Ack */
-            purge_on_ack: boolean;
-            /** Require Complete */
-            require_complete: boolean;
-            /**
-             * Saved Schema Id
-             * Format: uuid
-             */
-            saved_schema_id: string;
-            /** Schema Content Hash */
-            schema_content_hash?: string | null;
-            /** Schema Name */
-            schema_name: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-            /** Webhook Url */
             webhook_url?: string | null;
         };
         /** SchemaEventSubscription */
@@ -10190,6 +10749,21 @@ export type components = {
             type_score: number;
         };
         /**
+         * SchemaSemanticUsage
+         * @description Semantic-id usage of one saved schema, for cross-schema key alignment.
+         */
+        SchemaSemanticUsage: {
+            /** Concepts */
+            concepts: components["schemas"]["SemanticConceptUsage"][];
+            /**
+             * Schema Id
+             * Format: uuid
+             */
+            schema_id: string;
+            /** Schema Name */
+            schema_name: string;
+        };
+        /**
          * ScoreBenchmarkJobResponse
          * @description Response after starting a scoring job (progress streams over the LLM job SSE).
          */
@@ -10234,6 +10808,35 @@ export type components = {
             json_path: string;
         };
         /**
+         * SemanticConceptUsage
+         * @description One semantic-id object of a schema: its concept scope + identity key paths.
+         */
+        SemanticConceptUsage: {
+            /**
+             * All Key Paths
+             * @description Every candidate is_key path of the object incl. 1-1 nested descendants
+             */
+            all_key_paths: string[];
+            /**
+             * Concept Type
+             * @description Effective concept type (semantic_concept_type override, or the $def/entity name / JSON path)
+             */
+            concept_type: string;
+            /**
+             * Source Keys
+             * @description Effective semantic_source_keys subset (relative dotted paths); None = all keys
+             */
+            source_keys?: string[] | null;
+        };
+        /**
+         * SemanticKeyUsageResponse
+         * @description Org-wide semantic-id identity usage across saved schemas.
+         */
+        SemanticKeyUsageResponse: {
+            /** Schemas */
+            schemas: components["schemas"]["SchemaSemanticUsage"][];
+        };
+        /**
          * SetBenchmarkReferenceRequest
          * @description Save (or clear) a scenario's gold reference output.
          */
@@ -10265,6 +10868,11 @@ export type components = {
             cancelled: boolean;
             /** Cost Usd */
             cost_usd?: number | null;
+            /**
+             * Error Code
+             * @description Typed failure code when success=false — e.g. 'model_retired' (provider retired the model, now deactivated), 'rate_limited', 'context_length_exceeded', 'provider_timeout'. Absent on success.
+             */
+            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
             /** Expertise Breakdown */
@@ -10306,6 +10914,11 @@ export type components = {
         SingleEnrichmentSyncResponse: {
             /** Cost Usd */
             cost_usd?: number | null;
+            /**
+             * Failed Models
+             * @description Models that failed in this run (set whenever at least one requested model produced no successful result — e.g. a 2-model request that degraded to a single un-fused result)
+             */
+            failed_models?: components["schemas"]["FailedModelSummary"][] | null;
             fusion?: components["schemas"]["FusionSummary"] | null;
             /** Input Tokens */
             input_tokens?: number | null;
@@ -10810,6 +11423,11 @@ export type components = {
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Stopped Early Reason
+             * @description Set when skipped_entities > 0 because quota/credit ran out mid-batch ('prompt_limit_reached' / 'insufficient_credits'); absent for a plain cancellation or a batch that ran to completion.
+             */
+            stopped_early_reason?: string | null;
             /** Total Entities */
             total_entities: number;
             /**
@@ -11225,6 +11843,75 @@ export type components = {
              * @default 0
              */
             total_processing_time_ms: number;
+        };
+        /**
+         * SSEEntitySkipped
+         * @description Emitted when a batch entity is skipped before starting: the job was
+         *     cancelled, or the org's live prompt-count/credit quota ran out mid-batch
+         *     (whether consumed by this batch or by concurrent activity).
+         */
+        SSEEntitySkipped: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "cancelled" | "prompt_limit_reached" | "insufficient_credits";
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /** Entity Index */
+            entity_index: number;
+            /** Entity Label */
+            entity_label: string;
+            /**
+             * Event
+             * @default entity_skipped
+             * @constant
+             */
+            event: "entity_skipped";
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Last Error Summary */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
         };
         /**
          * SSEEntityStarted
@@ -12142,6 +12829,77 @@ export type components = {
             status: string;
             /** Timeout Seconds */
             timeout_seconds: number;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
+         * SSESampleInstanceProgress
+         * @description Emitted during multi-sample generation (sample_count > 1) as each instance
+         *     variant finishes — the template (sample 1) already ran the full pipeline;
+         *     the remaining instances run in parallel as follow-up turns, so `completed`
+         *     increments out of order relative to their instance number.
+         */
+        SSESampleInstanceProgress: {
+            /**
+             * Completed
+             * @description Samples finished so far, including the template
+             */
+            completed: number;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default sample_instance_progress
+             * @constant
+             */
+            event: "sample_instance_progress";
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Last Error Summary */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total
+             * @description Total samples requested for this job
+             */
+            total: number;
             /**
              * Total Models
              * @default 0
@@ -13266,6 +14024,66 @@ export type components = {
             timeout_seconds: number;
         };
         /**
+         * SyncGenerateSampleRequest
+         * @description Request body for synchronous sample generation.
+         */
+        SyncGenerateSampleRequest: {
+            /** Attachment Ids */
+            attachment_ids?: string[] | null;
+            /**
+             * Auto Answer
+             * @description Governs the attachment planner's clarification questions. None → resolved by origin (interactive for web/mcp, auto otherwise). True → never pause: proceed with the planner's default answers (headless-safe). False → pause and wait for answers.
+             */
+            auto_answer?: boolean | null;
+            /**
+             * Enable Web Search
+             * @description Ground the sample with the model's builtin web-search tool (ignored if the model lacks supports_web_search)
+             * @default false
+             */
+            enable_web_search: boolean;
+            /** Entity Type */
+            entity_type: string;
+            /** Extra Instructions */
+            extra_instructions?: string | null;
+            /** Fields */
+            fields?: string[];
+            /**
+             * Language
+             * @description Output language code for generated sample values AND field names (e.g. 'en', 'fr'); applies even when the attachment is in another language. Default English.
+             * @default en
+             */
+            language: string;
+            /**
+             * Model
+             * @description Model composite key. Optional: 'auto' (default) lets the server pick the organization's default sample-generation model — the pinned per-task default if set, else the model with the best blended overall score from scoring-source benchmarks.
+             * @default auto
+             */
+            model: string;
+            /**
+             * Naming Convention
+             * @description Field naming convention: 'auto', 'snake_case', or 'camelCase'
+             * @default auto
+             */
+            naming_convention: string;
+            /**
+             * Sample Count
+             * @description How many samples of this entity type to generate in one job. Sample 1 defines the field set (full pipeline incl. determinism analysis); samples 2..N are parallel follow-up turns that keep the same fields and invent values for a different typical instance. Forced to 1 whenever attachment_ids is set.
+             * @default 1
+             */
+            sample_count: number;
+            /**
+             * Timeout Seconds
+             * @description How long to wait for sample generation to finish before returning 504
+             * @default 300
+             */
+            timeout_seconds: number;
+            /**
+             * Typical Objects
+             * @description Up to sample_count user-typed example instance descriptions (e.g. 'Apple Inc.'), one per generated sample in order. Samples beyond len(typical_objects) are auto-invented. Ignored when attachments are present (generation is grounded in the document).
+             */
+            typical_objects?: string[] | null;
+        };
+        /**
          * TaskModelDefaults
          * @description Org-pinned default model per task type (composite keys, None = pick by score).
          *
@@ -13653,6 +14471,7 @@ export type CleanupDeactivatedModelInfo = components['schemas']['CleanupDeactiva
 export type CleanupDeactivatedRequest = components['schemas']['CleanupDeactivatedRequest'];
 export type CleanupDeactivatedResponse = components['schemas']['CleanupDeactivatedResponse'];
 export type CleanupSpecInfo = components['schemas']['CleanupSpecInfo'];
+export type CommonTypeCompare = components['schemas']['CommonTypeCompare'];
 export type ConfigExport = components['schemas']['ConfigExport'];
 export type ConflictReport = components['schemas']['ConflictReport'];
 export type ConsentDecisionRequest = components['schemas']['ConsentDecisionRequest'];
@@ -13668,7 +14487,16 @@ export type CreditTransaction = components['schemas']['CreditTransaction'];
 export type CreditTransactionList = components['schemas']['CreditTransactionList'];
 export type CustomPromptRequest = components['schemas']['CustomPromptRequest'];
 export type CustomPromptResponse = components['schemas']['CustomPromptResponse'];
+export type DatabaseAccessTokenResponse = components['schemas']['DatabaseAccessTokenResponse'];
 export type DatabaseChecksumResponse = components['schemas']['DatabaseChecksumResponse'];
+export type DatabaseCredentialCreateResponse = components['schemas']['DatabaseCredentialCreateResponse'];
+export type DatabaseCredentialResponse = components['schemas']['DatabaseCredentialResponse'];
+export type DatabaseCredentialState = components['schemas']['DatabaseCredentialState'];
+export type DatabaseDeviceCodeConfirmRequest = components['schemas']['DatabaseDeviceCodeConfirmRequest'];
+export type DatabaseDevicePollResponse = components['schemas']['DatabaseDevicePollResponse'];
+export type DatabaseLinkValidationResult = components['schemas']['DatabaseLinkValidationResult'];
+export type DatabaseRelationalMapResponse = components['schemas']['DatabaseRelationalMapResponse'];
+export type DatabaseSchemaLinkResponse = components['schemas']['DatabaseSchemaLinkResponse'];
 export type DatabaseValidationResult = components['schemas']['DatabaseValidationResult'];
 export type DefaultModelSelection = components['schemas']['DefaultModelSelection'];
 export type DeleteBenchmarkResultsRequest = components['schemas']['DeleteBenchmarkResultsRequest'];
@@ -13695,6 +14523,7 @@ export type EntityStateRow = components['schemas']['EntityStateRow'];
 export type EntityTypeKeys = components['schemas']['EntityTypeKeys'];
 export type ExpertiseBreakdown = components['schemas']['ExpertiseBreakdown'];
 export type ExpertiseDomain = components['schemas']['ExpertiseDomain'];
+export type FailedModelSummary = components['schemas']['FailedModelSummary'];
 export type FieldConflict = components['schemas']['FieldConflict'];
 export type FusionRequest = components['schemas']['FusionRequest'];
 export type FusionResponse = components['schemas']['FusionResponse'];
@@ -13717,6 +14546,7 @@ export type JoinOrganizationRequest = components['schemas']['JoinOrganizationReq
 export type JoinOrganizationResponse = components['schemas']['JoinOrganizationResponse'];
 export type KeyHealthCheckResponse = components['schemas']['KeyHealthCheckResponse'];
 export type LeaveOrganizationRequest = components['schemas']['LeaveOrganizationRequest'];
+export type LinkedSchemaRef = components['schemas']['LinkedSchemaRef'];
 export type LlmModel = components['schemas']['LLMModel'];
 export type LoginRequest = components['schemas']['LoginRequest'];
 export type LoginResponse = components['schemas']['LoginResponse'];
@@ -13805,7 +14635,6 @@ export type SchemaDatabaseCreateRequest = components['schemas']['SchemaDatabaseC
 export type SchemaDatabaseCreateResponse = components['schemas']['SchemaDatabaseCreateResponse'];
 export type SchemaDatabasesListResponse = components['schemas']['SchemaDatabasesListResponse'];
 export type SchemaDatabaseUpdateRequest = components['schemas']['SchemaDatabaseUpdateRequest'];
-export type SchemaDatabaseWithSchema = components['schemas']['SchemaDatabaseWithSchema'];
 export type SchemaEventSubscription = components['schemas']['SchemaEventSubscription'];
 export type SchemaEventSubscriptionCreateRequest = components['schemas']['SchemaEventSubscriptionCreateRequest'];
 export type SchemaEventSubscriptionCreateResponse = components['schemas']['SchemaEventSubscriptionCreateResponse'];
@@ -13815,9 +14644,12 @@ export type SchemaPromptRequest = components['schemas']['SchemaPromptRequest'];
 export type SchemaPromptResponse = components['schemas']['SchemaPromptResponse'];
 export type SchemaPromptStreamRequest = components['schemas']['SchemaPromptStreamRequest'];
 export type SchemaPropMatch = components['schemas']['SchemaPropMatch'];
+export type SchemaSemanticUsage = components['schemas']['SchemaSemanticUsage'];
 export type ScoreBenchmarkJobResponse = components['schemas']['ScoreBenchmarkJobResponse'];
 export type ScoreBenchmarkRequest = components['schemas']['ScoreBenchmarkRequest'];
 export type SemanticConceptRef = components['schemas']['SemanticConceptRef'];
+export type SemanticConceptUsage = components['schemas']['SemanticConceptUsage'];
+export type SemanticKeyUsageResponse = components['schemas']['SemanticKeyUsageResponse'];
 export type SetBenchmarkReferenceRequest = components['schemas']['SetBenchmarkReferenceRequest'];
 export type SingleEnrichmentResponse = components['schemas']['SingleEnrichmentResponse'];
 export type SingleEnrichmentSyncResponse = components['schemas']['SingleEnrichmentSyncResponse'];
@@ -13835,6 +14667,7 @@ export type SseClassificationMismatchPause = components['schemas']['SSEClassific
 export type SseClassificationStarted = components['schemas']['SSEClassificationStarted'];
 export type SseConflictsDetected = components['schemas']['SSEConflictsDetected'];
 export type SseEntityCompleted = components['schemas']['SSEEntityCompleted'];
+export type SseEntitySkipped = components['schemas']['SSEEntitySkipped'];
 export type SseEntityStarted = components['schemas']['SSEEntityStarted'];
 export type SseError = components['schemas']['SSEError'];
 export type SseExpertiseCompleted = components['schemas']['SSEExpertiseCompleted'];
@@ -13847,6 +14680,7 @@ export type SseModelAutoSelected = components['schemas']['SSEModelAutoSelected']
 export type SseModelCompleted = components['schemas']['SSEModelCompleted'];
 export type SseModelStarted = components['schemas']['SSEModelStarted'];
 export type SseSampleClarificationPause = components['schemas']['SSESampleClarificationPause'];
+export type SseSampleInstanceProgress = components['schemas']['SSESampleInstanceProgress'];
 export type SseSampleQuestion = components['schemas']['SSESampleQuestion'];
 export type SseSampleQuestionOption = components['schemas']['SSESampleQuestionOption'];
 export type SseScoringCompleted = components['schemas']['SSEScoringCompleted'];
@@ -13868,6 +14702,7 @@ export type SubscriptionPlanInput = components['schemas']['SubscriptionPlanInput
 export type SubscriptionPlanWithLimits = components['schemas']['SubscriptionPlanWithLimits'];
 export type SyncEnrichRequest = components['schemas']['SyncEnrichRequest'];
 export type SyncGenerateRequest = components['schemas']['SyncGenerateRequest'];
+export type SyncGenerateSampleRequest = components['schemas']['SyncGenerateSampleRequest'];
 export type TaskModelDefaults = components['schemas']['TaskModelDefaults'];
 export type TestConnectionResponse = components['schemas']['TestConnectionResponse'];
 export type TunnelAccessTokenResponse = components['schemas']['TunnelAccessTokenResponse'];
@@ -16802,6 +17637,194 @@ export interface operations {
             };
         };
     };
+    cancel_device_code_api_database_sync_cancel__user_code__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_device_code_api_database_sync_confirm__user_code__post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                user_code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatabaseDeviceCodeConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseCredentialResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_device_code_api_database_sync_device_code_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceCodeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    exchange_token_api_database_sync_exchange_post: {
+        parameters: {
+            query: {
+                /** @description Refresh token from pairing */
+                refresh_token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseAccessTokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    poll_device_code_api_database_sync_poll_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceCodePollRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseDevicePollResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_snapshot_as_client_api_database_sync_snapshot_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     list_org_databases_api_databases_get: {
         parameters: {
             query?: {
@@ -17094,6 +18117,264 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeltaAckResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_database_credential_api_databases__database_id__credential_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseCredentialState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_database_credential_api_databases__database_id__credential_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseCredentialCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_database_credential_api_databases__database_id__credential_delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_database_relational_map_api_databases__database_id__relational_map_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseRelationalMapResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_schema_to_database_api_databases__database_id__schemas__schema_id__post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseSchemaLinkResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unlink_schema_from_database_api_databases__database_id__schemas__schema_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_schema_link_api_databases__database_id__schemas__schema_id__validate_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseLinkValidationResult"];
                 };
             };
             /** @description Validation Error */
@@ -17794,7 +19075,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
+                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
                 };
             };
         };
@@ -20161,6 +21442,47 @@ export interface operations {
             };
         };
     };
+    generate_sample_sync_api_schema_sample_generate_sync_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                "Accept-Language"?: string | null;
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncGenerateSampleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_saved_schemas_api_schema_saved_get: {
         parameters: {
             query?: {
@@ -20275,6 +21597,7 @@ export interface operations {
     delete_saved_schema_api_schema_saved__schema_id__delete: {
         parameters: {
             query?: {
+                cascade?: boolean;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
@@ -20432,6 +21755,7 @@ export interface operations {
     permanently_delete_schema_api_schema_saved__schema_id__permanent_delete: {
         parameters: {
             query?: {
+                cascade?: boolean;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
@@ -20573,6 +21897,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_semantic_key_usage_api_schema_saved_semantic_key_usage_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SemanticKeyUsageResponse"];
                 };
             };
             /** @description Validation Error */

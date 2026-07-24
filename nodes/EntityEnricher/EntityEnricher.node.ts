@@ -15,6 +15,7 @@ import * as addAttachment from './operations/addAttachment';
 import * as batchEnrich from './operations/batchEnrich';
 import * as deleteAttachment from './operations/deleteAttachment';
 import * as enrichEntity from './operations/enrichEntity';
+import * as generateSample from './operations/generateSample';
 import * as getOptions from './operations/getOptions';
 import * as getRecord from './operations/getRecord';
 import * as getSchemaDetails from './operations/getSchemaDetails';
@@ -175,6 +176,12 @@ export class EntityEnricher implements INodeType {
 						value: 'getSchemaDetails',
 						description: 'Get a schema with its full content and search keys',
 						action: 'Get schema details',
+					},
+					{
+						name: 'Generate Sample',
+						value: 'generateSample',
+						description: 'Generate 1..N realistic sample JSON objects of one entity type — the entry point of the schema-authoring loop',
+						action: 'Generate a sample entity',
 					},
 				],
 				default: 'listSchemas',
@@ -467,6 +474,112 @@ export class EntityEnricher implements INodeType {
 						operation: ['getSchemaDetails'],
 					},
 				},
+			},
+
+			// ─── Generate Sample Parameters ───
+
+			{
+				displayName: 'Entity Type',
+				name: 'sampleEntityType',
+				type: 'string',
+				required: true,
+				default: '',
+				placeholder: 'e.g. Pharmaceutical Company',
+				description: 'What kind of entity to sample',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
+			},
+			{
+				displayName: 'Sample Count',
+				name: 'sampleCount',
+				type: 'number',
+				typeOptions: { minValue: 1, maxValue: 20 },
+				default: 1,
+				description: 'How many samples of this entity type to generate in one job. The first defines the field set (full pipeline incl. determinism analysis); the rest are fast parallel follow-up turns that keep the same fields and invent values for a different typical instance. Forced to 1 whenever Attachment IDs is set.',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
+			},
+			{
+				displayName: 'Typical Instances',
+				name: 'typicalObjects',
+				type: 'string',
+				default: '',
+				placeholder: 'e.g. Sanofi, Pfizer',
+				description: 'Comma-separated concrete instances to anchor knowledge mode, up to Sample Count, one per generated sample in order — samples beyond the number given are auto-invented',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
+			},
+			{
+				displayName: 'Fields',
+				name: 'sampleFields',
+				type: 'string',
+				default: '',
+				placeholder: 'e.g. name, headquarters, revenue',
+				description: 'Comma-separated field names the sample must include (the model may add others)',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
+			},
+			{
+				displayName: 'Naming Convention',
+				name: 'namingConvention',
+				type: 'options',
+				options: [
+					{ name: 'Auto', value: 'auto' },
+					{ name: 'snake_case', value: 'snake_case' },
+					{ name: 'camelCase', value: 'camelCase' },
+				],
+				default: 'auto',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
+			},
+			{
+				displayName: 'Attachment IDs',
+				name: 'sampleAttachmentIds',
+				type: 'string',
+				default: '',
+				placeholder: 'e.g. 3fa85f64-..., 7c9e6679-...',
+				description: 'Comma-separated attachment UUIDs (from Add Attachment). Switches into source mode: transcribe the document or describe visible photo attributes only. Forces Sample Count to 1.',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
+			},
+			{
+				displayName: 'Extra Instructions',
+				name: 'sampleExtraInstructions',
+				type: 'string',
+				typeOptions: { rows: 3 },
+				default: '',
+				description: 'Free-form guidance appended to the prompt',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
+			},
+			{
+				displayName: 'Enable Web Search',
+				name: 'sampleEnableWebSearch',
+				type: 'options',
+				options: [
+					{ name: 'Off', value: 'off' },
+					{ name: 'On', value: 'on' },
+				],
+				default: 'off',
+				description: 'Ground knowledge mode with the model\'s builtin web-search tool (ignored in source mode and for models without search support)',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
+			},
+			{
+				displayName: 'Language',
+				name: 'sampleLanguage',
+				type: 'string',
+				default: 'en',
+				description: 'Output language code for field names AND values (e.g. \'en\', \'fr\')',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
+			},
+			{
+				displayName: 'Model',
+				name: 'sampleModel',
+				type: 'string',
+				default: 'auto',
+				description: '\'auto\' (default) lets the server pick the org\'s default sample-generation model',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
+			},
+			{
+				displayName: 'Timeout (Ms)',
+				name: 'sampleTimeout',
+				type: 'number',
+				default: 300000,
+				description: 'Maximum time to wait for generation to complete',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
 			},
 
 			// Record ID (get record)
@@ -1207,6 +1320,8 @@ export class EntityEnricher implements INodeType {
 					results = await getRecord.execute(this, i);
 				} else if (resource === 'schema' && operation === 'getSchemaDetails') {
 					results = await getSchemaDetails.execute(this, i);
+				} else if (resource === 'schema' && operation === 'generateSample') {
+					results = await generateSample.execute(this, i);
 				} else if (resource === 'attachment' && operation === 'addAttachment') {
 					results = await addAttachment.execute(this, i);
 				} else if (resource === 'attachment' && operation === 'deleteAttachment') {
