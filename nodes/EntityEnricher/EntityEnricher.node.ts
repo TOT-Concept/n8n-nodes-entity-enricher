@@ -16,6 +16,7 @@ import * as batchEnrich from './operations/batchEnrich';
 import * as deleteAttachment from './operations/deleteAttachment';
 import * as enrichEntity from './operations/enrichEntity';
 import * as generateSample from './operations/generateSample';
+import * as generateSchema from './operations/generateSchema';
 import * as getOptions from './operations/getOptions';
 import * as getRecord from './operations/getRecord';
 import * as getSchemaDetails from './operations/getSchemaDetails';
@@ -182,6 +183,12 @@ export class EntityEnricher implements INodeType {
 						value: 'generateSample',
 						description: 'Generate 1..N realistic sample JSON objects of one entity type — the entry point of the schema-authoring loop',
 						action: 'Generate a sample entity',
+					},
+					{
+						name: 'Generate Schema',
+						value: 'generateSchema',
+						description: 'Generate and auto-save a JSON schema from the input items — every item is one sample of the same entity type (multi-sample: union of fields, nullable where missing, real observed examples)',
+						action: 'Generate a schema from samples',
 					},
 				],
 				default: 'listSchemas',
@@ -580,6 +587,72 @@ export class EntityEnricher implements INodeType {
 				default: 300000,
 				description: 'Maximum time to wait for generation to complete',
 				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
+			},
+
+			// ─── Generate Schema Parameters ───
+
+			{
+				displayName: 'Every input item is one sample of the SAME entity type. The generated schema covers the union of their fields: a field missing or null in any item becomes nullable, and distinct observed values become the property examples. The schema is auto-saved to your organization.',
+				name: 'generateSchemaNotice',
+				type: 'notice',
+				default: '',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSchema'] } },
+			},
+			{
+				displayName: 'Model',
+				name: 'schemaGenModel',
+				type: 'string',
+				default: 'auto',
+				description: '\'auto\' (default) lets the server pick the org\'s default schema-generation model',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSchema'] } },
+			},
+			{
+				displayName: 'Strategy',
+				name: 'schemaGenStrategy',
+				type: 'options',
+				options: [
+					{ name: 'Auto (Server Default)', value: 'auto' },
+					{ name: 'Multi-Step (Staged)', value: 'staged' },
+					{ name: 'Single Call (Monolithic)', value: 'monolithic' },
+				],
+				default: 'auto',
+				description: 'Generation pipeline: staged (small single-concern calls, small-model friendly) or monolithic (legacy single call)',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSchema'] } },
+			},
+			{
+				displayName: 'Generate Semantic IDs',
+				name: 'schemaGenSemanticIds',
+				type: 'boolean',
+				default: false,
+				description: 'Whether to add a semantic_id property to every object with a key source (enables embedding-based entity resolution)',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSchema'] } },
+			},
+			{
+				displayName: 'Commonality Threshold',
+				name: 'schemaGenCommonalityThreshold',
+				type: 'number',
+				typeOptions: { minValue: 0.05, maxValue: 1, numberPrecision: 2 },
+				default: 0.5,
+				description: 'Minimum share (0..1) of the combined field set every input item must cover — mixed entity types fail before any LLM call',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSchema'] } },
+			},
+			{
+				displayName: 'Extra Instructions',
+				name: 'schemaGenExtraInstructions',
+				type: 'string',
+				typeOptions: { rows: 3 },
+				default: '',
+				description: 'Free-form guidance appended to the prompt',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSchema'] } },
+			},
+			{
+				displayName: 'Timeout (Seconds)',
+				name: 'schemaGenTimeout',
+				type: 'number',
+				typeOptions: { minValue: 10, maxValue: 900 },
+				default: 300,
+				description: 'Maximum time to wait for generation to complete',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSchema'] } },
 			},
 
 			// Record ID (get record)
@@ -1306,6 +1379,12 @@ export class EntityEnricher implements INodeType {
 		// Batch Enrich (simple or advanced) processes all items at once
 		if (resource === 'enrichment' && (operation === 'batchEnrich' || operation === 'batchEnrichSimple')) {
 			returnData = await batchEnrich.execute(this, searchKeys, profileLimits);
+			return [returnData];
+		}
+
+		// Generate Schema consumes ALL input items as samples of one entity type
+		if (resource === 'schema' && operation === 'generateSchema') {
+			returnData = await generateSchema.execute(this);
 			return [returnData];
 		}
 

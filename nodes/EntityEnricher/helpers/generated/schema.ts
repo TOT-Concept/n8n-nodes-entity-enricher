@@ -574,6 +574,32 @@ export type paths = {
         patch: operations["update_organization_api_auth_organization_patch"];
         trace?: never;
     };
+    "/api/auth/organization/account-type": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change Account Type
+         * @description Switch the organization between a personal workspace and a real tenant.
+         *
+         *     Upgrading to `business` renames the org — this is the one path allowed to change the
+         *     slug, so any existing Ollama tunnel keeps pointing at the old `ollama.<slug>.tunnel`
+         *     hostname and must be recreated (the caller is warned client-side).
+         *     Downgrading to `individual` keeps the current name and slug, and is refused unless the
+         *     caller is the only member — an individual account is single-user by definition.
+         */
+        put: operations["change_account_type_api_auth_organization_account_type_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/organizations/join": {
         parameters: {
             query?: never;
@@ -672,6 +698,11 @@ export type paths = {
          *     Called after Firebase authentication on the client.
          *     If no system admin exists, the registering user becomes system admin.
          *     Otherwise, the first user in a new organization becomes owner.
+         *
+         *     A `business` registration creates the organization the caller named; an `individual`
+         *     one silently creates a `<username>-org` personal workspace instead, so a solo user
+         *     never has to invent a company. Both produce a real organization row — the account
+         *     type only changes how it is named, searched, and surfaced in the UI.
          */
         post: operations["register_api_auth_register_post"];
         delete?: never;
@@ -1205,6 +1236,30 @@ export type paths = {
         put?: never;
         /** Create Subscription Checkout */
         post: operations["create_subscription_checkout_api_billing_subscription_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/subscription/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume Subscription
+         * @description Undo a pending downgrade / cancellation and keep the current plan renewing.
+         *
+         *     Mirrors the scheduling path: clears the local schedule and lifts Stripe's
+         *     cancel_at_period_end so the subscription renews normally. Safe to call when nothing
+         *     is scheduled — it simply reasserts the non-cancelled state.
+         */
+        post: operations["resume_subscription_api_billing_subscription_resume_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3894,6 +3949,25 @@ export type paths = {
 export type webhooks = Record<string, never>;
 export type components = {
     schemas: {
+        /**
+         * AccountTypeChangeRequest
+         * @description Switch the organization between a personal workspace and a real tenant.
+         *
+         *     Upgrading to `business` requires a name and slug (the auto-generated `<username>-org`
+         *     slug is not a sensible company identity). Downgrading to `individual` keeps the current
+         *     name and slug and is refused unless the caller is the org's only member.
+         */
+        AccountTypeChangeRequest: {
+            /**
+             * Account Type
+             * @enum {string}
+             */
+            account_type: "individual" | "business";
+            /** Name */
+            name?: string | null;
+            /** Slug */
+            slug?: string | null;
+        };
         /** AllocateCreditsRequest */
         AllocateCreditsRequest: {
             /** Amount */
@@ -6217,6 +6291,36 @@ export type components = {
             composite_key?: string | null;
         };
         /**
+         * EnrichmentDatabaseOutcome
+         * @description Per-enrichment entity-layer outcome.
+         *
+         *     Returned on the enrichment/fusion responses (REST, MCP) and dispatched
+         *     over schema-event webhooks: a successful enrichment the admission gate
+         *     refused never reaches the consumer's replica, so the caller must be able
+         *     to see that without subscribing to anything.
+         */
+        EnrichmentDatabaseOutcome: {
+            /**
+             * Delta Count
+             * @default 0
+             */
+            delta_count: number;
+            /**
+             * Entity Count
+             * @default 0
+             */
+            entity_count: number;
+            /** Missing Fields */
+            missing_fields?: string[];
+            /**
+             * Reason
+             * @description When saved=false: why (e.g. missing required fields)
+             */
+            reason?: string | null;
+            /** Saved */
+            saved: boolean;
+        };
+        /**
          * EnrichmentOptionsResponse
          * @description Available options for enrichment.
          */
@@ -6603,6 +6707,8 @@ export type components = {
              * @description Cost of LLM arbitration (None if rule-based)
              */
             cost_usd?: number | null;
+            /** @description Entity-layer outcome for the merged result (docs/ENTITY_LAYER.md). saved=false carries the admission-gate rejection reason — a fused result can validate yet still be refused by a require_complete database because merging left required fields null. */
+            database?: components["schemas"]["EnrichmentDatabaseOutcome"] | null;
             /** Error Message */
             error_message?: string | null;
             /**
@@ -8308,6 +8414,12 @@ export type components = {
          * @description Full organization detail for the Settings > Organization pages.
          */
         OrganizationDetailResponse: {
+            /**
+             * Account Type
+             * @default business
+             * @enum {string}
+             */
+            account_type: "individual" | "business";
             /** Address Line1 */
             address_line1?: string | null;
             /** Address Line2 */
@@ -8370,6 +8482,12 @@ export type components = {
         };
         /** OrganizationResponse */
         OrganizationResponse: {
+            /**
+             * Account Type
+             * @default business
+             * @enum {string}
+             */
+            account_type: "individual" | "business";
             /**
              * Billing Page Access
              * @default false
@@ -8442,6 +8560,12 @@ export type components = {
              */
             organization_id: string;
             plan: components["schemas"]["SubscriptionPlan"];
+            /** Scheduled Change At */
+            scheduled_change_at?: string | null;
+            /** Scheduled Plan Display Name */
+            scheduled_plan_display_name?: string | null;
+            /** Scheduled Plan Name */
+            scheduled_plan_name?: string | null;
             /** Status */
             status: string;
             /** Vat Id */
@@ -8455,8 +8579,8 @@ export type components = {
         /**
          * OrganizationUpdate
          * @description Partial update of organization information. Omitted fields are left unchanged;
-         *     explicit nulls clear the value. Slug is intentionally not updatable (tunnel hostnames
-         *     embed it). Requires owner+ role.
+         *     explicit nulls clear the value. Slug is intentionally not updatable here (tunnel
+         *     hostnames embed it) — only the account-type switch may rename it. Requires owner+ role.
          */
         OrganizationUpdate: {
             /** Address Line1 */
@@ -9962,17 +10086,28 @@ export type components = {
         /**
          * RegisterRequest
          * @description Self-registration request (after Firebase auth).
+         *
+         *     A `business` registration carries the organization the user is creating. An
+         *     `individual` registration carries none: the backend derives a personal workspace
+         *     named `<username>-org` from the verified email, resolving slug collisions itself
+         *     (a client can't, since it doesn't know which slugs are taken at commit time).
          */
         RegisterRequest: {
+            /**
+             * Account Type
+             * @default business
+             * @enum {string}
+             */
+            account_type: "individual" | "business";
             /**
              * Firebase Id Token
              * @description Firebase ID token from client
              */
             firebase_id_token: string;
             /** Organization Name */
-            organization_name: string;
+            organization_name?: string | null;
             /** Organization Slug */
-            organization_slug: string;
+            organization_slug?: string | null;
         };
         /**
          * RelationalChildTable
@@ -10299,6 +10434,13 @@ export type components = {
          * @description Request model for creating a saved schema.
          */
         SavedSchemaCreate: {
+            /**
+             * Entity Samples
+             * @description 1..N sample objects the schema was generated from (restores the sample panel on reopen)
+             */
+            entity_samples?: {
+                [key: string]: unknown;
+            }[] | null;
             /** Form Values */
             form_values?: {
                 [key: string]: unknown;
@@ -10320,10 +10462,6 @@ export type components = {
              * @default true
              */
             non_determinism_enabled: boolean;
-            /** Sample Json */
-            sample_json?: {
-                [key: string]: unknown;
-            } | null;
             schema_content: components["schemas"]["GeneratedJsonSchema-Input"];
             /** Tags */
             tags?: string[];
@@ -10379,6 +10517,10 @@ export type components = {
              * Format: date-time
              */
             created_at: string;
+            /** Entity Samples */
+            entity_samples?: {
+                [key: string]: unknown;
+            }[] | null;
             /** Form Values */
             form_values?: {
                 [key: string]: unknown;
@@ -10406,10 +10548,6 @@ export type components = {
              * @default true
              */
             non_determinism_enabled: boolean;
-            /** Sample Json */
-            sample_json?: {
-                [key: string]: unknown;
-            } | null;
             schema_content: components["schemas"]["GeneratedJsonSchema-Output"];
             /** Tags */
             tags: string[];
@@ -10424,6 +10562,10 @@ export type components = {
          * @description Request model for updating a saved schema.
          */
         SavedSchemaUpdate: {
+            /** Entity Samples */
+            entity_samples?: {
+                [key: string]: unknown;
+            }[] | null;
             /** Form Values */
             form_values?: {
                 [key: string]: unknown;
@@ -10434,10 +10576,6 @@ export type components = {
             name?: string | null;
             /** Non Determinism Enabled */
             non_determinism_enabled?: boolean | null;
-            /** Sample Json */
-            sample_json?: {
-                [key: string]: unknown;
-            } | null;
             schema_content?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
             /** Tags */
             tags?: string[] | null;
@@ -10868,6 +11006,8 @@ export type components = {
             cancelled: boolean;
             /** Cost Usd */
             cost_usd?: number | null;
+            /** @description Entity-layer outcome when the schema has a registered database (docs/ENTITY_LAYER.md): saved=true with entity/delta counts, or saved=false with the rejection reason and missing_fields. Absent when the schema has no database — a successful enrichment whose entity was NOT admitted must not look like a synced one. */
+            database?: components["schemas"]["EnrichmentDatabaseOutcome"] | null;
             /**
              * Error Code
              * @description Typed failure code when success=false — e.g. 'model_retired' (provider retired the model, now deactivated), 'rate_limited', 'context_length_exceeded', 'provider_timeout'. Absent on success.
@@ -10914,6 +11054,8 @@ export type components = {
         SingleEnrichmentSyncResponse: {
             /** Cost Usd */
             cost_usd?: number | null;
+            /** @description Entity-layer outcome for the final (fused or best single-model) result — see SingleEnrichmentResponse.database. saved=false means the enrichment succeeded but the entity was rejected by the database's admission gate, so it will NOT appear in the replica. */
+            database?: components["schemas"]["EnrichmentDatabaseOutcome"] | null;
             /**
              * Failed Models
              * @description Models that failed in this run (set whenever at least one requested model produced no successful result — e.g. a 2-model request that degraded to a single un-fused result)
@@ -13560,12 +13702,12 @@ export type components = {
              */
             attachment_ids?: string[] | null;
             /**
-             * Entity Data
-             * @description Entity data to analyze
+             * Entity Samples
+             * @description 1..N sample objects of the SAME entity type to analyze. The schema covers the union of their fields; a field missing or null in any sample becomes nullable, and distinct observed values seed the property examples. A bare object is accepted and treated as [object].
              */
-            entity_data: {
+            entity_samples: {
                 [key: string]: unknown;
-            };
+            }[];
             /**
              * Extra Instructions
              * @description Optional free-form user instructions appended to the system prompt.
@@ -13588,6 +13730,12 @@ export type components = {
              * @default auto
              */
             model: string;
+            /**
+             * Sample Commonality Threshold
+             * @description Minimum share (0..1) of the combined field-path set every sample must cover — mixed entity types hard-fail with HTTP 400 before any LLM call.
+             * @default 0.5
+             */
+            sample_commonality_threshold: number;
             /**
              * Sample Inputs
              * @description Optional guided-form inputs (entity type, typical example, naming, extra instructions) that produced the sample; persisted under generation_params.sample_inputs so the sample panel can be fully restored when the schema is reopened.
@@ -13975,12 +14123,12 @@ export type components = {
              */
             attachment_ids?: string[] | null;
             /**
-             * Entity Data
-             * @description Entity data to analyze
+             * Entity Samples
+             * @description 1..N sample objects of the SAME entity type to analyze. The schema covers the union of their fields; a field missing or null in any sample becomes nullable, and distinct observed values seed the property examples. A bare object is accepted and treated as [object].
              */
-            entity_data: {
+            entity_samples: {
                 [key: string]: unknown;
-            };
+            }[];
             /**
              * Extra Instructions
              * @description Optional free-form user instructions appended to the system prompt.
@@ -14003,6 +14151,12 @@ export type components = {
              * @default auto
              */
             model: string;
+            /**
+             * Sample Commonality Threshold
+             * @description Minimum share (0..1) of the combined field-path set every sample must cover — mixed entity types hard-fail with HTTP 400 before any LLM call.
+             * @default 0.5
+             */
+            sample_commonality_threshold: number;
             /**
              * Sample Inputs
              * @description Optional guided-form inputs (entity type, typical example, naming, extra instructions) that produced the sample; persisted under generation_params.sample_inputs so the sample panel can be fully restored when the schema is reopened.
@@ -14420,6 +14574,7 @@ export type components = {
     headers: never;
     pathItems: never;
 };
+export type AccountTypeChangeRequest = components['schemas']['AccountTypeChangeRequest'];
 export type AllocateCreditsRequest = components['schemas']['AllocateCreditsRequest'];
 export type AnalyzeSampleRequest = components['schemas']['AnalyzeSampleRequest'];
 export type ApiKeyCreate = components['schemas']['ApiKeyCreate'];
@@ -14514,6 +14669,7 @@ export type DeviceCodeResponse = components['schemas']['DeviceCodeResponse'];
 export type DiscoveredModel = components['schemas']['DiscoveredModel'];
 export type DiscoverModelsResponse = components['schemas']['DiscoverModelsResponse'];
 export type EmbeddingModelSetting = components['schemas']['EmbeddingModelSetting'];
+export type EnrichmentDatabaseOutcome = components['schemas']['EnrichmentDatabaseOutcome'];
 export type EnrichmentOptionsResponse = components['schemas']['EnrichmentOptionsResponse'];
 export type EnrichmentPromptSummary = components['schemas']['EnrichmentPromptSummary'];
 export type EntityDefinitionInput = components['schemas']['EntityDefinition-Input'];
@@ -15808,6 +15964,45 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["OrganizationUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_account_type_api_auth_organization_account_type_put: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountTypeChangeRequest"];
             };
         };
         responses: {
@@ -17204,6 +17399,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CheckoutSessionResponse"] | {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resume_subscription_api_billing_subscription_resume_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
                         [key: string]: unknown;
                     };
                 };
