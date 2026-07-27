@@ -479,6 +479,30 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/dev-login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the local sign-in personas
+         * @description Personas seeded into a local working copy (free / pro / premium / admin / editor @localhost). Returns 404 when local sign-in is not enabled, which is how the login page decides whether to show the picker.
+         */
+        get: operations["list_dev_personas_api_auth_dev_login_get"];
+        put?: never;
+        /**
+         * Sign in as a local persona, without Firebase
+         * @description Mints the ordinary session (same JWT, role and plan limits as a Firebase login) for a seeded @localhost persona. Enabled by AUTH_DEV_LOGIN on a local deployment only; 404 otherwise.
+         */
+        post: operations["dev_login_endpoint_api_auth_dev_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/leave-organization": {
         parameters: {
             query?: never;
@@ -720,7 +744,7 @@ export type paths = {
         };
         /**
          * List Users
-         * @description List all active users in the organization (owner or higher).
+         * @description List active users in the organization (owner or higher), optionally including deactivated ones.
          */
         get: operations["list_users_api_auth_users_get"];
         put?: never;
@@ -769,6 +793,26 @@ export type paths = {
          * @description Approve or reject a pending user (owner or higher).
          */
         patch: operations["approve_or_reject_user_api_auth_users__user_id__approval_patch"];
+        trace?: never;
+    };
+    "/api/auth/users/{user_id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reactivate User
+         * @description Reactivate a deactivated user in the organization (owner or higher).
+         */
+        post: operations["reactivate_user_api_auth_users__user_id__reactivate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/auth/users/{user_id}/role": {
@@ -5743,18 +5787,6 @@ export type components = {
             expires_in: number;
         };
         /**
-         * DatabaseChecksumResponse
-         * @description Cheap convergence verification: one hash per projected table.
-         */
-        DatabaseChecksumResponse: {
-            /** As Of Delta Id */
-            as_of_delta_id?: number | null;
-            /** Tables */
-            tables: {
-                [key: string]: string;
-            };
-        };
-        /**
          * DatabaseCredentialCreateResponse
          * @description One-time response on creation — the only chance to read the refresh token.
          */
@@ -5867,11 +5899,143 @@ export type components = {
              */
             status: "pending" | "ok" | "expired" | "cancelled" | "not_found";
         };
+        /** DatabaseSync */
+        DatabaseSync: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Dialect */
+            dialect: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Max Threshold Timeout S */
+            max_threshold_timeout_s: number;
+            /** Name */
+            name: string;
+            /** Notify Debounce S */
+            notify_debounce_s: number;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** Page Limit */
+            page_limit: number;
+            /**
+             * Pending Deltas
+             * @default 0
+             */
+            pending_deltas: number;
+            /** Purge Entity State */
+            purge_entity_state: boolean;
+            /** Purge On Ack */
+            purge_on_ack: boolean;
+            /** Require Complete */
+            require_complete: boolean;
+            /**
+             * Schemas
+             * @description Schemas linked to this database (their union is what it syncs)
+             */
+            schemas?: components["schemas"]["LinkedSchemaRef"][];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Webhook Url */
+            webhook_url?: string | null;
+        };
         /**
-         * DatabaseLinkValidationResult
+         * DatabaseSyncChecksumResponse
+         * @description Cheap convergence verification: one hash per projected table.
+         */
+        DatabaseSyncChecksumResponse: {
+            /** As Of Delta Id */
+            as_of_delta_id?: number | null;
+            /** Tables */
+            tables: {
+                [key: string]: string;
+            };
+        };
+        /** DatabaseSyncCreateRequest */
+        DatabaseSyncCreateRequest: {
+            /**
+             * Dialect
+             * @default postgres
+             * @constant
+             */
+            dialect: "postgres";
+            /**
+             * Max Threshold Timeout S
+             * @description Hard cap on the debounce: a notification fires at most this many seconds after the first unsent delta, even while new deltas keep resetting the timer
+             * @default 300
+             */
+            max_threshold_timeout_s: number;
+            /** Name */
+            name: string;
+            /**
+             * Notify Debounce S
+             * @description Quiet period before a delta-available notification: each new delta resets the timer, so a burst is announced once
+             * @default 30
+             */
+            notify_debounce_s: number;
+            /**
+             * Page Limit
+             * @description Delta batch size
+             * @default 100
+             */
+            page_limit: number;
+            /**
+             * Purge Entity State
+             * @description Also delete entity rows once every database of the schema acknowledged their latest revision (data minimization — not GDPR erasure; records remain)
+             * @default false
+             */
+            purge_entity_state: boolean;
+            /**
+             * Purge On Ack
+             * @description Delete delivered delta copies once acknowledged
+             * @default false
+             */
+            purge_on_ack: boolean;
+            /**
+             * Require Complete
+             * @description Admission gate: only enrichments with all non-nullable fields filled are recorded
+             * @default true
+             */
+            require_complete: boolean;
+        };
+        /** DatabaseSyncCreateResponse */
+        DatabaseSyncCreateResponse: {
+            database: components["schemas"]["DatabaseSync"];
+            /** Stamped Keys */
+            stamped_keys?: components["schemas"]["EntityTypeKeys"][];
+            /**
+             * Webhook Secret
+             * @description Signing key for webhook payloads — also retrievable anytime via GET /databases/{id}/webhook-secret (owner)
+             */
+            webhook_secret?: string | null;
+        };
+        /** DatabaseSyncLinkResponse */
+        DatabaseSyncLinkResponse: {
+            database: components["schemas"]["DatabaseSync"];
+            /**
+             * Ddl Delta Id
+             * @description Id of the queued additive DDL delta (None when the link needed no consumer-side DDL)
+             */
+            ddl_delta_id?: number | null;
+            /** Stamped Keys */
+            stamped_keys?: components["schemas"]["EntityTypeKeys"][];
+        };
+        /**
+         * DatabaseSyncLinkValidationResult
          * @description Dry-run of linking a schema to an existing database (compare step).
          */
-        DatabaseLinkValidationResult: {
+        DatabaseSyncLinkValidationResult: {
             /**
              * Adopted Key Language
              * @description Key language the candidate schema will adopt from the database's already-linked schemas on link (multilingual database keys only; None when nothing is adopted)
@@ -5905,33 +6069,81 @@ export type components = {
             /** Valid */
             valid: boolean;
         };
+        /** DatabaseSyncListResponse */
+        DatabaseSyncListResponse: {
+            /** Databases */
+            databases: components["schemas"]["DatabaseSync"][];
+            /** Total */
+            total: number;
+        };
         /**
-         * DatabaseRelationalMapResponse
+         * DatabaseSyncOutcome
+         * @description Per-enrichment entity-layer outcome.
+         *
+         *     Returned on the enrichment/fusion responses (REST, MCP) and dispatched
+         *     over schema-event webhooks: a successful enrichment the admission gate
+         *     refused never reaches the consumer's replica, so the caller must be able
+         *     to see that without subscribing to anything.
+         */
+        DatabaseSyncOutcome: {
+            /**
+             * Delta Count
+             * @default 0
+             */
+            delta_count: number;
+            /**
+             * Entity Count
+             * @default 0
+             */
+            entity_count: number;
+            /** Missing Fields */
+            missing_fields?: string[];
+            /**
+             * Reason
+             * @description When saved=false: why (e.g. missing required fields)
+             */
+            reason?: string | null;
+            /** Saved */
+            saved: boolean;
+        };
+        /**
+         * DatabaseSyncRelationalMapResponse
          * @description Merged projection of every schema linked to a database: shared entity
          *     types appear once with the union of their columns.
          */
-        DatabaseRelationalMapResponse: {
+        DatabaseSyncRelationalMapResponse: {
             /** Root Entity Types */
             root_entity_types: string[];
             /** Tables */
             tables: components["schemas"]["RelationalTable"][];
         };
-        /** DatabaseSchemaLinkResponse */
-        DatabaseSchemaLinkResponse: {
-            database: components["schemas"]["SchemaDatabase"];
+        /** DatabaseSyncUpdateRequest */
+        DatabaseSyncUpdateRequest: {
+            /** Max Threshold Timeout S */
+            max_threshold_timeout_s?: number | null;
+            /** Name */
+            name?: string | null;
+            /** Notify Debounce S */
+            notify_debounce_s?: number | null;
+            /** Page Limit */
+            page_limit?: number | null;
+            /** Purge Entity State */
+            purge_entity_state?: boolean | null;
+            /** Purge On Ack */
+            purge_on_ack?: boolean | null;
+            /** Require Complete */
+            require_complete?: boolean | null;
             /**
-             * Ddl Delta Id
-             * @description Id of the queued additive DDL delta (None when the link needed no consumer-side DDL)
+             * Webhook Url
+             * @description Delta-available notification endpoint. Registered by the consumer (the n8n trigger sets it automatically); null detaches it
              */
-            ddl_delta_id?: number | null;
-            /** Stamped Keys */
-            stamped_keys?: components["schemas"]["EntityTypeKeys"][];
+            webhook_url?: string | null;
         };
         /**
-         * DatabaseValidationResult
+         * DatabaseSyncValidationResult
          * @description Dry-run result of linking a database to a schema (review step).
          */
-        DatabaseValidationResult: {
+        DatabaseSyncValidationResult: {
             /**
              * Already Stamped
              * @description True when the schema already carries database_key flags (no stamping needed)
@@ -6187,6 +6399,38 @@ export type components = {
             verification_uri_complete: string;
         };
         /**
+         * DevLoginRequest
+         * @description Sign in as a seeded local persona (local working copies only).
+         */
+        DevLoginRequest: {
+            /**
+             * Email
+             * @description Persona address, e.g. free@localhost
+             */
+            email: string;
+        };
+        /**
+         * DevPersona
+         * @description A seeded persona offered by the local sign-in picker.
+         */
+        DevPersona: {
+            /** Account Type */
+            account_type: string;
+            /** Display Name */
+            display_name?: string | null;
+            /** Email */
+            email: string;
+            /** Organization Name */
+            organization_name: string;
+            /**
+             * Plan
+             * @description Subscription plan name of the organization
+             */
+            plan?: string | null;
+            /** Role */
+            role: string;
+        };
+        /**
          * DiscoveredModel
          * @description A model discovered from a provider.
          */
@@ -6289,36 +6533,6 @@ export type components = {
         EmbeddingModelSetting: {
             /** Composite Key */
             composite_key?: string | null;
-        };
-        /**
-         * EnrichmentDatabaseOutcome
-         * @description Per-enrichment entity-layer outcome.
-         *
-         *     Returned on the enrichment/fusion responses (REST, MCP) and dispatched
-         *     over schema-event webhooks: a successful enrichment the admission gate
-         *     refused never reaches the consumer's replica, so the caller must be able
-         *     to see that without subscribing to anything.
-         */
-        EnrichmentDatabaseOutcome: {
-            /**
-             * Delta Count
-             * @default 0
-             */
-            delta_count: number;
-            /**
-             * Entity Count
-             * @default 0
-             */
-            entity_count: number;
-            /** Missing Fields */
-            missing_fields?: string[];
-            /**
-             * Reason
-             * @description When saved=false: why (e.g. missing required fields)
-             */
-            reason?: string | null;
-            /** Saved */
-            saved: boolean;
         };
         /**
          * EnrichmentOptionsResponse
@@ -6718,7 +6932,7 @@ export type components = {
              */
             cost_usd?: number | null;
             /** @description Entity-layer outcome for the merged result (docs/ENTITY_LAYER.md). saved=false carries the admission-gate rejection reason — a fused result can validate yet still be refused by a require_complete database because merging left required fields null. */
-            database?: components["schemas"]["EnrichmentDatabaseOutcome"] | null;
+            database?: components["schemas"]["DatabaseSyncOutcome"] | null;
             /** Error Message */
             error_message?: string | null;
             /**
@@ -8623,10 +8837,10 @@ export type components = {
             /** Website */
             website?: string | null;
         };
-        /** OrgDatabasesListResponse */
-        OrgDatabasesListResponse: {
+        /** OrgDatabaseSyncListResponse */
+        OrgDatabaseSyncListResponse: {
             /** Databases */
-            databases: components["schemas"]["SchemaDatabase"][];
+            databases: components["schemas"]["DatabaseSync"][];
             /** Total */
             total: number;
         };
@@ -10612,144 +10826,6 @@ export type components = {
                 [key: string]: number;
             };
         };
-        /** SchemaDatabase */
-        SchemaDatabase: {
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Dialect */
-            dialect: string;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Max Threshold Timeout S */
-            max_threshold_timeout_s: number;
-            /** Name */
-            name: string;
-            /** Notify Debounce S */
-            notify_debounce_s: number;
-            /**
-             * Organization Id
-             * Format: uuid
-             */
-            organization_id: string;
-            /** Page Limit */
-            page_limit: number;
-            /**
-             * Pending Deltas
-             * @default 0
-             */
-            pending_deltas: number;
-            /** Purge Entity State */
-            purge_entity_state: boolean;
-            /** Purge On Ack */
-            purge_on_ack: boolean;
-            /** Require Complete */
-            require_complete: boolean;
-            /**
-             * Schemas
-             * @description Schemas linked to this database (their union is what it syncs)
-             */
-            schemas?: components["schemas"]["LinkedSchemaRef"][];
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-            /** Webhook Url */
-            webhook_url?: string | null;
-        };
-        /** SchemaDatabaseCreateRequest */
-        SchemaDatabaseCreateRequest: {
-            /**
-             * Dialect
-             * @default postgres
-             * @constant
-             */
-            dialect: "postgres";
-            /**
-             * Max Threshold Timeout S
-             * @description Hard cap on the debounce: a notification fires at most this many seconds after the first unsent delta, even while new deltas keep resetting the timer
-             * @default 300
-             */
-            max_threshold_timeout_s: number;
-            /** Name */
-            name: string;
-            /**
-             * Notify Debounce S
-             * @description Quiet period before a delta-available notification: each new delta resets the timer, so a burst is announced once
-             * @default 30
-             */
-            notify_debounce_s: number;
-            /**
-             * Page Limit
-             * @description Delta batch size
-             * @default 100
-             */
-            page_limit: number;
-            /**
-             * Purge Entity State
-             * @description Also delete entity rows once every database of the schema acknowledged their latest revision (data minimization — not GDPR erasure; records remain)
-             * @default false
-             */
-            purge_entity_state: boolean;
-            /**
-             * Purge On Ack
-             * @description Delete delivered delta copies once acknowledged
-             * @default false
-             */
-            purge_on_ack: boolean;
-            /**
-             * Require Complete
-             * @description Admission gate: only enrichments with all non-nullable fields filled are recorded
-             * @default true
-             */
-            require_complete: boolean;
-        };
-        /** SchemaDatabaseCreateResponse */
-        SchemaDatabaseCreateResponse: {
-            database: components["schemas"]["SchemaDatabase"];
-            /** Stamped Keys */
-            stamped_keys?: components["schemas"]["EntityTypeKeys"][];
-            /**
-             * Webhook Secret
-             * @description Signing key for webhook payloads — also retrievable anytime via GET /databases/{id}/webhook-secret (owner)
-             */
-            webhook_secret?: string | null;
-        };
-        /** SchemaDatabasesListResponse */
-        SchemaDatabasesListResponse: {
-            /** Databases */
-            databases: components["schemas"]["SchemaDatabase"][];
-            /** Total */
-            total: number;
-        };
-        /** SchemaDatabaseUpdateRequest */
-        SchemaDatabaseUpdateRequest: {
-            /** Max Threshold Timeout S */
-            max_threshold_timeout_s?: number | null;
-            /** Name */
-            name?: string | null;
-            /** Notify Debounce S */
-            notify_debounce_s?: number | null;
-            /** Page Limit */
-            page_limit?: number | null;
-            /** Purge Entity State */
-            purge_entity_state?: boolean | null;
-            /** Purge On Ack */
-            purge_on_ack?: boolean | null;
-            /** Require Complete */
-            require_complete?: boolean | null;
-            /**
-             * Webhook Url
-             * @description Delta-available notification endpoint. Registered by the consumer (the n8n trigger sets it automatically); null detaches it
-             */
-            webhook_url?: string | null;
-        };
         /** SchemaEventSubscription */
         SchemaEventSubscription: {
             /**
@@ -11022,7 +11098,7 @@ export type components = {
             /** Cost Usd */
             cost_usd?: number | null;
             /** @description Entity-layer outcome when the schema has a registered database (docs/ENTITY_LAYER.md): saved=true with entity/delta counts, or saved=false with the rejection reason and missing_fields. Absent when the schema has no database — a successful enrichment whose entity was NOT admitted must not look like a synced one. */
-            database?: components["schemas"]["EnrichmentDatabaseOutcome"] | null;
+            database?: components["schemas"]["DatabaseSyncOutcome"] | null;
             /**
              * Error Code
              * @description Typed failure code when success=false — e.g. 'model_retired' (provider retired the model, now deactivated), 'rate_limited', 'context_length_exceeded', 'provider_timeout'. Absent on success.
@@ -11070,7 +11146,7 @@ export type components = {
             /** Cost Usd */
             cost_usd?: number | null;
             /** @description Entity-layer outcome for the final (fused or best single-model) result — see SingleEnrichmentResponse.database. saved=false means the enrichment succeeded but the entity was rejected by the database's admission gate, so it will NOT appear in the replica. */
-            database?: components["schemas"]["EnrichmentDatabaseOutcome"] | null;
+            database?: components["schemas"]["DatabaseSyncOutcome"] | null;
             /**
              * Failed Models
              * @description Models that failed in this run (set whenever at least one requested model produced no successful result — e.g. a 2-model request that degraded to a single un-fused result)
@@ -14394,7 +14470,7 @@ export type components = {
         /** UserResponse */
         UserResponse: {
             /** Auth Provider */
-            auth_provider?: ("google" | "github" | "email") | null;
+            auth_provider?: ("google" | "github" | "email" | "dev-login") | null;
             /** Avatar Url */
             avatar_url: string | null;
             /**
@@ -14494,7 +14570,7 @@ export type components = {
          */
         UserWithOrganization: {
             /** Auth Provider */
-            auth_provider?: ("google" | "github" | "email") | null;
+            auth_provider?: ("google" | "github" | "email" | "dev-login") | null;
             /** Avatar Url */
             avatar_url: string | null;
             /**
@@ -14658,16 +14734,22 @@ export type CreditTransactionList = components['schemas']['CreditTransactionList
 export type CustomPromptRequest = components['schemas']['CustomPromptRequest'];
 export type CustomPromptResponse = components['schemas']['CustomPromptResponse'];
 export type DatabaseAccessTokenResponse = components['schemas']['DatabaseAccessTokenResponse'];
-export type DatabaseChecksumResponse = components['schemas']['DatabaseChecksumResponse'];
 export type DatabaseCredentialCreateResponse = components['schemas']['DatabaseCredentialCreateResponse'];
 export type DatabaseCredentialResponse = components['schemas']['DatabaseCredentialResponse'];
 export type DatabaseCredentialState = components['schemas']['DatabaseCredentialState'];
 export type DatabaseDeviceCodeConfirmRequest = components['schemas']['DatabaseDeviceCodeConfirmRequest'];
 export type DatabaseDevicePollResponse = components['schemas']['DatabaseDevicePollResponse'];
-export type DatabaseLinkValidationResult = components['schemas']['DatabaseLinkValidationResult'];
-export type DatabaseRelationalMapResponse = components['schemas']['DatabaseRelationalMapResponse'];
-export type DatabaseSchemaLinkResponse = components['schemas']['DatabaseSchemaLinkResponse'];
-export type DatabaseValidationResult = components['schemas']['DatabaseValidationResult'];
+export type DatabaseSync = components['schemas']['DatabaseSync'];
+export type DatabaseSyncChecksumResponse = components['schemas']['DatabaseSyncChecksumResponse'];
+export type DatabaseSyncCreateRequest = components['schemas']['DatabaseSyncCreateRequest'];
+export type DatabaseSyncCreateResponse = components['schemas']['DatabaseSyncCreateResponse'];
+export type DatabaseSyncLinkResponse = components['schemas']['DatabaseSyncLinkResponse'];
+export type DatabaseSyncLinkValidationResult = components['schemas']['DatabaseSyncLinkValidationResult'];
+export type DatabaseSyncListResponse = components['schemas']['DatabaseSyncListResponse'];
+export type DatabaseSyncOutcome = components['schemas']['DatabaseSyncOutcome'];
+export type DatabaseSyncRelationalMapResponse = components['schemas']['DatabaseSyncRelationalMapResponse'];
+export type DatabaseSyncUpdateRequest = components['schemas']['DatabaseSyncUpdateRequest'];
+export type DatabaseSyncValidationResult = components['schemas']['DatabaseSyncValidationResult'];
 export type DefaultModelSelection = components['schemas']['DefaultModelSelection'];
 export type DeleteBenchmarkResultsRequest = components['schemas']['DeleteBenchmarkResultsRequest'];
 export type DeleteBenchmarkResultsResponse = components['schemas']['DeleteBenchmarkResultsResponse'];
@@ -14681,10 +14763,11 @@ export type DeviceCodePollRequest = components['schemas']['DeviceCodePollRequest
 export type DeviceCodePollResponse = components['schemas']['DeviceCodePollResponse'];
 export type DeviceCodeRequest = components['schemas']['DeviceCodeRequest'];
 export type DeviceCodeResponse = components['schemas']['DeviceCodeResponse'];
+export type DevLoginRequest = components['schemas']['DevLoginRequest'];
+export type DevPersona = components['schemas']['DevPersona'];
 export type DiscoveredModel = components['schemas']['DiscoveredModel'];
 export type DiscoverModelsResponse = components['schemas']['DiscoverModelsResponse'];
 export type EmbeddingModelSetting = components['schemas']['EmbeddingModelSetting'];
-export type EnrichmentDatabaseOutcome = components['schemas']['EnrichmentDatabaseOutcome'];
 export type EnrichmentOptionsResponse = components['schemas']['EnrichmentOptionsResponse'];
 export type EnrichmentPromptSummary = components['schemas']['EnrichmentPromptSummary'];
 export type EntityDefinitionInput = components['schemas']['EntityDefinition-Input'];
@@ -14746,7 +14829,7 @@ export type OrganizationResponse = components['schemas']['OrganizationResponse']
 export type OrganizationSearchResult = components['schemas']['OrganizationSearchResult'];
 export type OrganizationSubscription = components['schemas']['OrganizationSubscription'];
 export type OrganizationUpdate = components['schemas']['OrganizationUpdate'];
-export type OrgDatabasesListResponse = components['schemas']['OrgDatabasesListResponse'];
+export type OrgDatabaseSyncListResponse = components['schemas']['OrgDatabaseSyncListResponse'];
 export type OrgOAuthClientCreateRequest = components['schemas']['OrgOAuthClientCreateRequest'];
 export type OrgOAuthClientItem = components['schemas']['OrgOAuthClientItem'];
 export type PendingUserResponse = components['schemas']['PendingUserResponse'];
@@ -14801,11 +14884,6 @@ export type SavedSchemaListResponse = components['schemas']['SavedSchemaListResp
 export type SavedSchemaResponse = components['schemas']['SavedSchemaResponse'];
 export type SavedSchemaUpdate = components['schemas']['SavedSchemaUpdate'];
 export type SchemaComparisonDetail = components['schemas']['SchemaComparisonDetail'];
-export type SchemaDatabase = components['schemas']['SchemaDatabase'];
-export type SchemaDatabaseCreateRequest = components['schemas']['SchemaDatabaseCreateRequest'];
-export type SchemaDatabaseCreateResponse = components['schemas']['SchemaDatabaseCreateResponse'];
-export type SchemaDatabasesListResponse = components['schemas']['SchemaDatabasesListResponse'];
-export type SchemaDatabaseUpdateRequest = components['schemas']['SchemaDatabaseUpdateRequest'];
 export type SchemaEventSubscription = components['schemas']['SchemaEventSubscription'];
 export type SchemaEventSubscriptionCreateRequest = components['schemas']['SchemaEventSubscriptionCreateRequest'];
 export type SchemaEventSubscriptionCreateResponse = components['schemas']['SchemaEventSubscriptionCreateResponse'];
@@ -15782,6 +15860,59 @@ export interface operations {
             };
         };
     };
+    list_dev_personas_api_auth_dev_login_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DevPersona"][];
+                };
+            };
+        };
+    };
+    dev_login_endpoint_api_auth_dev_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DevLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     leave_organization_api_auth_leave_organization_post: {
         parameters: {
             query?: {
@@ -16211,6 +16342,7 @@ export interface operations {
     list_users_api_auth_users_get: {
         parameters: {
             query?: {
+                include_deactivated?: boolean;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
@@ -16300,6 +16432,43 @@ export interface operations {
                 "application/json": components["schemas"]["UserApprovalRequest"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reactivate_user_api_auth_users__user_id__reactivate_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -18093,7 +18262,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrgDatabasesListResponse"];
+                    "application/json": components["schemas"]["OrgDatabaseSyncListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -18130,7 +18299,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SchemaDatabase"];
+                    "application/json": components["schemas"]["DatabaseSync"];
                 };
             };
             /** @description Validation Error */
@@ -18196,7 +18365,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SchemaDatabaseUpdateRequest"];
+                "application/json": components["schemas"]["DatabaseSyncUpdateRequest"];
             };
         };
         responses: {
@@ -18206,7 +18375,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SchemaDatabase"];
+                    "application/json": components["schemas"]["DatabaseSync"];
                 };
             };
             /** @description Validation Error */
@@ -18326,7 +18495,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DatabaseChecksumResponse"];
+                    "application/json": components["schemas"]["DatabaseSyncChecksumResponse"];
                 };
             };
             /** @description Validation Error */
@@ -18509,7 +18678,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DatabaseRelationalMapResponse"];
+                    "application/json": components["schemas"]["DatabaseSyncRelationalMapResponse"];
                 };
             };
             /** @description Validation Error */
@@ -18547,7 +18716,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DatabaseSchemaLinkResponse"];
+                    "application/json": components["schemas"]["DatabaseSyncLinkResponse"];
                 };
             };
             /** @description Validation Error */
@@ -18621,7 +18790,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DatabaseLinkValidationResult"];
+                    "application/json": components["schemas"]["DatabaseSyncLinkValidationResult"];
                 };
             };
             /** @description Validation Error */
@@ -22215,7 +22384,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SchemaDatabasesListResponse"];
+                    "application/json": components["schemas"]["DatabaseSyncListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -22246,7 +22415,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SchemaDatabaseCreateRequest"];
+                "application/json": components["schemas"]["DatabaseSyncCreateRequest"];
             };
         };
         responses: {
@@ -22256,7 +22425,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SchemaDatabaseCreateResponse"];
+                    "application/json": components["schemas"]["DatabaseSyncCreateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -22293,7 +22462,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DatabaseValidationResult"];
+                    "application/json": components["schemas"]["DatabaseSyncValidationResult"];
                 };
             };
             /** @description Validation Error */

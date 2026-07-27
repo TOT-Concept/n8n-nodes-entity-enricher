@@ -73,17 +73,17 @@ export class EntityEnricherTrigger implements INodeType {
 					{
 						name: 'Enrichment Result',
 						value: 'enrichment_result',
-						description: 'Every completed enrichment of the schema (with or without a database)',
+						description: 'Every completed enrichment of the schema (with or without a database sync)',
 					},
 					{
 						name: 'Rejected for Database Save',
 						value: 'rejected_for_database_save',
-						description: 'Enrichments that failed the database admission gate (missing required fields)',
+						description: 'Enrichments that failed the database sync admission gate (missing required fields)',
 					},
 					{
 						name: 'Database Deltas Available',
 						value: 'delta_available',
-						description: 'New SQL deltas are ready for a database — emits one item per delta, leased for acknowledgement',
+						description: 'New SQL deltas are ready for a database sync — emits one item per delta, leased for acknowledgement',
 					},
 				],
 				default: 'enrichment_result',
@@ -99,12 +99,12 @@ export class EntityEnricherTrigger implements INodeType {
 				displayOptions: { show: { event: ['enrichment_result', 'rejected_for_database_save'] } },
 			},
 			{
-				displayName: 'Database ID',
-				name: 'databaseId',
+				displayName: 'Database Sync ID',
+				name: 'databaseSyncId',
 				type: 'string',
 				required: true,
 				default: '',
-				description: 'Schema database whose deltas fire this trigger (from the Database → List Databases operation)',
+				description: 'Database sync whose deltas fire this trigger (from the Database Sync → List Database Syncs operation)',
 				displayOptions: { show: { event: ['delta_available'] } },
 			},
 			{
@@ -133,7 +133,7 @@ export class EntityEnricherTrigger implements INodeType {
 				const event = this.getNodeParameter('event') as string;
 				const webhookUrl = this.getNodeWebhookUrl('default') as string;
 				if (event === 'delta_available') {
-					const databaseId = this.getNodeParameter('databaseId') as string;
+					const databaseId = this.getNodeParameter('databaseSyncId') as string;
 					const database = await apiRequest(this, `/api/databases/${databaseId}`) as { webhook_url?: string | null };
 					return database.webhook_url === webhookUrl;
 				}
@@ -148,7 +148,7 @@ export class EntityEnricherTrigger implements INodeType {
 				const event = this.getNodeParameter('event') as string;
 				const webhookUrl = this.getNodeWebhookUrl('default') as string;
 				if (event === 'delta_available') {
-					const databaseId = this.getNodeParameter('databaseId') as string;
+					const databaseId = this.getNodeParameter('databaseSyncId') as string;
 					await apiRequest(this, `/api/databases/${databaseId}`, {
 						method: 'PATCH',
 						body: { webhook_url: webhookUrl },
@@ -168,7 +168,7 @@ export class EntityEnricherTrigger implements INodeType {
 				const webhookUrl = this.getNodeWebhookUrl('default') as string;
 				try {
 					if (event === 'delta_available') {
-						const databaseId = this.getNodeParameter('databaseId') as string;
+						const databaseId = this.getNodeParameter('databaseSyncId') as string;
 						await apiRequest(this, `/api/databases/${databaseId}`, {
 							method: 'PATCH',
 							body: { webhook_url: null },
@@ -201,7 +201,7 @@ export class EntityEnricherTrigger implements INodeType {
 
 		if (event === 'delta_available') {
 			const fetchOnFire = this.getNodeParameter('fetchOnFire') as boolean;
-			const databaseId = this.getNodeParameter('databaseId') as string;
+			const databaseId = this.getNodeParameter('databaseSyncId') as string;
 			if (fetchOnFire) {
 				const query = new URLSearchParams({ since: '0', claim: 'true', format: 'json' });
 				const response = await apiRequest(

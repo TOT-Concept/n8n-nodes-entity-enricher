@@ -4,7 +4,7 @@ import { apiRequest } from '../helpers/api';
 export async function execute(
 	context: IExecuteFunctions,
 ): Promise<INodeExecutionData[]> {
-	const databaseId = context.getNodeParameter('databaseId', 0) as string;
+	const databaseId = context.getNodeParameter('databaseSyncId', 0) as string;
 	const upToId = context.getNodeParameter('upToId', 0) as number;
 	const response = await apiRequest(
 		context,

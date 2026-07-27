@@ -22,7 +22,7 @@ import * as getRecord from './operations/getRecord';
 import * as getSchemaDetails from './operations/getSchemaDetails';
 import * as listRecords from './operations/listRecords';
 import * as listSchemas from './operations/listSchemas';
-import * as listDatabases from './operations/listDatabases';
+import * as listDatabaseSyncs from './operations/listDatabaseSyncs';
 import * as fetchDeltas from './operations/fetchDeltas';
 import * as ackDeltas from './operations/ackDeltas';
 import * as mergeResults from './operations/mergeResults';
@@ -114,7 +114,7 @@ export class EntityEnricher implements INodeType {
 					{ name: 'Record', value: 'record' },
 					{ name: 'Attachment', value: 'attachment' },
 					{ name: 'Fusion', value: 'fusion' },
-					{ name: 'Database', value: 'database' },
+					{ name: 'Database Sync', value: 'databaseSync' },
 					{ name: 'Configuration', value: 'configuration' },
 				],
 				default: 'enrichment',
@@ -258,13 +258,13 @@ export class EntityEnricher implements INodeType {
 				name: 'operation',
 				type: 'options',
 				noDataExpression: true,
-				displayOptions: { show: { resource: ['database'] } },
+				displayOptions: { show: { resource: ['databaseSync'] } },
 				options: [
 					{
-						name: 'List Databases',
-						value: 'listDatabases',
-						description: 'List the schema databases (entity-layer sync) of a schema',
-						action: 'List schema databases',
+						name: 'List Database Syncs',
+						value: 'listDatabaseSyncs',
+						description: 'List the database syncs of a schema',
+						action: 'List database syncs',
 					},
 					{
 						name: 'Fetch Deltas',
@@ -275,7 +275,7 @@ export class EntityEnricher implements INodeType {
 					{
 						name: 'Acknowledge Deltas',
 						value: 'ackDeltas',
-						description: 'Acknowledge applied deltas up to an ID (releases the lease; may purge per database options)',
+						description: 'Acknowledge applied deltas up to an ID (releases the lease; may purge per sync options)',
 						action: 'Acknowledge database deltas',
 					},
 				],
@@ -288,17 +288,17 @@ export class EntityEnricher implements INodeType {
 				typeOptions: { loadOptionsMethod: 'getSchemas' },
 				required: true,
 				default: '',
-				description: 'Schema whose databases to list',
-				displayOptions: { show: { resource: ['database'], operation: ['listDatabases'] } },
+				description: 'Schema whose database syncs to list',
+				displayOptions: { show: { resource: ['databaseSync'], operation: ['listDatabaseSyncs'] } },
 			},
 			{
-				displayName: 'Database ID',
-				name: 'databaseId',
+				displayName: 'Database Sync ID',
+				name: 'databaseSyncId',
 				type: 'string',
 				required: true,
 				default: '',
-				description: 'ID of the schema database (from List Databases or the web app)',
-				displayOptions: { show: { resource: ['database'], operation: ['fetchDeltas', 'ackDeltas'] } },
+				description: 'ID of the database sync (from List Database Syncs or the web app)',
+				displayOptions: { show: { resource: ['databaseSync'], operation: ['fetchDeltas', 'ackDeltas'] } },
 			},
 			{
 				displayName: 'Since (Cursor)',
@@ -306,7 +306,7 @@ export class EntityEnricher implements INodeType {
 				type: 'number',
 				default: 0,
 				description: 'Return deltas with ID greater than this cursor (0 = from the beginning)',
-				displayOptions: { show: { resource: ['database'], operation: ['fetchDeltas'] } },
+				displayOptions: { show: { resource: ['databaseSync'], operation: ['fetchDeltas'] } },
 			},
 			{
 				displayName: 'Claim (Lease)',
@@ -314,7 +314,7 @@ export class EntityEnricher implements INodeType {
 				type: 'boolean',
 				default: true,
 				description: 'Whether to lease the returned deltas (FIFO window, requires Acknowledge Deltas). Disable for a replayable read-only fetch.',
-				displayOptions: { show: { resource: ['database'], operation: ['fetchDeltas'] } },
+				displayOptions: { show: { resource: ['databaseSync'], operation: ['fetchDeltas'] } },
 			},
 			{
 				displayName: 'Acknowledge Up To ID',
@@ -323,7 +323,7 @@ export class EntityEnricher implements INodeType {
 				required: true,
 				default: 0,
 				description: 'Acknowledge every delta with ID lower than or equal to this value (use the highest applied delta ID)',
-				displayOptions: { show: { resource: ['database'], operation: ['ackDeltas'] } },
+				displayOptions: { show: { resource: ['databaseSync'], operation: ['ackDeltas'] } },
 			},
 			{
 				displayName: 'Operation',
@@ -1334,8 +1334,8 @@ export class EntityEnricher implements INodeType {
 			returnData = await getOptions.execute(this);
 			return [returnData];
 		}
-		if (resource === 'database') {
-			if (operation === 'listDatabases') returnData = await listDatabases.execute(this);
+		if (resource === 'databaseSync') {
+			if (operation === 'listDatabaseSyncs') returnData = await listDatabaseSyncs.execute(this);
 			else if (operation === 'fetchDeltas') returnData = await fetchDeltas.execute(this);
 			else if (operation === 'ackDeltas') returnData = await ackDeltas.execute(this);
 			return [returnData];

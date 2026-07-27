@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### ⚠ BREAKING — "Database" is now "Database Sync"
+
+The feature was named as though Entity Enricher hosted a database for you. It does not: it keeps *your own* PostgreSQL up to date by shipping SQL that a client you run applies. The resource is renamed to match, and **the stored identifiers changed**, so saved workflows using it must be updated by hand:
+
+| Was | Now |
+|---|---|
+| Resource `database` ("Database") | Resource `databaseSync` ("Database Sync") |
+| Operation `listDatabases` ("List Databases") | Operation `listDatabaseSyncs` ("List Database Syncs") |
+| Parameter `databaseId` ("Database ID") | Parameter `databaseSyncId` ("Database Sync ID") |
+| Trigger parameter `databaseId` | Trigger parameter `databaseSyncId` |
+
+**To migrate:** open each node that used the Database resource, re-select **Database Sync** as the resource and the operation, and re-enter the Database Sync ID. Node parameters are stored by name, so n8n cannot carry the old values over automatically.
+
+Unchanged: the `fetchDeltas` / `ackDeltas` operation values (already accurate), the webhook event values `delta_available` and `rejected_for_database_save`, and every REST path — only the node-facing names moved.
+
 ### Changed
 
 - **Typed enrichment failure codes** — per-model results (and Batch Enrich per-entity results) now carry an `error_code` when they fail: `model_retired` (the provider retired the model, now auto-deactivated — reselect and retry), `rate_limited`, `context_length_exceeded`, or `provider_timeout`. The synchronous enrichment / schema-generation / sample-generation endpoints return matching HTTP statuses (422 for `model_retired` / `context_length_exceeded`, 429 for `rate_limited`, 504 for `provider_timeout`) instead of a blanket 502. Regenerated API types.

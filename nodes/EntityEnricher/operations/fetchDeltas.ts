@@ -9,7 +9,7 @@ import { apiRequest } from '../helpers/api';
 export async function execute(
 	context: IExecuteFunctions,
 ): Promise<INodeExecutionData[]> {
-	const databaseId = context.getNodeParameter('databaseId', 0) as string;
+	const databaseId = context.getNodeParameter('databaseSyncId', 0) as string;
 	const since = context.getNodeParameter('since', 0, 0) as number;
 	const claim = context.getNodeParameter('claim', 0, true) as boolean;
 	const query = new URLSearchParams({
