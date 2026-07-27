@@ -8,7 +8,7 @@ interface GenerateSchemaSyncResponse {
 	success: boolean;
 	schema?: IDataObject;
 	suggestions?: string[];
-	property_count?: number;
+	sample_property_count?: number;
 	expertise_count?: number;
 	record_id?: string;
 	schema_id?: string;
@@ -75,7 +75,7 @@ export async function execute(
 			schema_id: response.schema_id,
 			schema: response.schema,
 			suggestions: response.suggestions,
-			property_count: response.property_count,
+			sample_property_count: response.sample_property_count,
 			expertise_count: response.expertise_count,
 			samples_used: entitySamples.length,
 			record_id: response.record_id,

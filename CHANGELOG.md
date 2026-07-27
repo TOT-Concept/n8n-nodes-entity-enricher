@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### ⚠ BREAKING — per-prompt fields and schema-generation property count renamed
+
+- **Get Record** per-prompt details: `prompt_used` is now `user_prompt`, `system_prompt_used` is now `system_prompt` (`raw_response` is unchanged). Update expressions reading those keys; the values are unchanged.
+- **Generate Schema** output: `property_count` is now `sample_property_count` — the count was always taken from the input sample's properties, not from the generated schema, and the name now says so.
+
+### ⚠ BREAKING — record output field `llm_provider_name` is now `model_composite_key`
+
+The field never held a provider name — it holds the model composite key (e.g. `anthropic::claude-sonnet-4-5`), so it is renamed to say what it is. Affects the output of **Get Record** and **List Records** (and any expression reading `llm_provider_name` from a record item). **To migrate:** update expressions to reference `model_composite_key`; the value is unchanged.
+
 ### ⚠ BREAKING — "Database" is now "Database Sync"
 
 The feature was named as though Entity Enricher hosted a database for you. It does not: it keeps *your own* PostgreSQL up to date by shipping SQL that a client you run applies. The resource is renamed to match, and **the stored identifiers changed**, so saved workflows using it must be updated by hand:

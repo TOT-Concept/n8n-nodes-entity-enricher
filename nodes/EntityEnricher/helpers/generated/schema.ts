@@ -158,6 +158,30 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete User Admin
+         * @description Permanently delete any user and their Firebase account (system admin only).
+         *
+         *     Records and schemas the user created are kept with attribution nulled;
+         *     refresh tokens, API keys and OAuth grants cascade. Firebase deletion is
+         *     best-effort: a leftover Firebase account cannot reach any data.
+         */
+        delete: operations["delete_user_admin_api_admin_users__user_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/users/{user_id}/approval": {
         parameters: {
             query?: never;
@@ -793,6 +817,30 @@ export type paths = {
          * @description Approve or reject a pending user (owner or higher).
          */
         patch: operations["approve_or_reject_user_api_auth_users__user_id__approval_patch"];
+        trace?: never;
+    };
+    "/api/auth/users/{user_id}/permanent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete User Permanently
+         * @description Permanently delete a user and their Firebase account (owner or higher).
+         *
+         *     Records and schemas the user created are kept with attribution nulled;
+         *     refresh tokens, API keys and OAuth grants cascade. Firebase deletion is
+         *     best-effort: a leftover Firebase account cannot reach any data.
+         */
+        delete: operations["delete_user_permanently_api_auth_users__user_id__permanent_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/auth/users/{user_id}/reactivate": {
@@ -3834,7 +3882,7 @@ export type paths = {
          * Retry Failed Expertises
          * @description Retry failed expertises for an existing enrichment record.
          *
-         *     Loads the record, identifies failed expertises from enrichment_prompts,
+         *     Loads the record, identifies failed expertises from prompts,
          *     re-runs only those, and merges results back into the record.
          */
         post: operations["retry_failed_expertises_api_single_retry_expertises_stream_post"];
@@ -5466,12 +5514,12 @@ export type components = {
         ConflictReport: {
             /**
              * Agreed Fields
-             * @description Fields where all models returned the same value
+             * @description Fields where all models agree (including translation-only variance)
              */
             agreed_fields: number;
             /**
              * Conflicted Fields
-             * @description Fields where models disagreed
+             * @description Fields where models genuinely disagreed
              */
             conflicted_fields: number;
             /**
@@ -5768,8 +5816,8 @@ export type components = {
             output_tokens?: number | null;
             /** Processing Time Ms */
             processing_time_ms?: number | null;
-            /** Response */
-            response?: string | null;
+            /** Raw Response */
+            raw_response?: string | null;
             /** Success */
             success: boolean;
         };
@@ -6646,8 +6694,6 @@ export type components = {
             output_tokens?: number | null;
             /** Processing Time Ms */
             processing_time_ms?: number | null;
-            /** Prompt Used */
-            prompt_used: string;
             /** Raw Response */
             raw_response?: string | null;
             /** Sequence Order */
@@ -6661,8 +6707,10 @@ export type components = {
              * @default true
              */
             success: boolean;
-            /** System Prompt Used */
-            system_prompt_used?: string | null;
+            /** System Prompt */
+            system_prompt?: string | null;
+            /** User Prompt */
+            user_prompt: string;
             /** Validation Errors */
             validation_errors?: string[];
             /**
@@ -6873,7 +6921,7 @@ export type components = {
             field_type: "scalar" | "multilingual" | "array" | "object";
             /**
              * Needs Arbitration
-             * @description True if values differ across models
+             * @description True when the models genuinely disagree (translation-only variance doesn't)
              */
             needs_arbitration: boolean;
             /**
@@ -6881,6 +6929,12 @@ export type components = {
              * @description Dot-notation path to the field, e.g., 'foundingYear' or 'address.city'
              */
             path: string;
+            /**
+             * Translation Only
+             * @description True when the primary language agrees and only translations or language coverage differ — merged per-language by rule, counted as agreement
+             * @default false
+             */
+            translation_only: boolean;
             /**
              * Values By Model
              * @description Model composite key -> value
@@ -7147,10 +7201,10 @@ export type components = {
             output_tokens?: number | null;
             /** Processing Time Ms */
             processing_time_ms?: number | null;
-            /** Property Count */
-            property_count?: number | null;
             /** Record Id */
             record_id?: string | null;
+            /** Sample Property Count */
+            sample_property_count?: number | null;
             schema?: components["schemas"]["GeneratedJsonSchema-Output"] | null;
             /**
              * Schema Id
@@ -9992,7 +10046,7 @@ export type components = {
             confidence_score?: number | null;
             /**
              * Cost Usd
-             * @description LLM-call cost only (sum of enrichment_prompts). See embedding_cost_usd.
+             * @description LLM-call cost only (sum of prompts). See embedding_cost_usd.
              */
             cost_usd?: number | null;
             /**
@@ -10046,8 +10100,8 @@ export type components = {
             job_id?: string | null;
             /** Job Label */
             job_label?: string | null;
-            /** Llm Provider Name */
-            llm_provider_name: string;
+            /** Model Composite Key */
+            model_composite_key: string;
             /** Model Name */
             model_name: string;
             /** Organization Name */
@@ -10058,7 +10112,7 @@ export type components = {
             output_tokens?: number | null;
             /**
              * Processing Time Ms
-             * @description Sum of individual LLM-call durations (enrichment_prompts). Exceeds wall_clock_ms when expertise calls run in parallel.
+             * @description Sum of individual LLM-call durations (prompts). Exceeds wall_clock_ms when expertise calls run in parallel.
              */
             processing_time_ms?: number | null;
             /**
@@ -10175,7 +10229,7 @@ export type components = {
          * RecordSummary
          * @description Summary of an enrichment record for list views.
          *
-         *     Note: Metrics (tokens, cost, processing_time) come from enrichment_record_metrics view.
+         *     Note: Metrics (tokens, cost, processing_time) come from record_metrics view.
          */
         RecordSummary: {
             /**
@@ -10192,7 +10246,7 @@ export type components = {
             confidence_score?: number | null;
             /**
              * Cost Usd
-             * @description LLM-call cost only (sum of enrichment_prompts). See embedding_cost_usd.
+             * @description LLM-call cost only (sum of prompts). See embedding_cost_usd.
              */
             cost_usd?: number | null;
             /**
@@ -10233,8 +10287,8 @@ export type components = {
             job_id?: string | null;
             /** Job Label */
             job_label?: string | null;
-            /** Llm Provider Name */
-            llm_provider_name: string;
+            /** Model Composite Key */
+            model_composite_key: string;
             /** Model Name */
             model_name: string;
             /** Organization Name */
@@ -10245,7 +10299,7 @@ export type components = {
             output_tokens?: number | null;
             /**
              * Processing Time Ms
-             * @description Sum of individual LLM-call durations (enrichment_prompts). Exceeds wall_clock_ms when expertise calls run in parallel.
+             * @description Sum of individual LLM-call durations (prompts). Exceeds wall_clock_ms when expertise calls run in parallel.
              */
             processing_time_ms?: number | null;
             /**
@@ -15250,6 +15304,43 @@ export interface operations {
             };
         };
     };
+    delete_user_admin_api_admin_users__user_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     approve_or_reject_user_admin_api_admin_users__user_id__approval_patch: {
         parameters: {
             query?: {
@@ -16440,6 +16531,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_user_permanently_api_auth_users__user_id__permanent_delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -21454,11 +21582,17 @@ export interface operations {
                 entity_id?: string | null;
                 include_deleted?: boolean;
                 job_id?: string | null;
+                /** @description Filter by model composite key (e.g. 'anthropic::claude-sonnet-4-5') */
+                model?: string | null;
                 organization_id_filter?: string | null;
                 /** @description Filter by client origin: 'web', 'n8n', 'make', 'api', or 'legacy' (records created before origin tracking). */
                 origin?: string | null;
                 page?: number;
                 page_size?: number;
+                /**
+                 * @deprecated
+                 * @description Deprecated alias for `model`.
+                 */
                 provider?: string | null;
                 search?: string | null;
                 /** @description Only return records created at or after this timestamp (ISO 8601). Useful for polling clients (Zapier, audit pipelines): poll periodically with the timestamp of the most recent record from the previous poll. */
