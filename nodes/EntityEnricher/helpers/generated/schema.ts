@@ -6701,6 +6701,16 @@ export type components = {
          * @description Response with merged result and conflict report.
          */
         FusionResponse: {
+            /**
+             * Arbitration Key Source
+             * @description Provider-key source ('org' / 'global') of an auto-resolved arbitration model, so the caller applies the right commission rate.
+             */
+            arbitration_key_source?: string | null;
+            /**
+             * Arbitration Model Used
+             * @description Model an LLM arbitration call ran on — the requested arbitration_model, or the auto-resolved model when a rule-based merge escalated numeric fields the models disagreed about wildly. Set even when that call failed and rule-based values stood, since the tokens were still spent; `_arbitration_metadata.arbitration_model` is the narrower 'whose decisions were applied'.
+             */
+            arbitration_model_used?: string | null;
             conflict_report: components["schemas"]["ConflictReport"];
             /**
              * Cost Usd
@@ -10282,6 +10292,11 @@ export type components = {
              *     ]
              */
             languages: string[];
+            /**
+             * Model
+             * @description Composite key (provider::model) to run the retry with. Defaults to the record's own model — pass a stronger one to recover a domain that model keeps failing. The record stays attributed to its original model; each retried expertise's prompt row records the model that actually ran it.
+             */
+            model?: string | null;
             /**
              * Record Id
              * @description Existing enrichment record ID
