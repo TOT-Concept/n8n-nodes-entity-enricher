@@ -11,25 +11,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Serve Index */
-        get: operations["serve_index__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/{path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve Spa */
-        get: operations["serve_spa__path__get"];
+        /** No Frontend */
+        get: operations["no_frontend__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1998,6 +1981,11 @@ export type paths = {
         /**
          * Get Options
          * @description Get available enrichment options (models, languages).
+         *
+         *     Serialized with `exclude_none`: null fields are omitted rather than sent as
+         *     `null`, and per-model capability flags are True-or-absent (see `LLMModel`).
+         *     With ~250 models this roughly halves the payload; consumers must read every
+         *     optional field as "absent means false/unknown".
          */
         get: operations["get_options_api_enrichment_options_get"];
         put?: never;
@@ -7490,139 +7478,69 @@ export type components = {
         };
         /**
          * LLMModel
-         * @description LLM model option for UI display.
+         * @description LLM model option for a picker (UI, connector dropdown, MCP client).
+         *
+         *     Deliberately narrow: this list ships ~250 models on every call, so it
+         *     carries only what a picker needs. Full per-model detail (rate budgets,
+         *     latency, extended benchmarks, pricing variants, lifecycle) lives on
+         *     `GET /api/providers/models/all` — see `provider_management.ModelResponse`.
+         *
+         *     The route serializes with `exclude_none`, so **absent means false/unknown**:
+         *     capability flags and `schema_generation_disabled` are `True` or omitted
+         *     entirely, never `false`. Consumers must test truthiness, not equality with
+         *     `false`. `is_available` is the exception and is always present — it is a
+         *     status the UI renders explicitly ("Unavailable — no API key"), not a
+         *     capability.
          */
         LLMModel: {
-            /** Benchmark Intelligence */
-            benchmark_intelligence?: number | null;
-            /** Benchmark Intelligence Reasoning */
-            benchmark_intelligence_reasoning?: number | null;
             /** Benchmark Scores */
             benchmark_scores?: {
                 [key: string]: components["schemas"]["ModelBenchmarkScores"];
             } | null;
-            /** Benchmarks Extra */
-            benchmarks_extra?: {
-                [key: string]: number;
-            } | null;
-            /** Cache Creation Price Per Million 1Hr */
-            cache_creation_price_per_million_1hr?: number | null;
             /** Context Length */
             context_length?: number | null;
-            /** Deprecation Date */
-            deprecation_date?: string | null;
             /** Display Name */
             display_name?: string | null;
-            /** Embedding Dimensions */
-            embedding_dimensions?: number | null;
             /** Input Price */
             input_price?: number | null;
             /** Is Available */
             is_available: boolean;
             /** Key */
             key: string;
-            /** Max Input Tokens */
-            max_input_tokens?: number | null;
-            /** Max Output Tokens */
-            max_output_tokens?: number | null;
             /** Model Label */
             model_label?: string | null;
             /** Output Price */
             output_price?: number | null;
-            /** Output Reasoning Token Price Per Million */
-            output_reasoning_token_price_per_million?: number | null;
             /** Processing Disabled */
             processing_disabled?: {
                 [key: string]: boolean;
             } | null;
-            /** Rpm */
-            rpm?: number | null;
-            /**
-             * Schema Generation Disabled
-             * @default false
-             */
-            schema_generation_disabled: boolean;
-            /** Supported Reasoning Efforts */
-            supported_reasoning_efforts?: string[] | null;
-            /**
-             * Supports Audio Input
-             * @default false
-             */
-            supports_audio_input: boolean;
-            /**
-             * Supports Audio Output
-             * @default false
-             */
-            supports_audio_output: boolean;
-            /**
-             * Supports Embeddings
-             * @default false
-             */
-            supports_embeddings: boolean;
-            /**
-             * Supports Pdf Input
-             * @default false
-             */
-            supports_pdf_input: boolean;
-            /**
-             * Supports Prompt Caching
-             * @default false
-             */
-            supports_prompt_caching: boolean;
-            /**
-             * Supports Reasoning
-             * @default false
-             */
-            supports_reasoning: boolean;
-            /**
-             * Supports Response Schema
-             * @default false
-             */
-            supports_response_schema: boolean;
-            /**
-             * Supports Strict Structured Output
-             * @default false
-             */
-            supports_strict_structured_output: boolean;
-            /**
-             * Supports Tool Calls
-             * @default false
-             */
-            supports_tool_calls: boolean;
-            /**
-             * Supports Tool Choice
-             * @default false
-             */
-            supports_tool_choice: boolean;
-            /**
-             * Supports Video Input
-             * @default false
-             */
-            supports_video_input: boolean;
-            /**
-             * Supports Vision
-             * @default false
-             */
-            supports_vision: boolean;
-            /**
-             * Supports Web Search
-             * @default false
-             */
-            supports_web_search: boolean;
-            /** Time To First Answer Token Ms */
-            time_to_first_answer_token_ms?: number | null;
-            /** Time To First Token Ms */
-            time_to_first_token_ms?: number | null;
-            /** Tpm */
-            tpm?: number | null;
-            /** Web Search Billing Unit */
-            web_search_billing_unit?: string | null;
-            /** Web Search Price Per Query */
-            web_search_price_per_query?: number | null;
-            /** Web Search Pricing Details */
-            web_search_pricing_details?: {
-                [key: string]: number;
-            } | null;
+            /** Schema Generation Disabled */
+            schema_generation_disabled?: boolean | null;
+            /** Supports Audio Input */
+            supports_audio_input?: boolean | null;
+            /** Supports Audio Output */
+            supports_audio_output?: boolean | null;
+            /** Supports Pdf Input */
+            supports_pdf_input?: boolean | null;
+            /** Supports Prompt Caching */
+            supports_prompt_caching?: boolean | null;
+            /** Supports Reasoning */
+            supports_reasoning?: boolean | null;
+            /** Supports Response Schema */
+            supports_response_schema?: boolean | null;
+            /** Supports Strict Structured Output */
+            supports_strict_structured_output?: boolean | null;
+            /** Supports Tool Calls */
+            supports_tool_calls?: boolean | null;
+            /** Supports Tool Choice */
+            supports_tool_choice?: boolean | null;
+            /** Supports Video Input */
+            supports_video_input?: boolean | null;
+            /** Supports Vision */
+            supports_vision?: boolean | null;
+            /** Supports Web Search */
+            supports_web_search?: boolean | null;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -15042,7 +14960,7 @@ export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutRespon
 export type WebhookSecretResponse = components['schemas']['WebhookSecretResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
-    serve_index__get: {
+    no_frontend__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -15058,37 +14976,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    serve_spa__path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -28,6 +28,8 @@ Unchanged: the `fetchDeltas` / `ackDeltas` operation values (already accurate), 
 
 ### Changed
 
+- **Get Options returns a leaner model list** — the models array is roughly half its previous size. Two changes affect expressions reading it: **capability flags are now present only when true** (a model without `supports_vision` does not support vision — test truthiness, e.g. `{{ $json.supports_vision }}`, rather than comparing to `false`), and **null fields are omitted** rather than sent as `null`. Model entries now carry only picker-relevant fields; the per-model rate budgets (`tpm`/`rpm`), token limits (`max_input_tokens`/`max_output_tokens`), latency figures, extended benchmark scores, pricing variants, `deprecation_date`, `supported_reasoning_efforts` and embedding fields were removed — they were never surfaced by the node and remain available from the platform's model-management API. The node's own dropdowns, capability glyphs and benchmark badges are unaffected. Regenerated API types.
+
 - **Typed enrichment failure codes** — per-model results (and Batch Enrich per-entity results) now carry an `error_code` when they fail: `model_retired` (the provider retired the model, now auto-deactivated — reselect and retry), `rate_limited`, `context_length_exceeded`, or `provider_timeout`. The synchronous enrichment / schema-generation / sample-generation endpoints return matching HTTP statuses (422 for `model_retired` / `context_length_exceeded`, 429 for `rate_limited`, 504 for `provider_timeout`) instead of a blanket 502. Regenerated API types.
 
 
