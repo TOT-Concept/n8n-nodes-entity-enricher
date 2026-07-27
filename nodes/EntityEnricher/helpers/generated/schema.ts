@@ -5967,6 +5967,8 @@ export type components = {
             name: string;
             /** Notify Debounce S */
             notify_debounce_s: number;
+            /** On Incomplete Child */
+            on_incomplete_child: string;
             /**
              * Organization Id
              * Format: uuid
@@ -6032,6 +6034,13 @@ export type components = {
              * @default 30
              */
             notify_debounce_s: number;
+            /**
+             * On Incomplete Child
+             * @description With require_complete: 'reject_entity' refuses the whole enrichment when any non-nullable field is unfilled; 'skip_row' drops only the array items whose own fields are unfilled and admits the rest (root-level gaps still reject)
+             * @default reject_entity
+             * @enum {string}
+             */
+            on_incomplete_child: "reject_entity" | "skip_row";
             /**
              * Page Limit
              * @description Delta batch size
@@ -6153,6 +6162,11 @@ export type components = {
             reason?: string | null;
             /** Saved */
             saved: boolean;
+            /**
+             * Skipped Items
+             * @description Array items dropped by databases in on_incomplete_child='skip_row' mode (their own non-nullable fields were unfilled); the rest of the entity was admitted
+             */
+            skipped_items?: string[];
         };
         /**
          * DatabaseSyncRelationalMapResponse
@@ -6173,6 +6187,8 @@ export type components = {
             name?: string | null;
             /** Notify Debounce S */
             notify_debounce_s?: number | null;
+            /** On Incomplete Child */
+            on_incomplete_child?: ("reject_entity" | "skip_row") | null;
             /** Page Limit */
             page_limit?: number | null;
             /** Purge Entity State */
