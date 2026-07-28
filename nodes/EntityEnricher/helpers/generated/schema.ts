@@ -11,8 +11,25 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** No Frontend */
-        get: operations["no_frontend__get"];
+        /** Serve Index */
+        get: operations["serve_index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve Spa */
+        get: operations["serve_spa__path__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6156,6 +6173,11 @@ export type components = {
             /** Saved */
             saved: boolean;
             /**
+             * Shared Entity Conflicts
+             * @description Shared (non-owned) rows whose values this enrichment overwrote while another parent still links to them — usually a nested object holding per-parent data that should have been declared owned
+             */
+            shared_entity_conflicts?: components["schemas"]["SharedEntityConflict"][];
+            /**
              * Skipped Items
              * @description Array items dropped by databases in on_incomplete_child='skip_row' mode (their own non-nullable fields were unfilled); the rest of the entity was admitted
              */
@@ -11111,6 +11133,63 @@ export type components = {
             reference_verified: boolean;
         };
         /**
+         * SharedEntityConflict
+         * @description A SHARED (non-owned) entity whose stored values this enrichment replaced,
+         *     while at least one OTHER parent still links to the same row.
+         *
+         *     Shared rows are one row for all their parents, so non-null-wins makes the
+         *     last enrichment's values the values every parent now reads. When the nested
+         *     object actually holds per-parent data (a rating measured for THIS parent, a
+         *     role held at THIS employer), that is silent data loss: the fix is to mark
+         *     the relationship `owned: true` so identity is scoped by the owner and the
+         *     projection becomes a child table (docs/ENTITY_LAYER.md → owned entities).
+         *     Reported, never blocked — first-write-wins would be just as wrong.
+         */
+        SharedEntityConflict: {
+            /** Entity Type */
+            entity_type: string;
+            /** Fields */
+            fields?: components["schemas"]["SharedEntityFieldConflict"][];
+            /**
+             * Keys
+             * @description Identifying (is_key / database_key) values of the shared row
+             */
+            keys?: {
+                [key: string]: string;
+            };
+            /**
+             * Other Parents
+             * @description How many other entities link to this row and inherit the change
+             */
+            other_parents: number;
+            /**
+             * Path
+             * @description Schema path of the child, e.g. 'ratings_by_source[0]'
+             */
+            path: string;
+        };
+        /**
+         * SharedEntityFieldConflict
+         * @description One property a cross-parent overwrite would change.
+         */
+        SharedEntityFieldConflict: {
+            /**
+             * Incoming
+             * @description Value this enrichment wrote over it
+             */
+            incoming: string;
+            /**
+             * Previous
+             * @description Value stored by the other parent's enrichment
+             */
+            previous: string;
+            /**
+             * Property
+             * @description Dotted path inside the entity payload
+             */
+            property: string;
+        };
+        /**
          * SingleEnrichmentResponse
          * @description Response for a single model's enrichment result.
          */
@@ -15006,6 +15085,8 @@ export type SemanticConceptRef = components['schemas']['SemanticConceptRef'];
 export type SemanticConceptUsage = components['schemas']['SemanticConceptUsage'];
 export type SemanticKeyUsageResponse = components['schemas']['SemanticKeyUsageResponse'];
 export type SetBenchmarkReferenceRequest = components['schemas']['SetBenchmarkReferenceRequest'];
+export type SharedEntityConflict = components['schemas']['SharedEntityConflict'];
+export type SharedEntityFieldConflict = components['schemas']['SharedEntityFieldConflict'];
 export type SingleEnrichmentResponse = components['schemas']['SingleEnrichmentResponse'];
 export type SingleEnrichmentSyncResponse = components['schemas']['SingleEnrichmentSyncResponse'];
 export type SourceRowRaw = components['schemas']['SourceRowRaw'];
@@ -15079,7 +15160,7 @@ export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutRespon
 export type WebhookSecretResponse = components['schemas']['WebhookSecretResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
-    no_frontend__get: {
+    serve_index__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -15095,6 +15176,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    serve_spa__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
