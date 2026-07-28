@@ -3888,7 +3888,9 @@ export type paths = {
          * @description Retry failed expertises for an existing enrichment record.
          *
          *     Loads the record, identifies failed expertises from prompts,
-         *     re-runs only those, and merges results back into the record.
+         *     re-runs only those, and merges results back into the record. Once the run
+         *     it belongs to is whole again, the recovered result reaches the entity layer
+         *     (single-model directly, multi-model through a fresh fusion).
          */
         post: operations["retry_failed_expertises_api_single_retry_expertises_stream_post"];
         delete?: never;
@@ -23045,6 +23047,7 @@ export interface operations {
             header?: {
                 authorization?: string | null;
                 "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
             };
             path?: never;
             cookie?: never;
