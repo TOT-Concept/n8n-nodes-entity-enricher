@@ -7206,13 +7206,13 @@ export type components = {
             naming_convention: string;
             /**
              * Sample Count
-             * @description How many samples of this entity type to generate in one job. Sample 1 defines the field set (full pipeline incl. determinism analysis); samples 2..N are parallel follow-up turns that keep the same fields and invent values for a different typical instance. Forced to 1 whenever attachment_ids is set.
+             * @description How many samples of this entity type to generate in one job. Sample 1 defines the field set (full pipeline incl. determinism analysis) and names the instances for the remaining slots; samples 2..N are parallel follow-up turns that keep the same fields and fill values for their named instance. Forced to 1 whenever attachment_ids is set.
              * @default 1
              */
             sample_count: number;
             /**
              * Typical Objects
-             * @description Up to sample_count user-typed example instance descriptions (e.g. 'Apple Inc.'), one per generated sample in order. Samples beyond len(typical_objects) are auto-invented. Ignored when attachments are present (generation is grounded in the document).
+             * @description Up to sample_count user-typed example instance descriptions (e.g. 'Apple Inc.'), one per generated sample in order. Slots beyond len(typical_objects) are named by the model itself: the first pass returns a roster of the remaining instances, so all sample_count instances are chosen together and stay distinct. Ignored when attachments are present (generation is grounded in the document).
              */
             typical_objects?: string[] | null;
         };
@@ -13165,6 +13165,86 @@ export type components = {
             total_models: number;
         };
         /**
+         * SSESampleInstanceRoster
+         * @description Emitted once during multi-sample generation (sample_count > 1), right after
+         *     the first sample, announcing which instances the remaining samples will cover.
+         *
+         *     The first pass names them all in one call (see run_multi_sample_generation),
+         *     so the plan is known before any variant runs — clients can show it instead of
+         *     revealing instances one by one. Names the user supplied via `typical_objects`
+         *     come first, then the model's roster. Shorter than `total - 1` when a model
+         *     under-delivered the roster: those slots ask for an unnamed instance instead.
+         */
+        SSESampleInstanceRoster: {
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default sample_instance_roster
+             * @constant
+             */
+            event: "sample_instance_roster";
+            /**
+             * First Instance
+             * @description Identity of the sample that already ran
+             */
+            first_instance?: string | null;
+            /**
+             * Instances
+             * @description Planned instances for samples 2..N, in order
+             */
+            instances?: string[];
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Last Error Summary */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total
+             * @description Total samples requested for this job
+             */
+            total: number;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
          * SSESampleQuestion
          * @description A clarifying question the sample-generation planner asks the user.
          *
@@ -14337,7 +14417,7 @@ export type components = {
             naming_convention: string;
             /**
              * Sample Count
-             * @description How many samples of this entity type to generate in one job. Sample 1 defines the field set (full pipeline incl. determinism analysis); samples 2..N are parallel follow-up turns that keep the same fields and invent values for a different typical instance. Forced to 1 whenever attachment_ids is set.
+             * @description How many samples of this entity type to generate in one job. Sample 1 defines the field set (full pipeline incl. determinism analysis) and names the instances for the remaining slots; samples 2..N are parallel follow-up turns that keep the same fields and fill values for their named instance. Forced to 1 whenever attachment_ids is set.
              * @default 1
              */
             sample_count: number;
@@ -14349,7 +14429,7 @@ export type components = {
             timeout_seconds: number;
             /**
              * Typical Objects
-             * @description Up to sample_count user-typed example instance descriptions (e.g. 'Apple Inc.'), one per generated sample in order. Samples beyond len(typical_objects) are auto-invented. Ignored when attachments are present (generation is grounded in the document).
+             * @description Up to sample_count user-typed example instance descriptions (e.g. 'Apple Inc.'), one per generated sample in order. Slots beyond len(typical_objects) are named by the model itself: the first pass returns a roster of the remaining instances, so all sample_count instances are chosen together and stay distinct. Ignored when attachments are present (generation is grounded in the document).
              */
             typical_objects?: string[] | null;
         };
@@ -14956,6 +15036,7 @@ export type SseModelCompleted = components['schemas']['SSEModelCompleted'];
 export type SseModelStarted = components['schemas']['SSEModelStarted'];
 export type SseSampleClarificationPause = components['schemas']['SSESampleClarificationPause'];
 export type SseSampleInstanceProgress = components['schemas']['SSESampleInstanceProgress'];
+export type SseSampleInstanceRoster = components['schemas']['SSESampleInstanceRoster'];
 export type SseSampleQuestion = components['schemas']['SSESampleQuestion'];
 export type SseSampleQuestionOption = components['schemas']['SSESampleQuestionOption'];
 export type SseScoringCompleted = components['schemas']['SSEScoringCompleted'];
@@ -19560,7 +19641,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
+                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
                 };
             };
         };

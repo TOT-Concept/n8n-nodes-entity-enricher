@@ -501,7 +501,7 @@ export class EntityEnricher implements INodeType {
 				type: 'number',
 				typeOptions: { minValue: 1, maxValue: 20 },
 				default: 1,
-				description: 'How many samples of this entity type to generate in one job. The first defines the field set (full pipeline incl. determinism analysis); the rest are fast parallel follow-up turns that keep the same fields and invent values for a different typical instance. Forced to 1 whenever Attachment IDs is set.',
+				description: 'How many samples of this entity type to generate in one job. The first defines the field set (full pipeline incl. determinism analysis) and names the instances for the remaining slots; the rest are fast parallel follow-up turns that keep the same fields and fill values for their named instance. Forced to 1 whenever Attachment IDs is set.',
 				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
 			},
 			{
@@ -510,7 +510,7 @@ export class EntityEnricher implements INodeType {
 				type: 'string',
 				default: '',
 				placeholder: 'e.g. Sanofi, Pfizer',
-				description: 'Comma-separated concrete instances to anchor knowledge mode, up to Sample Count, one per generated sample in order — samples beyond the number given are auto-invented',
+				description: 'Comma-separated concrete instances to anchor knowledge mode, up to Sample Count, one per generated sample in order — slots beyond the number given are named by the model itself, all in one pass so they stay distinct',
 				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
 			},
 			{
