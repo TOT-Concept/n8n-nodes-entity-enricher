@@ -495,7 +495,7 @@ export type paths = {
         };
         /**
          * List the local sign-in personas
-         * @description Personas seeded into a local working copy (free / pro / premium / admin / editor @localhost). Returns 404 when local sign-in is not enabled, which is how the login page decides whether to show the picker.
+         * @description Personas seeded into a local working copy (free / pro / premium / admin / editor / operator @localhost). Returns 404 when local sign-in is not enabled, which is how the login page decides whether to show the picker.
          */
         get: operations["list_dev_personas_api_auth_dev_login_get"];
         put?: never;
@@ -6141,6 +6141,11 @@ export type components = {
              * @default 0
              */
             entity_count: number;
+            /**
+             * Key Collisions
+             * @description List items that resolved to an identity an earlier sibling already claimed; only the first was written (no silent last-write-wins row, no duplicate link rows)
+             */
+            key_collisions?: components["schemas"]["EntityKeyCollision"][];
             /** Missing Fields */
             missing_fields?: string[];
             /**
@@ -6791,6 +6796,38 @@ export type components = {
              * @constant
              */
             type: "object";
+        };
+        /**
+         * EntityKeyCollision
+         * @description Two objects of one list claiming the same identity within one enrichment.
+         *
+         *     The database key IS the row, so the projection can only hold one of them:
+         *     the first occurrence is kept and the later one dropped. Reported rather
+         *     than applied silently — a collision usually means the model fabricated the
+         *     same id for two different things, or the stamped key is not discriminating.
+         */
+        EntityKeyCollision: {
+            /**
+             * Dropped
+             * @description …of the item dropped; the differing fields are the disagreement
+             */
+            dropped: {
+                [key: string]: string;
+            };
+            /** Entity Type */
+            entity_type: string;
+            /**
+             * Kept
+             * @description Identifying (is_key / database_key) values of the item kept
+             */
+            kept: {
+                [key: string]: string;
+            };
+            /**
+             * Path
+             * @description Schema path of the dropped item, e.g. 'publishers[1]'
+             */
+            path: string;
         };
         /** EntityStateListResponse */
         EntityStateListResponse: {
@@ -14760,6 +14797,7 @@ export type EnrichmentOptionsResponse = components['schemas']['EnrichmentOptions
 export type EnrichmentPromptSummary = components['schemas']['EnrichmentPromptSummary'];
 export type EntityDefinitionInput = components['schemas']['EntityDefinition-Input'];
 export type EntityDefinitionOutput = components['schemas']['EntityDefinition-Output'];
+export type EntityKeyCollision = components['schemas']['EntityKeyCollision'];
 export type EntityStateListResponse = components['schemas']['EntityStateListResponse'];
 export type EntityStateRow = components['schemas']['EntityStateRow'];
 export type EntityTypeKeys = components['schemas']['EntityTypeKeys'];
