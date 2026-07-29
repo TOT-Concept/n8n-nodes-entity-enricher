@@ -3663,6 +3663,51 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/schema/saved/{schema_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish Schema
+         * @description Publish the working copy as the schema's contract (docs/ENTITY_LAYER.md
+         *     → publish model): enrichment and the linked databases' projections follow
+         *     the published content only, so structural edits take effect here — never
+         *     on autosave. Transform-grade changes (re-key, type change) additionally
+         *     require confirm_transforms=true: they ship replica-side migrations whose
+         *     data guards pause the feed until any named data problem is fixed.
+         */
+        post: operations["publish_schema_api_schema_saved__schema_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schema/saved/{schema_id}/publish/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate Publish Schema
+         * @description Dry-run publish: the classified projection diff + anything blocking it.
+         */
+        post: operations["validate_publish_schema_api_schema_saved__schema_id__publish_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schema/saved/{schema_id}/restore": {
         parameters: {
             query?: never;
@@ -5483,11 +5528,6 @@ export type components = {
              * @description Set (with identity_keys_candidate) when both sides key on a minted semantic_id but their is_key properties (incl. 1-1 nested) differ — semantic IDs would diverge, the link is blocked
              */
             identity_keys_existing?: string[];
-            /**
-             * Shared Columns
-             * @description Non-key columns fed by both sides — each schema's enrichments overwrite them in turn
-             */
-            shared_columns?: string[];
         };
         /**
          * ConfigExport
@@ -6000,6 +6040,12 @@ export type components = {
              */
             schemas?: components["schemas"]["LinkedSchemaRef"][];
             /**
+             * Snapshot Required
+             * @description The replica must re-pull the .sql snapshot before data deltas resume (set on re-link — rows enriched while unlinked are only in the snapshot; cleared by a snapshot download)
+             * @default false
+             */
+            snapshot_required: boolean;
+            /**
              * Updated At
              * Format: date-time
              */
@@ -6027,6 +6073,11 @@ export type components = {
              * @constant
              */
             dialect: "postgres";
+            /**
+             * Key Language
+             * @description Key language for multilingual database keys (docs/ENTITY_LAYER.md): the language the '{prop}_key' identity tokens are written in. REQUIRED when the schema has a multilingual database key and no locked key language yet; ignored otherwise.
+             */
+            key_language?: string | null;
             /**
              * Max Threshold Timeout S
              * @description Hard cap on the debounce: a notification fires at most this many seconds after the first unsent delta, even while new deltas keep resetting the timer
@@ -6075,6 +6126,11 @@ export type components = {
         };
         /** DatabaseSyncCreateResponse */
         DatabaseSyncCreateResponse: {
+            /**
+             * Custody Warning
+             * @description Set when purge_entity_state is enabled: delivered entity rows are deleted server-side, making the replica the ONLY complete copy — backups become the consumer's responsibility, snapshots turn partial, and unlinking loses the un-replicated window permanently
+             */
+            custody_warning?: string | null;
             database: components["schemas"]["DatabaseSync"];
             /** Stamped Keys */
             stamped_keys?: components["schemas"]["EntityTypeKeys"][];
@@ -6354,6 +6410,12 @@ export type components = {
             schema_content_hashes?: {
                 [key: string]: string | null;
             };
+            /**
+             * Snapshot Required
+             * @description Delivery is paused until the replica re-applies the .sql snapshot (publish model: rows written while a schema was unlinked exist only in the snapshot). When true the batch is empty — re-bootstrap, then poll again.
+             * @default false
+             */
+            snapshot_required: boolean;
         };
         /** DeltaRow */
         DeltaRow: {
@@ -9928,6 +9990,43 @@ export type components = {
             specific_endpoint?: string | null;
         };
         /**
+         * PublishTableChange
+         * @description Additive changes to one (existing) entity type.
+         */
+        PublishTableChange: {
+            /** Added Columns */
+            added_columns?: string[];
+            /** Added Indexes */
+            added_indexes?: string[];
+            /**
+             * Added Relationships
+             * @description New ref/link/owned relationship property names
+             */
+            added_relationships?: string[];
+            /**
+             * Added Tables
+             * @description Child/junction tables introduced under this type
+             */
+            added_tables?: string[];
+            /** Entity Type */
+            entity_type: string;
+        };
+        /**
+         * PublishTransform
+         * @description One projection change the additive DDL diff cannot express.
+         */
+        PublishTransform: {
+            /** Detail */
+            detail: string;
+            /** Entity Type */
+            entity_type: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "key_set" | "key_multilinguality" | "column_type" | "ownership" | "semantic_identity";
+        };
+        /**
          * QualityArrayScore
          * @description Per-array set-alignment detail (precision / recall / F1 + miss/hallucination lists).
          */
@@ -10765,6 +10864,12 @@ export type components = {
             name: string;
             /** Property Count */
             property_count: number;
+            /**
+             * Publish State
+             * @default draft
+             * @enum {string}
+             */
+            publish_state: "draft" | "in_sync" | "dirty";
             /** Tags */
             tags: string[];
             /**
@@ -10826,6 +10931,19 @@ export type components = {
              * @default true
              */
             non_determinism_enabled: boolean;
+            /**
+             * Publish State
+             * @description draft (no linked database) | in_sync | dirty (structural edits pending publish)
+             * @default draft
+             * @enum {string}
+             */
+            publish_state: "draft" | "in_sync" | "dirty";
+            /** Published At */
+            published_at?: string | null;
+            /** Published By Id */
+            published_by_id?: string | null;
+            /** @description The published contract enrichment and database sync run against (docs/ENTITY_LAYER.md → publish model). NULL while the schema is a draft (not linked to any database). schema_content stays the free working copy the editor autosaves. */
+            published_content?: components["schemas"]["GeneratedJsonSchema-Output"] | null;
             schema_content: components["schemas"]["GeneratedJsonSchema-Output"];
             /** Tags */
             tags: string[];
@@ -10850,6 +10968,11 @@ export type components = {
             } | null;
             /** Is Pinned */
             is_pinned?: boolean | null;
+            /**
+             * Key Language
+             * @description Pre-set the key language for multilingual database keys ahead of a database link (migration preparation). Settable only while the schema has no linked database and no entity state — afterwards the lock is immutable (identity tokens embed the language).
+             */
+            key_language?: string | null;
             /** Name */
             name?: string | null;
             /** Non Determinism Enabled */
@@ -11025,6 +11148,95 @@ export type components = {
             ref_path: string;
             /** Type Score */
             type_score: number;
+        };
+        /**
+         * SchemaPublishDiff
+         * @description Classified projection change between published contract and working copy.
+         */
+        SchemaPublishDiff: {
+            /** Added Types */
+            added_types?: string[];
+            /** Changed */
+            changed?: components["schemas"]["PublishTableChange"][];
+            /**
+             * Classification
+             * @enum {string}
+             */
+            classification: "neutral" | "additive" | "transform";
+            /**
+             * Removed Columns
+             * @description Soft removals per entity type — the replica keeps these columns
+             */
+            removed_columns?: {
+                [key: string]: string[];
+            };
+            /**
+             * Removed Types
+             * @description Soft removals — the replica keeps these tables
+             */
+            removed_types?: string[];
+            /** Transforms */
+            transforms?: components["schemas"]["PublishTransform"][];
+        };
+        /**
+         * SchemaPublishPreviewResponse
+         * @description Dry-run publish: the classified diff + anything that would block it.
+         */
+        SchemaPublishPreviewResponse: {
+            /**
+             * Can Publish
+             * @default false
+             */
+            can_publish: boolean;
+            /**
+             * Databases
+             * @description Names of the linked databases the publish will reconcile
+             */
+            databases?: string[];
+            diff: components["schemas"]["SchemaPublishDiff"];
+            /**
+             * Errors
+             * @description Validation / cross-schema errors that block publishing
+             */
+            errors?: string[];
+            /**
+             * Publish State
+             * @enum {string}
+             */
+            publish_state: "draft" | "in_sync" | "dirty";
+            /**
+             * Requires Confirm
+             * @description The diff contains supported transform migrations — publish must be called with confirm_transforms=true
+             * @default false
+             */
+            requires_confirm: boolean;
+        };
+        /**
+         * SchemaPublishRequest
+         * @description Body of the publish call (optional — defaults publish additively).
+         */
+        SchemaPublishRequest: {
+            /**
+             * Confirm Transforms
+             * @description Acknowledge that this publish ships a transform migration (re-key / type change) executed against the replicas' own data — a failing data guard pauses their feed until the named problem is fixed. Required whenever the diff contains transforms.
+             * @default false
+             */
+            confirm_transforms: boolean;
+        };
+        /**
+         * SchemaPublishResponse
+         * @description Result of publishing the working copy to the linked databases.
+         */
+        SchemaPublishResponse: {
+            /**
+             * Delta Ids
+             * @description DDL migration deltas queued per linked database
+             */
+            delta_ids?: number[];
+            diff: components["schemas"]["SchemaPublishDiff"];
+            /** Published */
+            published: boolean;
+            saved_schema: components["schemas"]["SavedSchemaResponse"];
         };
         /**
          * SchemaSemanticUsage
@@ -15041,6 +15253,8 @@ export type ProviderKeyResponse = components['schemas']['ProviderKeyResponse'];
 export type ProviderKeyUpdate = components['schemas']['ProviderKeyUpdate'];
 export type ProviderResponse = components['schemas']['ProviderResponse'];
 export type ProviderUpdate = components['schemas']['ProviderUpdate'];
+export type PublishTableChange = components['schemas']['PublishTableChange'];
+export type PublishTransform = components['schemas']['PublishTransform'];
 export type QualityArrayScore = components['schemas']['QualityArrayScore'];
 export type QualityDetail = components['schemas']['QualityDetail'];
 export type QualityFieldScore = components['schemas']['QualityFieldScore'];
@@ -15080,6 +15294,10 @@ export type SchemaPromptRequest = components['schemas']['SchemaPromptRequest'];
 export type SchemaPromptResponse = components['schemas']['SchemaPromptResponse'];
 export type SchemaPromptStreamRequest = components['schemas']['SchemaPromptStreamRequest'];
 export type SchemaPropMatch = components['schemas']['SchemaPropMatch'];
+export type SchemaPublishDiff = components['schemas']['SchemaPublishDiff'];
+export type SchemaPublishPreviewResponse = components['schemas']['SchemaPublishPreviewResponse'];
+export type SchemaPublishRequest = components['schemas']['SchemaPublishRequest'];
+export type SchemaPublishResponse = components['schemas']['SchemaPublishResponse'];
 export type SchemaSemanticUsage = components['schemas']['SchemaSemanticUsage'];
 export type ScoreBenchmarkJobResponse = components['schemas']['ScoreBenchmarkJobResponse'];
 export type ScoreBenchmarkRequest = components['schemas']['ScoreBenchmarkRequest'];
@@ -18959,6 +19177,8 @@ export interface operations {
     link_schema_to_database_api_databases__database_id__schemas__schema_id__post: {
         parameters: {
             query?: {
+                /** @description Key language for multilingual database keys — required when the schema has one, no lock yet, and the database's schemas carry no language to adopt */
+                key_language?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
@@ -18997,6 +19217,8 @@ export interface operations {
     unlink_schema_from_database_api_databases__database_id__schemas__schema_id__delete: {
         parameters: {
             query?: {
+                /** @description Required when the schema has entity-state purging anywhere: rows purged while unlinked can never reach this replica again */
+                force?: boolean;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
@@ -22546,6 +22768,84 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StreamGenerateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_schema_api_schema_saved__schema_id__publish_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SchemaPublishRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaPublishResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_publish_schema_api_schema_saved__schema_id__publish_validate_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaPublishPreviewResponse"];
                 };
             };
             /** @description Validation Error */
