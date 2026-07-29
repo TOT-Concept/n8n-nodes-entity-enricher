@@ -3589,6 +3589,32 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/schema/saved/{schema_id}/enrichment-data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Purge Schema Enrichment Data
+         * @description Hard-delete all enrichment data produced under a schema — enrichment
+         *     records and current entity state — keeping the schema itself.
+         *
+         *     Blocked with 409 while the schema is linked to a database sync: purging
+         *     server-side state would leave consumer replicas holding rows that no
+         *     longer exist and no delta would ever remove. Unlink or delete the
+         *     registrations first.
+         */
+        delete: operations["purge_schema_enrichment_data_api_schema_saved__schema_id__enrichment_data_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schema/saved/{schema_id}/permanent": {
         parameters: {
             query?: never;
@@ -10998,6 +11024,16 @@ export type components = {
                 [key: string]: number;
             };
         };
+        /**
+         * SchemaEnrichmentDataPurgeResponse
+         * @description Counts of rows hard-deleted by a schema enrichment-data purge.
+         */
+        SchemaEnrichmentDataPurgeResponse: {
+            /** Entities Deleted */
+            entities_deleted: number;
+            /** Records Deleted */
+            records_deleted: number;
+        };
         /** SchemaEventSubscription */
         SchemaEventSubscription: {
             /**
@@ -15285,6 +15321,7 @@ export type SavedSchemaListResponse = components['schemas']['SavedSchemaListResp
 export type SavedSchemaResponse = components['schemas']['SavedSchemaResponse'];
 export type SavedSchemaUpdate = components['schemas']['SavedSchemaUpdate'];
 export type SchemaComparisonDetail = components['schemas']['SchemaComparisonDetail'];
+export type SchemaEnrichmentDataPurgeResponse = components['schemas']['SchemaEnrichmentDataPurgeResponse'];
 export type SchemaEventSubscription = components['schemas']['SchemaEventSubscription'];
 export type SchemaEventSubscriptionCreateRequest = components['schemas']['SchemaEventSubscriptionCreateRequest'];
 export type SchemaEventSubscriptionCreateResponse = components['schemas']['SchemaEventSubscriptionCreateResponse'];
@@ -22647,6 +22684,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SavedSchemaResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    purge_schema_enrichment_data_api_schema_saved__schema_id__enrichment_data_delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaEnrichmentDataPurgeResponse"];
                 };
             };
             /** @description Validation Error */
