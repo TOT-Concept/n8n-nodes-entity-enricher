@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Removed — Generate Schema "Strategy" parameter
+
+The single-call (monolithic) schema-generation pipeline was retired server-side; generation always uses the multi-step (staged) pipeline. The **Strategy** dropdown is removed from **Generate Schema** and the `generation_strategy` request field no longer exists. Saved workflows that had it set keep working — the stored value is simply ignored.
+
 ### ⚠ BREAKING — per-prompt fields and schema-generation property count renamed
 
 - **Get Record** per-prompt details: `prompt_used` is now `user_prompt`, `system_prompt_used` is now `system_prompt` (`raw_response` is unchanged). Update expressions reading those keys; the values are unchanged.

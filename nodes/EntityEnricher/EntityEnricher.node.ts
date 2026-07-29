@@ -607,19 +607,6 @@ export class EntityEnricher implements INodeType {
 				displayOptions: { show: { resource: ['schema'], operation: ['generateSchema'] } },
 			},
 			{
-				displayName: 'Strategy',
-				name: 'schemaGenStrategy',
-				type: 'options',
-				options: [
-					{ name: 'Auto (Server Default)', value: 'auto' },
-					{ name: 'Multi-Step (Staged)', value: 'staged' },
-					{ name: 'Single Call (Monolithic)', value: 'monolithic' },
-				],
-				default: 'auto',
-				description: 'Generation pipeline: staged (small single-concern calls, small-model friendly) or monolithic (legacy single call)',
-				displayOptions: { show: { resource: ['schema'], operation: ['generateSchema'] } },
-			},
-			{
 				displayName: 'Generate Semantic IDs',
 				name: 'schemaGenSemanticIds',
 				type: 'boolean',

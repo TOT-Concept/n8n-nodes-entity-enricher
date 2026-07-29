@@ -11103,11 +11103,6 @@ export type components = {
              * @default false
              */
             generate_semantic_ids: boolean;
-            /**
-             * Generation Strategy
-             * @description Generation pipeline; null defers to the server default (staged)
-             */
-            generation_strategy?: ("staged" | "monolithic") | null;
         };
         /**
          * SchemaPromptRequest
@@ -14245,11 +14240,6 @@ export type components = {
              */
             generate_semantic_ids: boolean;
             /**
-             * Generation Strategy
-             * @description Override the server's schema-generation strategy for this request: 'staged' (pipeline of small single-concern calls, small-model friendly) or 'monolithic' (legacy single call). Omit to use the server default.
-             */
-            generation_strategy?: ("staged" | "monolithic") | null;
-            /**
              * Model
              * @description Model composite key. Optional: 'auto' (default) lets the server pick the organization's default schema-generation model — the pinned per-task default if set, else the model with the best blended overall score from scoring-source benchmarks.
              * @default auto
@@ -14665,11 +14655,6 @@ export type components = {
              * @default false
              */
             generate_semantic_ids: boolean;
-            /**
-             * Generation Strategy
-             * @description Override the server's schema-generation strategy for this request: 'staged' (pipeline of small single-concern calls, small-model friendly) or 'monolithic' (legacy single call). Omit to use the server default.
-             */
-            generation_strategy?: ("staged" | "monolithic") | null;
             /**
              * Model
              * @description Model composite key. Optional: 'auto' (default) lets the server pick the organization's default schema-generation model — the pinned per-task default if set, else the model with the best blended overall score from scoring-source benchmarks.

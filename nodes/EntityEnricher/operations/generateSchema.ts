@@ -42,7 +42,6 @@ export async function execute(
 	}
 
 	const model = context.getNodeParameter('schemaGenModel', 0, 'auto') as string;
-	const strategy = context.getNodeParameter('schemaGenStrategy', 0, 'auto') as string;
 	const generateSemanticIds = context.getNodeParameter(
 		'schemaGenSemanticIds', 0, false,
 	) as boolean;
@@ -61,7 +60,6 @@ export async function execute(
 		sample_commonality_threshold: commonalityThreshold,
 		timeout_seconds: timeoutSeconds,
 	};
-	if (strategy !== 'auto') body.generation_strategy = strategy;
 	if (extraInstructions) body.extra_instructions = extraInstructions;
 
 	const response = await apiRequest(context, '/api/schema/generate/sync', {
