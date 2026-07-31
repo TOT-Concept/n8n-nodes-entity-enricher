@@ -5966,7 +5966,7 @@ export type components = {
             refresh_token: string;
             /**
              * Server Url
-             * @description WS endpoint base URL (e.g. wss://entityenricher.ai).
+             * @description Base URL of the backend that minted the credential, in the same http(s) form as the install one-liners (e.g. https://entityenricher.ai) — pass it to `ee-database pair --server`; the CLI derives the ws(s) data plane.
              */
             server_url: string;
         };
@@ -14973,7 +14973,7 @@ export type components = {
             refresh_token: string;
             /**
              * Server Url
-             * @description WSS endpoint base URL (e.g. wss://entityenricher.ai).
+             * @description Base URL of the backend that minted the credential, in http(s) form (e.g. https://entityenricher.ai) — pass it to `ee-tunnel pair --server`; the CLI derives the wss data plane.
              */
             server_url: string;
             tunnel: components["schemas"]["TunnelCredentialResponse"];
