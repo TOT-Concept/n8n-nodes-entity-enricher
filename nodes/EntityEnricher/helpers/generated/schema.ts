@@ -3464,7 +3464,7 @@ export type paths = {
         put?: never;
         /**
          * Synchronous schema generation
-         * @description Blocks until schema generation finishes and returns the generated schema. Designed for non-streaming clients such as the MCP server, Make.com, Zapier, or curl. Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, 500 `schema_generation_empty` (no result), else 502 `schema_generation_failed`.
+         * @description Blocks until schema generation finishes and returns the generated schema. Designed for non-streaming clients such as the MCP server, Make.com, Zapier, or curl. Rejects the samples with 400 `sample_commonality_failed` (mixed entity types) or `sample_field_conformance_failed` (array items sharing no field) before any spend — POST /api/schema/samples/conformance reports both without generating. Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, 500 `schema_generation_empty` (no result), else 502 `schema_generation_failed`.
          */
         post: operations["generate_schema_sync_api_schema_generate_sync_post"];
         delete?: never;
@@ -3509,6 +3509,26 @@ export type paths = {
          * @description Blocks until sample generation finishes and returns the generated sample(s). Designed for non-streaming clients such as Make.com, Zapier, or curl — always runs with auto_answer=true (any attachment- planner clarification questions resolve to the planner's defaults rather than pausing, since a blocking call can't wait for a live answer). Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, 500 `sample_generation_empty` (no result), else 502 `sample_generation_failed`.
          */
         post: operations["generate_sample_sync_api_schema_sample_generate_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schema/samples/conformance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check sample field-set conformance
+         * @description Measures field-set agreement per parent object site (the root entity, each nested object, each array-item site) across the given samples, and runs the whole-sample commonality check. Deterministic, free, and stateless — nothing is generated or saved. Use it to warn about drift before spending a generation: `ok=false` means POST /generate/stream would answer 400 with the same messages.
+         */
+        post: operations["check_sample_conformance_api_schema_samples_conformance_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -10837,6 +10857,67 @@ export type components = {
             model_keys: string[];
         };
         /**
+         * SampleConformanceResponse
+         * @description Deterministic pre-flight verdict on a sample set (no LLM, no persistence).
+         */
+        SampleConformanceResponse: {
+            /**
+             * Commonality Errors
+             * @description Whole-sample commonality failures (mixed entity types).
+             */
+            commonality_errors: string[];
+            /**
+             * Errors
+             * @description Fatal field-conformance messages (empty when none).
+             */
+            errors: string[];
+            /**
+             * Ok
+             * @description No fatal site and no commonality failure — generation will not be blocked.
+             */
+            ok: boolean;
+            /**
+             * Sites
+             * @description Every disagreeing site, fatal ones first.
+             */
+            sites: components["schemas"]["SampleConformanceSite"][];
+        };
+        /**
+         * SampleConformanceSite
+         * @description One parent object site whose field set is not identical everywhere.
+         */
+        SampleConformanceSite: {
+            /** Always Present */
+            always_present: string[];
+            /** Array Item */
+            array_item: boolean;
+            /**
+             * Drifting
+             * @description Fields missing from at least one observation.
+             */
+            drifting: string[];
+            /**
+             * Fatal
+             * @description Array items sharing no field at all — no property can identify their rows. Blocks generation unless strict_field_conformance is false.
+             */
+            fatal: boolean;
+            /**
+             * Observations
+             * @description Objects observed at this site (samples × array elements).
+             */
+            observations: number;
+            /**
+             * Path
+             * @description Dotted parent path; "" is the root entity, "x[]" an array item.
+             */
+            path: string;
+            /**
+             * Shapes
+             * @description Distinct field sets, most frequent first.
+             */
+            shapes: string[][];
+        };
+        /**
          * SampleGenTaskParams
          * @description Fixed sample-generation inputs (mirrors GenerateSampleRequest minus the model).
          */
@@ -10884,6 +10965,32 @@ export type components = {
             weights?: {
                 [key: string]: number;
             };
+        };
+        /**
+         * SampleSetRequest
+         * @description A set of 1..N samples of one entity type, plus its pre-flight settings.
+         *
+         *     Shared by schema generation and the standalone conformance check so both
+         *     apply the exact same deterministic gates (see ``_preflight_samples``).
+         */
+        SampleSetRequest: {
+            /**
+             * Entity Samples
+             * @description 1..N sample objects of the SAME entity type to analyze. The schema covers the union of their fields; a field missing or null in any sample becomes nullable, and distinct observed values seed the property examples. A bare object is accepted and treated as [object].
+             */
+            entity_samples: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Sample Commonality Threshold
+             * @description Minimum share (0..1) of the combined field-path set every sample must cover (default 0.5) — mixed entity types hard-fail with HTTP 400 before any LLM call.
+             */
+            sample_commonality_threshold?: number | null;
+            /**
+             * Strict Field Conformance
+             * @description Reject samples whose array-item objects share no field at all — a field-rename drift leaves such items with no always-present property, hence no possible row identity. Omitted means strict; set false to generate anyway (every drifting field then becomes nullable).
+             */
+            strict_field_conformance?: boolean | null;
         };
         /**
          * SavedSchemaCreate
@@ -14300,10 +14407,9 @@ export type components = {
             model: string;
             /**
              * Sample Commonality Threshold
-             * @description Minimum share (0..1) of the combined field-path set every sample must cover — mixed entity types hard-fail with HTTP 400 before any LLM call.
-             * @default 0.5
+             * @description Minimum share (0..1) of the combined field-path set every sample must cover (default 0.5) — mixed entity types hard-fail with HTTP 400 before any LLM call.
              */
-            sample_commonality_threshold: number;
+            sample_commonality_threshold?: number | null;
             /**
              * Sample Inputs
              * @description Optional guided-form inputs (entity type, typical example, naming, extra instructions) that produced the sample; persisted under generation_params.sample_inputs so the sample panel can be fully restored when the schema is reopened.
@@ -14317,6 +14423,11 @@ export type components = {
              * @default true
              */
             save_schema: boolean;
+            /**
+             * Strict Field Conformance
+             * @description Reject samples whose array-item objects share no field at all — a field-rename drift leaves such items with no always-present property, hence no possible row identity. Omitted means strict; set false to generate anyway (every drifting field then becomes nullable).
+             */
+            strict_field_conformance?: boolean | null;
         };
         /**
          * StreamGenerateResponse
@@ -14716,10 +14827,9 @@ export type components = {
             model: string;
             /**
              * Sample Commonality Threshold
-             * @description Minimum share (0..1) of the combined field-path set every sample must cover — mixed entity types hard-fail with HTTP 400 before any LLM call.
-             * @default 0.5
+             * @description Minimum share (0..1) of the combined field-path set every sample must cover (default 0.5) — mixed entity types hard-fail with HTTP 400 before any LLM call.
              */
-            sample_commonality_threshold: number;
+            sample_commonality_threshold?: number | null;
             /**
              * Sample Inputs
              * @description Optional guided-form inputs (entity type, typical example, naming, extra instructions) that produced the sample; persisted under generation_params.sample_inputs so the sample panel can be fully restored when the schema is reopened.
@@ -14733,6 +14843,11 @@ export type components = {
              * @default true
              */
             save_schema: boolean;
+            /**
+             * Strict Field Conformance
+             * @description Reject samples whose array-item objects share no field at all — a field-rename drift leaves such items with no always-present property, hence no possible row identity. Omitted means strict; set false to generate anyway (every drifting field then becomes nullable).
+             */
+            strict_field_conformance?: boolean | null;
             /**
              * Timeout Seconds
              * @description How long to wait for schema generation to finish before returning 504
@@ -15353,8 +15468,11 @@ export type RubricCovernessDetail = components['schemas']['RubricCovernessDetail
 export type RubricJudgeDetail = components['schemas']['RubricJudgeDetail'];
 export type RunBenchmarkJobResponse = components['schemas']['RunBenchmarkJobResponse'];
 export type RunBenchmarkRequest = components['schemas']['RunBenchmarkRequest'];
+export type SampleConformanceResponse = components['schemas']['SampleConformanceResponse'];
+export type SampleConformanceSite = components['schemas']['SampleConformanceSite'];
 export type SampleGenTaskParams = components['schemas']['SampleGenTaskParams'];
 export type SampleRubricDetail = components['schemas']['SampleRubricDetail'];
+export type SampleSetRequest = components['schemas']['SampleSetRequest'];
 export type SavedSchemaCreate = components['schemas']['SavedSchemaCreate'];
 export type SavedSchemaListItem = components['schemas']['SavedSchemaListItem'];
 export type SavedSchemaListResponse = components['schemas']['SavedSchemaListResponse'];
@@ -22496,6 +22614,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_sample_conformance_api_schema_samples_conformance_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SampleSetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SampleConformanceResponse"];
                 };
             };
             /** @description Validation Error */
