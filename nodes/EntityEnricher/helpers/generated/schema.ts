@@ -6087,6 +6087,11 @@ export type components = {
              * Format: uuid
              */
             id: string;
+            /**
+             * Index Scalars
+             * @default filterable
+             */
+            index_scalars: string;
             /** Max Threshold Timeout S */
             max_threshold_timeout_s: number;
             /** Name */
@@ -6161,6 +6166,13 @@ export type components = {
              * @constant
              */
             dialect: "postgres";
+            /**
+             * Index Scalars
+             * @description Which index classes the replica materializes (docs/ENTITY_LAYER.md → indexing): 'none' = identity and feed only, 'keys' = + natural keys and the access paths child/junction tables have no other way to answer, 'filterable' (default) = + closed sets (enum refs, booleans, dates) and properties flagged `indexed`, 'all' = + every remaining scalar column. Widening queues CREATE INDEX, narrowing queues DROP INDEX — both as ordinary schema deltas; indexes you created yourself are never touched
+             * @default filterable
+             * @enum {string}
+             */
+            index_scalars: "none" | "keys" | "filterable" | "all";
             /**
              * Key Language
              * @description Key language for multilingual database keys (docs/ENTITY_LAYER.md): the language the '{prop}_key' identity tokens are written in. REQUIRED when the schema has a multilingual database key and no locked key language yet; ignored otherwise.
@@ -6301,6 +6313,11 @@ export type components = {
          */
         DatabaseSyncOutcome: {
             /**
+             * Declared Unknown
+             * @description Of the missing_fields, the ones a model explicitly declared it could not answer (rather than returning null with no signal), with the models that declared each. A declined field means the data was not in the model's knowledge — a stronger model, web search or a source document may fix it; a missing field with no entry here left no trace, which points at the schema or the input instead. Empty on runs that predate declaration capture
+             */
+            declared_unknown?: components["schemas"]["DeclaredUnknown"][];
+            /**
              * Delta Count
              * @default 0
              */
@@ -6348,6 +6365,8 @@ export type components = {
         };
         /** DatabaseSyncUpdateRequest */
         DatabaseSyncUpdateRequest: {
+            /** Index Scalars */
+            index_scalars?: ("none" | "keys" | "filterable" | "all") | null;
             /** Max Threshold Timeout S */
             max_threshold_timeout_s?: number | null;
             /** Name */
@@ -6384,6 +6403,27 @@ export type components = {
             stamped_keys?: components["schemas"]["EntityTypeKeys"][];
             /** Valid */
             valid: boolean;
+        };
+        /**
+         * DeclaredUnknown
+         * @description A required field the model said it did not know, rather than lost.
+         *
+         *     The nullability contract lets a model answer `null` and name the path in
+         *     `unknown_fields` instead of inventing a value. That declaration is consumed
+         *     before the output is stored, so without carrying it here a rejection cannot
+         *     tell the two cases apart — and they call for opposite reactions (issue #32).
+         */
+        DeclaredUnknown: {
+            /**
+             * Models
+             * @description Composite keys of the models that declared it. On a fused record, fewer models here than the run used means the others did answer and fusion still ended up with nothing — a merge question, not a knowledge one
+             */
+            models: string[];
+            /**
+             * Path
+             * @description Declared path, e.g. 'opening_hours' or 'owner.founded_year'
+             */
+            path: string;
         };
         /**
          * DefaultModelSelection
@@ -7292,6 +7332,22 @@ export type components = {
              * @description Schema validation warnings on merged result (None if no schema)
              */
             validation_warnings?: string[] | null;
+        };
+        /**
+         * FusionSourceRef
+         * @description One per-model record merged into a fused ('arbitration') record.
+         */
+        FusionSourceRef: {
+            /**
+             * Model Name
+             * @description Model that produced the source record; null once that record has been deleted (a fused record outlives the records it merged).
+             */
+            model_name?: string | null;
+            /**
+             * Record Id
+             * Format: uuid
+             */
+            record_id: string;
         };
         /**
          * FusionStreamResponse
@@ -9621,6 +9677,11 @@ export type components = {
              */
             expertise?: string | null;
             /**
+             * Indexed
+             * @description True = a consumer app filters, sorts or facets its LIST screens by this property, so its column gets a secondary index in every database whose index_scalars policy admits explicit flags (docs/ENTITY_LAYER.md → indexing). Redundant on identity properties (is_key/database_key are indexed by identity) and on closed sets (enum refs, booleans, dates are indexed by type) — those keep their own class. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the flags step at schema generation (bounded per entity) and editable in the Schema editor. Stripped from every LLM prompt.
+             */
+            indexed?: boolean | null;
+            /**
              * Is Key
              * @description True = identifier field for entity lookup and array item deduplication, null = output-only field
              */
@@ -9722,6 +9783,11 @@ export type components = {
              * @description Expertise domain this property belongs to
              */
             expertise?: string | null;
+            /**
+             * Indexed
+             * @description True = a consumer app filters, sorts or facets its LIST screens by this property, so its column gets a secondary index in every database whose index_scalars policy admits explicit flags (docs/ENTITY_LAYER.md → indexing). Redundant on identity properties (is_key/database_key are indexed by identity) and on closed sets (enum refs, booleans, dates are indexed by type) — those keep their own class. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the flags step at schema generation (bounded per entity) and editable in the Schema editor. Stripped from every LLM prompt.
+             */
+            indexed?: boolean | null;
             /**
              * Is Key
              * @description True = identifier field for entity lookup and array item deduplication, null = output-only field
@@ -10222,6 +10288,11 @@ export type components = {
             added_tables?: string[];
             /** Entity Type */
             entity_type: string;
+            /**
+             * Removed Indexes
+             * @description Columns that stop being indexed — the one removal that is NOT soft: an index holds no data, so it is dropped rather than left costing a write forever (docs/ENTITY_LAYER.md → indexing). Only on databases whose index policy materialized it in the first place
+             */
+            removed_indexes?: string[];
         };
         /**
          * PublishTransform
@@ -10362,6 +10433,11 @@ export type components = {
             created_at: string;
             /** Created By Name */
             created_by_name?: string | null;
+            /**
+             * Declared Unknown Fields
+             * @description Field paths the model itself declared it could not answer, rather than silently returning null. Null for records written before this was captured; [] when the model declared nothing.
+             */
+            declared_unknown_fields?: string[] | null;
             /** Deleted At */
             deleted_at?: string | null;
             /** Deleted By Name */
@@ -10390,6 +10466,21 @@ export type components = {
             } | null;
             /** Entity Name */
             entity_name?: string | null;
+            /**
+             * Fusion Arbitration Model
+             * @description Fused records only: composite key of the arbiter model whose decisions were applied — also set on a rule_based merge that escalated outlier numeric fields. Null for a pure rule-based merge.
+             */
+            fusion_arbitration_model?: string | null;
+            /**
+             * Fusion Method
+             * @description Fused records only: 'rule_based' when the conflicts were resolved deterministically (no LLM call at all) or 'llm' when an arbiter model decided them. Null for every other record type.
+             */
+            fusion_method?: string | null;
+            /**
+             * Fusion Sources
+             * @description Fused records only: the per-model records that were merged, in merge order.
+             */
+            fusion_sources?: components["schemas"]["FusionSourceRef"][];
             /**
              * Id
              * Format: uuid
@@ -10577,6 +10668,21 @@ export type components = {
             entity_id: string;
             /** Entity Name */
             entity_name?: string | null;
+            /**
+             * Fusion Arbitration Model
+             * @description Fused records only: composite key of the arbiter model whose decisions were applied — also set on a rule_based merge that escalated outlier numeric fields. Null for a pure rule-based merge.
+             */
+            fusion_arbitration_model?: string | null;
+            /**
+             * Fusion Method
+             * @description Fused records only: 'rule_based' when the conflicts were resolved deterministically (no LLM call at all) or 'llm' when an arbiter model decided them. Null for every other record type.
+             */
+            fusion_method?: string | null;
+            /**
+             * Fusion Sources
+             * @description Fused records only: the per-model records that were merged, in merge order.
+             */
+            fusion_sources?: components["schemas"]["FusionSourceRef"][];
             /**
              * Id
              * Format: uuid
@@ -15450,6 +15556,7 @@ export type DatabaseSyncOutcome = components['schemas']['DatabaseSyncOutcome'];
 export type DatabaseSyncRelationalMapResponse = components['schemas']['DatabaseSyncRelationalMapResponse'];
 export type DatabaseSyncUpdateRequest = components['schemas']['DatabaseSyncUpdateRequest'];
 export type DatabaseSyncValidationResult = components['schemas']['DatabaseSyncValidationResult'];
+export type DeclaredUnknown = components['schemas']['DeclaredUnknown'];
 export type DefaultModelSelection = components['schemas']['DefaultModelSelection'];
 export type DeleteBenchmarkResultsRequest = components['schemas']['DeleteBenchmarkResultsRequest'];
 export type DeleteBenchmarkResultsResponse = components['schemas']['DeleteBenchmarkResultsResponse'];
@@ -15483,6 +15590,7 @@ export type FailedModelSummary = components['schemas']['FailedModelSummary'];
 export type FieldConflict = components['schemas']['FieldConflict'];
 export type FusionRequest = components['schemas']['FusionRequest'];
 export type FusionResponse = components['schemas']['FusionResponse'];
+export type FusionSourceRef = components['schemas']['FusionSourceRef'];
 export type FusionStreamResponse = components['schemas']['FusionStreamResponse'];
 export type FusionSummary = components['schemas']['FusionSummary'];
 export type GeneratedJsonSchemaInput = components['schemas']['GeneratedJsonSchema-Input'];
