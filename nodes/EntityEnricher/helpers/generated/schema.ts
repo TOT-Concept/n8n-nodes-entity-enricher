@@ -11,25 +11,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Serve Index */
-        get: operations["serve_index__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/{path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve Spa */
-        get: operations["serve_spa__path__get"];
+        /** No Frontend */
+        get: operations["no_frontend__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1863,6 +1846,30 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/databases/{database_id}/schemas/{saved_schema_id}/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Link Webhook
+         * @description Attach or detach the delta webhook of one linked schema.
+         *
+         *     Per link, not per database: a webhook drives that schema's downstream
+         *     workflow, and a database aggregating several schemas needs one endpoint
+         *     each (docs/ENTITY_LAYER.md).
+         */
+        put: operations["set_link_webhook_api_databases__database_id__schemas__saved_schema_id__webhook_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/databases/{database_id}/schemas/{schema_id}": {
         parameters: {
             query?: never;
@@ -1943,7 +1950,7 @@ export type paths = {
         };
         /**
          * Get Database Webhook Secret
-         * @description The per-database webhook signing key — viewable anytime by owners.
+         * @description The webhook signing key of one linked schema — viewable anytime by owners.
          */
         get: operations["get_database_webhook_secret_api_databases__database_id__webhook_secret_get"];
         put?: never;
@@ -6106,6 +6113,11 @@ export type components = {
              * @default false
              */
             projection_upgrade_pending: boolean;
+            /**
+             * Propagate Not Null
+             * @default false
+             */
+            propagate_not_null: boolean;
             /** Purge Entity State */
             purge_entity_state: boolean;
             /** Purge On Ack */
@@ -6128,8 +6140,6 @@ export type components = {
              * Format: date-time
              */
             updated_at: string;
-            /** Webhook Url */
-            webhook_url?: string | null;
         };
         /**
          * DatabaseSyncChecksumResponse
@@ -6183,6 +6193,12 @@ export type components = {
              * @default 100
              */
             page_limit: number;
+            /**
+             * Propagate Not Null
+             * @description Emit NOT NULL on columns the schema declares always-present. Forces require_complete on: the constraint and the admission gate are one feature — without the gate the replica rejects the delta, aborts the transaction and stalls its own feed. Enabling this on a database that already has rows is a migration (existing NULLs abort it by name); disabling is a plain DROP NOT NULL
+             * @default false
+             */
+            propagate_not_null: boolean;
             /**
              * Purge Entity State
              * @description Also delete entity rows once every database of the schema acknowledged their latest revision (data minimization — not GDPR erasure; records remain)
@@ -6342,17 +6358,14 @@ export type components = {
             on_incomplete_child?: ("reject_entity" | "skip_row") | null;
             /** Page Limit */
             page_limit?: number | null;
+            /** Propagate Not Null */
+            propagate_not_null?: boolean | null;
             /** Purge Entity State */
             purge_entity_state?: boolean | null;
             /** Purge On Ack */
             purge_on_ack?: boolean | null;
             /** Require Complete */
             require_complete?: boolean | null;
-            /**
-             * Webhook Url
-             * @description Delta-available notification endpoint. Registered by the consumer (the n8n trigger sets it automatically); null detaches it
-             */
-            webhook_url?: string | null;
         };
         /**
          * DatabaseSyncValidationResult
@@ -6772,6 +6785,13 @@ export type components = {
             api_key_role?: string | null;
             /** @description Org per-task quality/speed/cost blends for benchmark overall scores */
             benchmark_score_weights?: components["schemas"]["BenchmarkScoreWeightsByType"] | null;
+            /**
+             * Db Types
+             * @description JSON scalar type → the generic SQL column types (`db_type`) that can apply to it, for the SchemaEditor's Database type select. Served rather than duplicated in TypeScript: the table is defined once in services/schema/db_types.py and also drives the generation prompt and the save-time validator, so a hand-copied frontend list would drift and the first symptom would be the editor offering a type the backend rejects. A JSON type absent here (boolean) has no choice to make.
+             */
+            db_types?: {
+                [key: string]: string[];
+            };
             /**
              * Default Embedding Model
              * @description Org's embedding model (composite key) for semantic IDs; null = disabled
@@ -7736,6 +7756,19 @@ export type components = {
             schema_content_hash?: string | null;
             /** Schema Name */
             schema_name: string;
+            /**
+             * Webhook Url
+             * @description This link's delta-available endpoint (the secret is never returned here)
+             */
+            webhook_url?: string | null;
+        };
+        /** LinkWebhookRequest */
+        LinkWebhookRequest: {
+            /**
+             * Webhook Url
+             * @description Delta-available notification endpoint for THIS schema's deltas. Registered by the consumer (the n8n trigger sets it automatically); null detaches it. The signing secret is minted on first attach and kept across re-points
+             */
+            webhook_url?: string | null;
         };
         /**
          * LLMModel
@@ -9563,6 +9596,16 @@ export type components = {
              */
             database_key?: boolean | null;
             /**
+             * Db Type
+             * @description Generic SQL type for this property's column in a consumer database (docs/ENTITY_LAYER.md → projection). None = 'auto': the default type map applies (string→TEXT, integer→BIGINT, …). Deliberately generic rather than dialect-specific — 'nvarchar' is SQL-Server-only and 'TIMESTAMPTZ' PostgreSQL-only, while one schema may feed databases of different dialects, so the renderer maps it per dialect. Proposed by the flags step at schema generation and bounded against the samples; changing it on a linked schema is migration-grade.
+             */
+            db_type?: ("text" | "varchar" | "char" | "uuid" | "date" | "timestamp" | "time" | "smallint" | "integer" | "bigint" | "numeric" | "double") | null;
+            /**
+             * Db Type Length
+             * @description Column length — read only for 'varchar' and 'char'. Kept separate from db_type rather than folded into a 'varchar(120)' string so structured output enforces an enum plus an integer with no free-text parsing, and the editor gets a select plus a number input.
+             */
+            db_type_length?: number | null;
+            /**
              * Description
              * @description Human-readable description of what this property represents
              */
@@ -9654,6 +9697,16 @@ export type components = {
              * @description True = this property is part of its containing object's Database key: the upsert conflict target and DDL unique index shared by all schema databases (docs/ENTITY_LAYER.md). Proposed by the flags step at schema generation and finalized by the stamping ladder (semantic_id → Id-like field → natural keys, which also backfills legacy schemas at link time); must be scalar (multilingual allowed — projects a '{prop}_key' companion column); required at write time. Stripped from every LLM prompt.
              */
             database_key?: boolean | null;
+            /**
+             * Db Type
+             * @description Generic SQL type for this property's column in a consumer database (docs/ENTITY_LAYER.md → projection). None = 'auto': the default type map applies (string→TEXT, integer→BIGINT, …). Deliberately generic rather than dialect-specific — 'nvarchar' is SQL-Server-only and 'TIMESTAMPTZ' PostgreSQL-only, while one schema may feed databases of different dialects, so the renderer maps it per dialect. Proposed by the flags step at schema generation and bounded against the samples; changing it on a linked schema is migration-grade.
+             */
+            db_type?: ("text" | "varchar" | "char" | "uuid" | "date" | "timestamp" | "time" | "smallint" | "integer" | "bigint" | "numeric" | "double") | null;
+            /**
+             * Db Type Length
+             * @description Column length — read only for 'varchar' and 'char'. Kept separate from db_type rather than folded into a 'varchar(120)' string so structured output enforces an enum plus an integer with no free-text parsing, and the editor gets a select plus a number input.
+             */
+            db_type_length?: number | null;
             /**
              * Description
              * @description Human-readable description of what this property represents
@@ -15450,6 +15503,7 @@ export type JoinOrganizationResponse = components['schemas']['JoinOrganizationRe
 export type KeyHealthCheckResponse = components['schemas']['KeyHealthCheckResponse'];
 export type LeaveOrganizationRequest = components['schemas']['LeaveOrganizationRequest'];
 export type LinkedSchemaRef = components['schemas']['LinkedSchemaRef'];
+export type LinkWebhookRequest = components['schemas']['LinkWebhookRequest'];
 export type LlmModel = components['schemas']['LLMModel'];
 export type LoginRequest = components['schemas']['LoginRequest'];
 export type LoginResponse = components['schemas']['LoginResponse'];
@@ -15636,7 +15690,7 @@ export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutRespon
 export type WebhookSecretResponse = components['schemas']['WebhookSecretResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
-    serve_index__get: {
+    no_frontend__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -15652,37 +15706,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    serve_spa__path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -19471,6 +19494,48 @@ export interface operations {
             };
         };
     };
+    set_link_webhook_api_databases__database_id__schemas__saved_schema_id__webhook_put: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+                saved_schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkWebhookRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSecretResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     link_schema_to_database_api_databases__database_id__schemas__schema_id__post: {
         parameters: {
             query?: {
@@ -19627,6 +19692,8 @@ export interface operations {
     get_database_webhook_secret_api_databases__database_id__webhook_secret_get: {
         parameters: {
             query?: {
+                /** @description Which linked schema's webhook. Optional on a single-schema database (its only link is returned); required to disambiguate once several schemas feed the database */
+                saved_schema_id?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
