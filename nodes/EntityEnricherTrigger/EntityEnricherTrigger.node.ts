@@ -11,14 +11,45 @@ import type {
 import { apiRequest } from '../EntityEnricher/helpers/api';
 import type { SavedSchema } from '../EntityEnricher/helpers/types';
 
+interface DatabaseLink {
+	saved_schema_id: string;
+	schema_name: string;
+	webhook_url?: string | null;
+}
+
+/**
+ * Which linked schema this trigger subscribes to.
+ *
+ * Delta webhooks are registered per LINK, not per database: each linked schema
+ * drives its own downstream workflow, so a database aggregating several schemas
+ * has one endpoint each. The node parameter is optional so workflows built when
+ * a database could only hold one schema keep working — with a single link there
+ * is nothing to disambiguate.
+ */
+async function resolveLink(context: IHookFunctions, databaseId: string): Promise<DatabaseLink> {
+	const database = await apiRequest(context, `/api/databases/${databaseId}`) as { schemas?: DatabaseLink[] };
+	const links = database.schemas ?? [];
+	const chosen = context.getNodeParameter('deltaSchemaId', '') as string;
+	if (chosen) {
+		const link = links.find((l) => l.saved_schema_id === chosen);
+		if (!link) throw new Error(`Schema ${chosen} is not linked to database ${databaseId}`);
+		return link;
+	}
+	if (links.length === 1) return links[0];
+	throw new Error(
+		`Database ${databaseId} feeds ${links.length} schemas and each has its own webhook — ` +
+		'pick one in the "Schema (Multi-Schema Databases)" field.',
+	);
+}
+
 /**
  * Webhook trigger for Entity Enricher schema events and database deltas.
  *
  * - enrichment_result / rejected_for_database_save: auto-registers a
  *   schema-level event subscription (source 'n8n'); fires once per event.
- * - delta_available: registers itself as the database's webhook and, on fire,
- *   fetches the next window of deltas with a lease — emit one item per delta
- *   and finish the workflow with the "Acknowledge Deltas" operation.
+ * - delta_available: registers itself as the webhook of one linked schema and,
+ *   on fire, fetches the next window of deltas with a lease — emit one item per
+ *   delta and finish the workflow with the "Acknowledge Deltas" operation.
  */
 export class EntityEnricherTrigger implements INodeType {
 	description: INodeTypeDescription = {
@@ -115,6 +146,15 @@ export class EntityEnricherTrigger implements INodeType {
 				description: 'Whether to fetch and lease the pending deltas when notified (one item per delta). Disable to receive only the notification.',
 				displayOptions: { show: { event: ['delta_available'] } },
 			},
+			{
+				displayName: 'Schema (Multi-Schema Databases)',
+				name: 'deltaSchemaId',
+				type: 'options',
+				typeOptions: { loadOptionsMethod: 'getSchemas' },
+				default: '',
+				description: 'Which linked schema this trigger subscribes to. Webhooks are per schema — each drives its own workflow. Leave empty when a single schema feeds the database.',
+				displayOptions: { show: { event: ['delta_available'] } },
+			},
 		],
 	};
 
@@ -134,8 +174,8 @@ export class EntityEnricherTrigger implements INodeType {
 				const webhookUrl = this.getNodeWebhookUrl('default') as string;
 				if (event === 'delta_available') {
 					const databaseId = this.getNodeParameter('databaseSyncId') as string;
-					const database = await apiRequest(this, `/api/databases/${databaseId}`) as { webhook_url?: string | null };
-					return database.webhook_url === webhookUrl;
+					const link = await resolveLink(this, databaseId);
+					return link.webhook_url === webhookUrl;
 				}
 				const schemaId = this.getNodeParameter('schemaId') as string;
 				const subscriptions = await apiRequest(
@@ -149,8 +189,9 @@ export class EntityEnricherTrigger implements INodeType {
 				const webhookUrl = this.getNodeWebhookUrl('default') as string;
 				if (event === 'delta_available') {
 					const databaseId = this.getNodeParameter('databaseSyncId') as string;
-					await apiRequest(this, `/api/databases/${databaseId}`, {
-						method: 'PATCH',
+					const link = await resolveLink(this, databaseId);
+					await apiRequest(this, `/api/databases/${databaseId}/schemas/${link.saved_schema_id}/webhook`, {
+						method: 'PUT',
 						body: { webhook_url: webhookUrl },
 					});
 					return true;
@@ -169,8 +210,9 @@ export class EntityEnricherTrigger implements INodeType {
 				try {
 					if (event === 'delta_available') {
 						const databaseId = this.getNodeParameter('databaseSyncId') as string;
-						await apiRequest(this, `/api/databases/${databaseId}`, {
-							method: 'PATCH',
+						const link = await resolveLink(this, databaseId);
+						await apiRequest(this, `/api/databases/${databaseId}/schemas/${link.saved_schema_id}/webhook`, {
+							method: 'PUT',
 							body: { webhook_url: null },
 						});
 					} else {
