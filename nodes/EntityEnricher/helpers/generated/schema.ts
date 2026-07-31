@@ -1816,6 +1816,32 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/databases/{database_id}/migrate-projection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Migrate Projection
+         * @description Apply a pending projection upgrade to this database (publish model).
+         *
+         *     A PROJECTION_VERSION bump re-shapes what the schema projects to without any
+         *     schema edit. The startup sweep applies the additive part on its own; this
+         *     endpoint exists for what it must not decide alone — transform-grade drift
+         *     (re-key, column type) migrates the replica's own data, so it needs the same
+         *     explicit confirmation a transform publish does.
+         */
+        post: operations["migrate_projection_api_databases__database_id__migrate_projection_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/databases/{database_id}/relational-map": {
         parameters: {
             query?: never;
@@ -6054,6 +6080,12 @@ export type components = {
              * @default 0
              */
             pending_deltas: number;
+            /**
+             * Projection Upgrade Pending
+             * @description The shipped-shape ledger was written by an older schema→relational projection and the upgrade could not be applied automatically (it migrates replica data). Data deltas are paused until POST /api/databases/{id}/migrate-projection is confirmed
+             * @default false
+             */
+            projection_upgrade_pending: boolean;
             /** Purge Entity State */
             purge_entity_state: boolean;
             /** Purge On Ack */
@@ -9414,6 +9446,27 @@ export type components = {
              */
             total: number;
         };
+        /** ProjectionMigrationRequest */
+        ProjectionMigrationRequest: {
+            /**
+             * Confirm Transforms
+             * @description Confirm transform-grade drift (re-key, column type): the migration runs against the replica's own data, so it is never applied implicitly
+             * @default false
+             */
+            confirm_transforms: boolean;
+        };
+        /** ProjectionMigrationResponse */
+        ProjectionMigrationResponse: {
+            /** Applied */
+            applied: boolean;
+            /**
+             * Delta Id
+             * @description Queued kind='schema' migration delta (null when no DDL was needed)
+             */
+            delta_id?: number | null;
+            /** Message */
+            message: string;
+        };
         /**
          * PropertySchema
          * @description JSON Schema property with enrichment annotations.
@@ -9426,7 +9479,7 @@ export type components = {
             $ref?: string | null;
             /**
              * Database Key
-             * @description True = this property is part of its containing object's Database key: the upsert conflict target and DDL unique index shared by all schema databases (docs/ENTITY_LAYER.md). Stamped with defaults at first database link (semantic_id → Id-like field → natural keys); must be scalar and non-localized; required at write time. Stripped from every LLM prompt.
+             * @description True = this property is part of its containing object's Database key: the upsert conflict target and DDL unique index shared by all schema databases (docs/ENTITY_LAYER.md). Proposed by the flags step at schema generation and finalized by the stamping ladder (semantic_id → Id-like field → natural keys, which also backfills legacy schemas at link time); must be scalar (multilingual allowed — projects a '{prop}_key' companion column); required at write time. Stripped from every LLM prompt.
              */
             database_key?: boolean | null;
             /**
@@ -9518,7 +9571,7 @@ export type components = {
             $ref?: string | null;
             /**
              * Database Key
-             * @description True = this property is part of its containing object's Database key: the upsert conflict target and DDL unique index shared by all schema databases (docs/ENTITY_LAYER.md). Stamped with defaults at first database link (semantic_id → Id-like field → natural keys); must be scalar and non-localized; required at write time. Stripped from every LLM prompt.
+             * @description True = this property is part of its containing object's Database key: the upsert conflict target and DDL unique index shared by all schema databases (docs/ENTITY_LAYER.md). Proposed by the flags step at schema generation and finalized by the stamping ladder (semantic_id → Id-like field → natural keys, which also backfills legacy schemas at link time); must be scalar (multilingual allowed — projects a '{prop}_key' companion column); required at write time. Stripped from every LLM prompt.
              */
             database_key?: boolean | null;
             /**
@@ -15264,6 +15317,8 @@ export type PricingSyncRequest = components['schemas']['PricingSyncRequest'];
 export type PricingSyncResponse = components['schemas']['PricingSyncResponse'];
 export type PricingSyncSummary = components['schemas']['PricingSyncSummary'];
 export type ProgressEvent = components['schemas']['ProgressEvent'];
+export type ProjectionMigrationRequest = components['schemas']['ProjectionMigrationRequest'];
+export type ProjectionMigrationResponse = components['schemas']['ProjectionMigrationResponse'];
 export type PropertySchemaInput = components['schemas']['PropertySchema-Input'];
 export type PropertySchemaOutput = components['schemas']['PropertySchema-Output'];
 export type ProviderChange = components['schemas']['ProviderChange'];
@@ -19147,6 +19202,47 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    migrate_projection_api_databases__database_id__migrate_projection_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ProjectionMigrationRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectionMigrationResponse"];
+                };
             };
             /** @description Validation Error */
             422: {
