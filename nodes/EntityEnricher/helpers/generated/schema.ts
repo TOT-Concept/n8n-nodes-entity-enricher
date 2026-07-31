@@ -7068,6 +7068,52 @@ export type components = {
             source: "semantic_id" | "id_field" | "natural_keys" | "manual" | "adopted" | "owner";
         };
         /**
+         * EnumDefinition
+         * @description Named closed set of string values, referenced via ``$ref: "#/$enums/Name"``.
+         *
+         *     Lives in its own top-level ``$enums`` section rather than in ``$defs``
+         *     because this codebase reads a ``#/$defs/`` ref as a *relationship* — the
+         *     target becomes a table, a junction, or a weak entity in the user's replica.
+         *     An enum is not a relationship but a constrained scalar, so it gets a
+         *     disjoint namespace and every ``$defs`` consumer keeps working untouched.
+         *
+         *     On the wire the shape is standard JSON Schema (``type`` + ``enum``); ``name``,
+         *     ``description`` and ``value_descriptions`` are the enrichment annotations,
+         *     mirroring how EntityDefinition carries name/description next to the standard
+         *     ``type``/``properties``.
+         */
+        EnumDefinition: {
+            /**
+             * Description
+             * @description Description of what this enum classifies
+             */
+            description: string;
+            /**
+             * Enum
+             * @description The closed set of allowed values, in display order
+             */
+            enum: string[];
+            /**
+             * Name
+             * @description Display name for this enum type
+             */
+            name: string;
+            /**
+             * Type
+             * @description Always 'string' — enums constrain string-typed properties
+             * @default string
+             * @constant
+             */
+            type: "string";
+            /**
+             * Value Descriptions
+             * @description Optional per-member explanation, keyed by member value. Used when a member's meaning is not obvious from its name — notably an absence member ('none' → 'known to have no markings'), so the enriching model picks it only for a KNOWN absence and declares genuine ignorance in unknown_fields instead.
+             */
+            value_descriptions?: {
+                [key: string]: string;
+            } | null;
+        };
+        /**
          * ExpertiseBreakdown
          * @description Breakdown of a single expertise result in multi-expertise strategy.
          */
@@ -7265,6 +7311,13 @@ export type components = {
                 [key: string]: components["schemas"]["EntityDefinition-Input"];
             } | null;
             /**
+             * $Enums
+             * @description Reusable closed value sets, referenced from properties via $ref: '#/$enums/Name'. Kept out of $defs so the 'a $defs ref is a relationship' invariant of the entity layer holds unchanged.
+             */
+            $enums?: {
+                [key: string]: components["schemas"]["EnumDefinition"];
+            } | null;
+            /**
              * $Schema
              * @description JSON Schema version URI
              */
@@ -7303,6 +7356,13 @@ export type components = {
              */
             $defs?: {
                 [key: string]: components["schemas"]["EntityDefinition-Output"];
+            } | null;
+            /**
+             * $Enums
+             * @description Reusable closed value sets, referenced from properties via $ref: '#/$enums/Name'. Kept out of $defs so the 'a $defs ref is a relationship' invariant of the entity layer holds unchanged.
+             */
+            $enums?: {
+                [key: string]: components["schemas"]["EnumDefinition"];
             } | null;
             /**
              * $Schema
@@ -9494,7 +9554,7 @@ export type components = {
         "PropertySchema-Input": {
             /**
              * $Ref
-             * @description Reference to a definition in $defs (e.g., '#/$defs/Company')
+             * @description Reference to an entity definition in $defs (e.g., '#/$defs/Company') or to a named enum in $enums (e.g., '#/$enums/TowerShape'). The two namespaces are disjoint: a '#/$defs/' ref is a RELATIONSHIP (its target projects as its own table), a '#/$enums/' ref is a closed-set SCALAR (it projects as an ordinary column).
              */
             $ref?: string | null;
             /**
@@ -9586,7 +9646,7 @@ export type components = {
         "PropertySchema-Output": {
             /**
              * $Ref
-             * @description Reference to a definition in $defs (e.g., '#/$defs/Company')
+             * @description Reference to an entity definition in $defs (e.g., '#/$defs/Company') or to a named enum in $enums (e.g., '#/$enums/TowerShape'). The two namespaces are disjoint: a '#/$defs/' ref is a RELATIONSHIP (its target projects as its own table), a '#/$enums/' ref is a closed-set SCALAR (it projects as an ordinary column).
              */
             $ref?: string | null;
             /**
@@ -15363,6 +15423,7 @@ export type EntityKeyCollision = components['schemas']['EntityKeyCollision'];
 export type EntityStateListResponse = components['schemas']['EntityStateListResponse'];
 export type EntityStateRow = components['schemas']['EntityStateRow'];
 export type EntityTypeKeys = components['schemas']['EntityTypeKeys'];
+export type EnumDefinition = components['schemas']['EnumDefinition'];
 export type ExpertiseBreakdown = components['schemas']['ExpertiseBreakdown'];
 export type ExpertiseDomain = components['schemas']['ExpertiseDomain'];
 export type FailedModelSummary = components['schemas']['FailedModelSummary'];
