@@ -66,43 +66,6 @@ jobs:
           test -f dist/credentials/EntityEnricherApi.credentials.js || (echo "ERROR: Missing credentials JS" && exit 1)
           test -f dist/nodes/EntityEnricher/entity-enricher.svg || (echo "ERROR: Missing icon SVG" && exit 1)
 
-      - name: n8n verification lint (mirrors @n8n/scan-community-package)
-        # The official scanner only accepts npm-registry package specifiers, so we mirror its
-        # ESLint check here (same plugin + recommended config) against the local dist before
-        # publishing. The scanner itself runs as a post-publish gate in the publish job.
-        #
-        # NOTE: several community-nodes rules (icon-validation, node-usable-as-tool,
-        # credential-password-field, require-node-api-error, node-connection-type-literal, …)
-        # only fire on filenames ending in `.node.ts` / `.credentials.ts`, so they never match
-        # here against compiled `dist/**/*.js`. The "Lint (source-level, …)" step above is what
-        # actually exercises those rules — this step is a secondary check on the shipped output.
-        run: |
-          npx --yes --package=eslint --package=fast-glob --package=@n8n/eslint-plugin-community-nodes node -e "
-          const path = require('path');
-          const { ESLint } = require('eslint');
-          const { defineConfig } = require('eslint/config');
-          const glob = require('fast-glob');
-          (async () => {
-            const distDir = path.resolve('dist');
-            const { n8nCommunityNodesPlugin } = await import('@n8n/eslint-plugin-community-nodes');
-            const eslint = new ESLint({
-              cwd: distDir,
-              allowInlineConfig: false,
-              overrideConfigFile: true,
-              overrideConfig: defineConfig(n8nCommunityNodesPlugin.configs.recommended, {
-                rules: { 'no-console': 'error' },
-              }),
-            });
-            const files = glob.sync('**/*.js', { cwd: distDir, absolute: true, ignore: ['node_modules/**'] });
-            const results = await eslint.lintFiles(files);
-            const violations = results.filter((r) => r.errorCount > 0);
-            if (violations.length === 0) { console.log('OK: 0 violations'); return; }
-            const fmt = await eslint.loadFormatter('stylish');
-            console.log(await fmt.format(results));
-            process.exit(1);
-          })();
-          "
-
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
