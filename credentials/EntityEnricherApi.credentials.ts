@@ -8,6 +8,7 @@ import type {
 export class EntityEnricherApi implements ICredentialType {
 	name = 'entityEnricherApi';
 	displayName = 'Entity Enricher API';
+	icon = 'file:../nodes/EntityEnricher/entity-enricher.svg' as const;
 	documentationUrl = 'https://entityenricher.ai/docs';
 
 	properties: INodeProperties[] = [

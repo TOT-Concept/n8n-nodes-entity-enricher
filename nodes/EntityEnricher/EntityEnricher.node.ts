@@ -6,7 +6,7 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 import { apiRequest, getBaseUrl } from './helpers/api';
 import type { EnrichmentOptionsResponse, ProfileLimits, SavedSchema } from './helpers/types';
@@ -31,7 +31,7 @@ export class EntityEnricher implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Entity Enricher',
 		name: 'entityEnricher',
-		icon: 'file:entity-enricher.svg',
+		icon: { light: 'file:entity-enricher.svg', dark: 'file:entity-enricher-dark.svg' },
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["resource"] + ": " + $parameter["operation"].replace("Simple", " (simple)")}}',
@@ -55,8 +55,8 @@ export class EntityEnricher implements INodeType {
 		defaults: {
 			name: 'Entity Enricher',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionTypes.Main],
+		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
 				name: 'entityEnricherApi',
@@ -93,13 +93,13 @@ export class EntityEnricher implements INodeType {
 
 			// ─── Connection Info ───
 			{
-				displayName: 'Connected To',
+				displayName: 'Connected To Name or ID',
 				name: 'connectionInfo',
 				type: 'options',
 				typeOptions: { loadOptionsMethod: 'getConnectionInfo' },
 				default: '',
 				noDataExpression: true,
-				description: 'Shows the organization and credential linked to the configured connection',
+				description: 'Shows the organization and credential linked to the configured connection. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 			},
 
 			// ─── Resource ───
@@ -109,13 +109,13 @@ export class EntityEnricher implements INodeType {
 				type: 'options',
 				noDataExpression: true,
 				options: [
-					{ name: 'Enrichment', value: 'enrichment' },
-					{ name: 'Schema', value: 'schema' },
-					{ name: 'Record', value: 'record' },
 					{ name: 'Attachment', value: 'attachment' },
-					{ name: 'Fusion', value: 'fusion' },
-					{ name: 'Database Sync', value: 'databaseSync' },
 					{ name: 'Configuration', value: 'configuration' },
+					{ name: 'Database Sync', value: 'databaseSync' },
+					{ name: 'Enrichment', value: 'enrichment' },
+					{ name: 'Fusion', value: 'fusion' },
+					{ name: 'Record', value: 'record' },
+					{ name: 'Schema', value: 'schema' },
 				],
 				default: 'enrichment',
 			},
@@ -142,7 +142,7 @@ export class EntityEnricher implements INodeType {
 						name: 'Enrich Entity Advanced',
 						value: 'enrichEntity',
 						description: 'Enrich a single entity with full control: models, fusion, strategy, classification, structured output',
-						action: 'Enrich a single entity (advanced)',
+						action: 'Enrich a single entity advanced',
 					},
 					{
 						name: 'Batch Enrich',
@@ -154,7 +154,7 @@ export class EntityEnricher implements INodeType {
 						name: 'Batch Enrich Advanced',
 						value: 'batchEnrich',
 						description: 'Enrich all input entities in a single batch with full control: models, fusion, strategy, classification, structured output',
-						action: 'Batch enrich entities (advanced)',
+						action: 'Batch enrich entities advanced',
 					},
 				],
 				default: 'enrichEntitySimple',
@@ -282,13 +282,13 @@ export class EntityEnricher implements INodeType {
 				default: 'fetchDeltas',
 			},
 			{
-				displayName: 'Schema',
+				displayName: 'Schema Name or ID',
 				name: 'schemaId',
 				type: 'options',
 				typeOptions: { loadOptionsMethod: 'getSchemas' },
 				required: true,
 				default: '',
-				description: 'Schema whose database syncs to list',
+				description: 'Schema whose database syncs to list. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				displayOptions: { show: { resource: ['databaseSync'], operation: ['listDatabaseSyncs'] } },
 			},
 			{
@@ -363,7 +363,7 @@ export class EntityEnricher implements INodeType {
 
 			// Schema (for enrichment + batch)
 			{
-				displayName: 'Schema',
+				displayName: 'Schema Name or ID',
 				name: 'schemaId',
 				type: 'options',
 				typeOptions: {
@@ -371,7 +371,7 @@ export class EntityEnricher implements INodeType {
 				},
 				required: true,
 				default: '',
-				description: 'Target schema defining the enrichment output structure',
+				description: 'Target schema defining the enrichment output structure. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				hint: 'Don\'t have a schema? <a href="https://entityenricher.ai/schema-editor" target="_blank">Create one in Schema Editor</a>',
 				displayOptions: {
 					show: {
@@ -383,7 +383,7 @@ export class EntityEnricher implements INodeType {
 
 			// Models (multi-select for enrichment + batch)
 			{
-				displayName: 'Models',
+				displayName: 'Model Names or IDs',
 				name: 'models',
 				type: 'multiOptions',
 				typeOptions: {
@@ -391,8 +391,7 @@ export class EntityEnricher implements INodeType {
 				},
 				required: true,
 				default: [],
-				description:
-					'LLM models to use for enrichment. Select 2+ for multi-model fusion, or pick "Auto — best model" to let Entity Enricher use your organization\'s best-scoring model (single model, no fusion).',
+				description: 'LLM models to use for enrichment. Select 2+ for multi-model fusion, or pick "Auto — best model" to let Entity Enricher use your organization\'s best-scoring model (single model, no fusion). Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				hint: 'Need more models? <a href="https://entityenricher.ai/api-keys/ai-provider" target="_blank">Add API keys</a> to enable additional providers.',
 				displayOptions: {
 					show: {
@@ -465,7 +464,7 @@ export class EntityEnricher implements INodeType {
 
 			// Schema ID (get schema details)
 			{
-				displayName: 'Schema',
+				displayName: 'Schema Name or ID',
 				name: 'schemaIdDetail',
 				type: 'options',
 				typeOptions: {
@@ -473,7 +472,7 @@ export class EntityEnricher implements INodeType {
 				},
 				required: true,
 				default: '',
-				description: 'Schema to retrieve full details for',
+				description: 'Schema to retrieve full details for. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				hint: 'Don\'t have a schema? <a href="https://entityenricher.ai/schema-editor" target="_blank">Create one in Schema Editor</a>',
 				displayOptions: {
 					show: {
@@ -528,7 +527,7 @@ export class EntityEnricher implements INodeType {
 				type: 'options',
 				options: [
 					{ name: 'Auto', value: 'auto' },
-					{ name: 'snake_case', value: 'snake_case' },
+					{ name: 'Snake_case', value: 'snake_case' },
 					{ name: 'camelCase', value: 'camelCase' },
 				],
 				default: 'auto',
@@ -747,9 +746,9 @@ export class EntityEnricher implements INodeType {
 				options: [
 					{ name: 'All Types', value: '' },
 					{ name: 'Enrichment', value: 'enrichment' },
-					{ name: 'Schema Generation', value: 'schema_generation' },
-					{ name: 'Schema Edit', value: 'schema_edit' },
 					{ name: 'Playground', value: 'playground' },
+					{ name: 'Schema Edit', value: 'schema_edit' },
+					{ name: 'Schema Generation', value: 'schema_generation' },
 				],
 				displayOptions: {
 					show: {
@@ -776,14 +775,14 @@ export class EntityEnricher implements INodeType {
 
 			// Languages
 			{
-				displayName: 'Languages',
+				displayName: 'Language Names or IDs',
 				name: 'languages',
 				type: 'multiOptions',
 				typeOptions: {
 					loadOptionsMethod: 'getLanguages',
 				},
 				default: ['en'],
-				description: 'Languages for multilingual fields. At least one language must be selected.',
+				description: 'Languages for multilingual fields. At least one language must be selected. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				displayOptions: {
 					show: {
 						resource: ['enrichment'],
@@ -794,14 +793,14 @@ export class EntityEnricher implements INodeType {
 
 			// Strategy
 			{
-				displayName: 'Strategy',
+				displayName: 'Strategy Name or ID',
 				name: 'strategy',
 				type: 'options',
 				typeOptions: {
 					loadOptionsMethod: 'getStrategies',
 				},
 				default: 'auto',
-				description: 'Enrichment strategy. Auto (default) lets the server pick the best strategy from your schema shape; multi-expertise runs parallel calls per domain.',
+				description: 'Enrichment strategy. Auto (default) lets the server pick the best strategy from your schema shape; multi-expertise runs parallel calls per domain. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				displayOptions: {
 					show: {
 						resource: ['enrichment'],
@@ -812,14 +811,14 @@ export class EntityEnricher implements INodeType {
 
 			// Classification Model (optional)
 			{
-				displayName: 'Classification Model',
+				displayName: 'Classification Model Name or ID',
 				name: 'classificationModel',
 				type: 'options',
 				typeOptions: {
 					loadOptionsMethod: 'getClassificationModels',
 				},
 				default: '',
-				description: 'Optional model for pre-flight entity type classification. Prevents hallucination on mismatched entities.',
+				description: 'Optional model for pre-flight entity type classification. Prevents hallucination on mismatched entities. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				displayOptions: {
 					show: {
 						resource: ['enrichment'],
@@ -830,14 +829,14 @@ export class EntityEnricher implements INodeType {
 
 			// Arbitration Model (optional, for enrichment + fusion)
 			{
-				displayName: 'Arbitration Model',
+				displayName: 'Arbitration Model Name or ID',
 				name: 'arbitrationModel',
 				type: 'options',
 				typeOptions: {
 					loadOptionsMethod: 'getArbitrationModels',
 				},
 				default: '',
-				description: 'Model for LLM-based conflict resolution when merging multi-model results. Leave empty for rule-based merging.',
+				description: 'Model for LLM-based conflict resolution when merging multi-model results. Leave empty for rule-based merging. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				displayOptions: {
 					show: {
 						resource: ['enrichment', 'fusion'],
@@ -848,7 +847,7 @@ export class EntityEnricher implements INodeType {
 
 			// Web Search (auto-disabled when no selected model supports it)
 			{
-				displayName: 'Web Search',
+				displayName: 'Web Search Name or ID',
 				name: 'enableWebSearch',
 				type: 'options',
 				typeOptions: {
@@ -856,7 +855,7 @@ export class EntityEnricher implements INodeType {
 					loadOptionsDependsOn: ['models'],
 				},
 				default: 'off',
-				description: 'Enable provider builtin web search for models that support it. Locked off when no selected model supports web search.',
+				description: 'Enable provider builtin web search for models that support it. Locked off when no selected model supports web search. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				displayOptions: {
 					show: {
 						resource: ['enrichment'],
@@ -882,7 +881,7 @@ export class EntityEnricher implements INodeType {
 				options: [
 					// Response Schema (auto-disabled when no selected model supports it)
 					{
-						displayName: 'Response Schema',
+						displayName: 'Response Schema Name or ID',
 						name: 'enableResponseSchema',
 						type: 'options',
 						typeOptions: {
@@ -890,11 +889,11 @@ export class EntityEnricher implements INodeType {
 							loadOptionsDependsOn: ['models'],
 						},
 						default: 'on',
-						description: 'Use the provider response-schema channel (NativeOutput) for models that support it. On by default; locked off when no selected model supports it. Capable models otherwise fall back to tool-call output.',
+						description: 'Use the provider response-schema channel (NativeOutput) for models that support it. On by default; locked off when no selected model supports it. Capable models otherwise fall back to tool-call output. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 					},
 					// Strict Structured Output (auto-disabled when no selected model supports it)
 					{
-						displayName: 'Strict Structured Output',
+						displayName: 'Strict Structured Output Name or ID',
 						name: 'enableStrictStructuredOutput',
 						type: 'options',
 						typeOptions: {
@@ -902,14 +901,14 @@ export class EntityEnricher implements INodeType {
 							loadOptionsDependsOn: ['models'],
 						},
 						default: 'off',
-						description: 'Constrain decoding to the schema (no drift) on whichever structured channel is used, for models that support it. Off by default; locked off when no selected model supports strict structured output.',
+						description: 'Constrain decoding to the schema (no drift) on whichever structured channel is used, for models that support it. Off by default; locked off when no selected model supports strict structured output. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 					},
 				],
 			},
 
 			// Timeout
 			{
-				displayName: 'Timeout (ms)',
+				displayName: 'Timeout (Ms)',
 				name: 'timeout',
 				type: 'number',
 				default: 300000,
@@ -952,6 +951,7 @@ export class EntityEnricher implements INodeType {
 				},
 			},
 		],
+		usableAsTool: true,
 	};
 
 	methods = {
@@ -1163,7 +1163,7 @@ export class EntityEnricher implements INodeType {
 				if (!anySupports) {
 					return [
 						{
-							name: 'Off — no selected model supports web search',
+							name: 'Off — No Selected Model Supports Web Search',
 							value: 'off',
 						},
 					];
@@ -1207,7 +1207,7 @@ export class EntityEnricher implements INodeType {
 				if (!anySupports) {
 					return [
 						{
-							name: 'Off — no selected model supports response schema',
+							name: 'Off — No Selected Model Supports Response Schema',
 							value: 'off',
 						},
 					];
@@ -1251,7 +1251,7 @@ export class EntityEnricher implements INodeType {
 				if (!anySupports) {
 					return [
 						{
-							name: 'Off — no selected model supports strict structured output',
+							name: 'Off — No Selected Model Supports Strict Structured Output',
 							value: 'off',
 						},
 					];
@@ -1398,6 +1398,7 @@ export class EntityEnricher implements INodeType {
 					throw new NodeOperationError(
 						this.getNode(),
 						`Unknown operation: ${resource}/${operation}`,
+						{ itemIndex: i },
 					);
 				}
 
@@ -1409,7 +1410,7 @@ export class EntityEnricher implements INodeType {
 						pairedItem: i,
 					});
 				} else {
-					throw error;
+					throw new NodeOperationError(this.getNode(), error as Error, { itemIndex: i });
 				}
 			}
 		}

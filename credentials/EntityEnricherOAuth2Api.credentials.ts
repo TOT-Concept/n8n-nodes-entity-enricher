@@ -15,6 +15,7 @@ import type { ICredentialType, INodeProperties } from 'n8n-workflow';
 export class EntityEnricherOAuth2Api implements ICredentialType {
 	name = 'entityEnricherOAuth2Api';
 	displayName = 'Entity Enricher OAuth2 API';
+	icon = 'file:../nodes/EntityEnricher/entity-enricher.svg' as const;
 	extends = ['oAuth2Api'];
 	documentationUrl = 'https://entityenricher.ai/docs/integrations/n8n';
 
@@ -62,6 +63,7 @@ export class EntityEnricherOAuth2Api implements ICredentialType {
 			name: 'clientSecret',
 			type: 'hidden',
 			default: '',
+			typeOptions: { password: true },
 		},
 		{
 			displayName: 'Scope',

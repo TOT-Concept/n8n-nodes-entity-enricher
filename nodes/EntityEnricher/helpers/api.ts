@@ -133,7 +133,7 @@ export async function authenticatedRequest(
 	} catch (error: unknown) {
 		const extracted = extractErrorResponse(error);
 		if (extracted) return extracted;
-		throw error;
+		throw new NodeOperationError(context.getNode(), error as Error);
 	}
 }
 
@@ -244,13 +244,6 @@ export async function apiRequest(
 	}
 
 	const message = formatApiError(response.statusCode, body);
-
-	if ('getNode' in context) {
-		throw new NodeOperationError(
-			(context as IExecuteFunctions).getNode(),
-			message,
-		);
-	}
-	throw new Error(message);
+	throw new NodeOperationError(context.getNode(), message);
 }
 

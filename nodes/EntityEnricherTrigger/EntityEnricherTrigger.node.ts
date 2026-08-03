@@ -8,6 +8,7 @@ import type {
 	ILoadOptionsFunctions,
 	INodePropertyOptions,
 } from 'n8n-workflow';
+import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 import { apiRequest } from '../EntityEnricher/helpers/api';
 import type { SavedSchema } from '../EntityEnricher/helpers/types';
 
@@ -32,11 +33,17 @@ async function resolveLink(context: IHookFunctions, databaseId: string): Promise
 	const chosen = context.getNodeParameter('deltaSchemaId', '') as string;
 	if (chosen) {
 		const link = links.find((l) => l.saved_schema_id === chosen);
-		if (!link) throw new Error(`Schema ${chosen} is not linked to database ${databaseId}`);
+		if (!link) {
+			throw new NodeOperationError(
+				context.getNode(),
+				`Schema ${chosen} is not linked to database ${databaseId}`,
+			);
+		}
 		return link;
 	}
 	if (links.length === 1) return links[0];
-	throw new Error(
+	throw new NodeOperationError(
+		context.getNode(),
 		`Database ${databaseId} feeds ${links.length} schemas and each has its own webhook — ` +
 		'pick one in the "Schema (Multi-Schema Databases)" field.',
 	);
@@ -55,14 +62,14 @@ export class EntityEnricherTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Entity Enricher Trigger',
 		name: 'entityEnricherTrigger',
-		icon: 'file:entity-enricher.svg',
+		icon: { light: 'file:entity-enricher.svg', dark: 'file:entity-enricher-dark.svg' },
 		group: ['trigger'],
 		version: 1,
 		subtitle: '={{$parameter["event"]}}',
 		description: 'Fires on Entity Enricher enrichment events and database deltas',
 		defaults: { name: 'Entity Enricher Trigger' },
 		inputs: [],
-		outputs: ['main'],
+		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
 				name: 'entityEnricherApi',
@@ -120,13 +127,13 @@ export class EntityEnricherTrigger implements INodeType {
 				default: 'enrichment_result',
 			},
 			{
-				displayName: 'Schema',
+				displayName: 'Schema Name or ID',
 				name: 'schemaId',
 				type: 'options',
 				typeOptions: { loadOptionsMethod: 'getSchemas' },
 				required: true,
 				default: '',
-				description: 'Schema whose events fire this trigger',
+				description: 'Schema whose events fire this trigger. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				displayOptions: { show: { event: ['enrichment_result', 'rejected_for_database_save'] } },
 			},
 			{
@@ -147,15 +154,16 @@ export class EntityEnricherTrigger implements INodeType {
 				displayOptions: { show: { event: ['delta_available'] } },
 			},
 			{
-				displayName: 'Schema (Multi-Schema Databases)',
+				displayName: 'Schema (Multi-Schema Databases) Name or ID',
 				name: 'deltaSchemaId',
 				type: 'options',
 				typeOptions: { loadOptionsMethod: 'getSchemas' },
 				default: '',
-				description: 'Which linked schema this trigger subscribes to. Webhooks are per schema — each drives its own workflow. Leave empty when a single schema feeds the database.',
+				description: 'Which linked schema this trigger subscribes to. Webhooks are per schema — each drives its own workflow. Leave empty when a single schema feeds the database. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				displayOptions: { show: { event: ['delta_available'] } },
 			},
 		],
+		usableAsTool: true,
 	};
 
 	methods = {

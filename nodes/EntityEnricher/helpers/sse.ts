@@ -1,4 +1,5 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
+import { NodeOperationError } from 'n8n-workflow';
 import type { SSEEvent, GenericSSEEvent } from './types';
 import { TERMINAL_EVENTS } from './types';
 import { getBaseUrl, getCredentialType } from './api';
@@ -116,11 +117,12 @@ export async function consumeSSEStream(
 			/abort|timeout/i.test(message);
 		if (aborted) {
 			await cancelJob(context, baseUrl, jobId);
-			throw new Error(
+			throw new NodeOperationError(
+				context.getNode(),
 				`Enrichment timed out after ${Math.round(timeoutMs / 1000)}s. Job ${jobId} has been cancelled.`,
 			);
 		}
-		throw error;
+		throw new NodeOperationError(context.getNode(), err);
 	} finally {
 		stream?.destroy();
 	}

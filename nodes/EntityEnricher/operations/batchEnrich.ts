@@ -199,7 +199,7 @@ export async function execute(
 					`${(error as Error).message}. Schema expects search keys: [${searchKeys.join(', ')}]. First entity has: [${sampleKeys}]`,
 				);
 			}
-			throw error;
+			throw new NodeOperationError(context.getNode(), error as Error);
 		}
 
 		// Consume SSE stream
@@ -267,7 +267,8 @@ function buildBatchOutputItems(
 			const fullResult = fusionResult?.success
 				? fusionResult.merged_result as IDataObject
 				: (bestModelResult?.result as IDataObject) ?? null;
-			const { _arbitration_metadata, ...resultData } = (fullResult ?? {}) as IDataObject;
+			const resultData = { ...(fullResult ?? {}) } as IDataObject;
+			delete resultData._arbitration_metadata;
 
 			outputItems.push({
 				json: includeEnrichmentMetadata

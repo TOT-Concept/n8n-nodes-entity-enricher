@@ -189,7 +189,7 @@ export async function execute(
 					{ itemIndex },
 				);
 			}
-			throw error;
+			throw new NodeOperationError(context.getNode(), error as Error, { itemIndex });
 		}
 
 		// Consume SSE stream
@@ -244,7 +244,8 @@ function buildOutputItems(
 
 	// Primary output: fused result or best single model result
 	if (fusionResult?.success && fusionResult.merged_result) {
-		const { _arbitration_metadata, ...resultData } = fusionResult.merged_result as IDataObject;
+		const resultData = { ...(fusionResult.merged_result as IDataObject) };
+		delete resultData._arbitration_metadata;
 		outputItems.push({
 			json: includeEnrichmentMetadata
 				? {
