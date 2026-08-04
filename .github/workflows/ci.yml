@@ -51,6 +51,33 @@ jobs:
       - name: Lint (source-level, same rules as the n8n community-node verification portal)
         run: npm run lint
 
+      - name: Scan sources with @n8n/scan-community-package@beta (blocking)
+        # The scanner CLI only accepts *published* npm package names, so it can't
+        # be pointed at the checkout directly. Its scanner module, however,
+        # exports analyzePackage() — the exact ESLint config the portal runs —
+        # and SOURCE_FILE_PATTERNS, the same pattern set the published-package
+        # scan applies to its provenance source leg. Run that against the
+        # checkout so portal violations block the PR instead of surfacing after
+        # publish.
+        run: |
+          SCAN_DIR="$RUNNER_TEMP/n8n-scan"
+          mkdir -p "$SCAN_DIR"
+          ( cd "$SCAN_DIR" && npm init -y > /dev/null && npm install --no-audit --no-fund @n8n/scan-community-package@beta )
+          SCANNER="$SCAN_DIR/node_modules/@n8n/scan-community-package/scanner/scanner.mjs" \
+          PACKAGE_DIR="$PWD" \
+          node --input-type=module -e '
+            const { pathToFileURL } = await import("node:url");
+            const { analyzePackage, SOURCE_FILE_PATTERNS } = await import(pathToFileURL(process.env.SCANNER).href);
+            const result = await analyzePackage(process.env.PACKAGE_DIR, SOURCE_FILE_PATTERNS);
+            if (result.passed) {
+              console.log("Source scan passed (@n8n/scan-community-package@beta rules)");
+            } else {
+              console.error("Source scan failed: " + result.message);
+              if (result.details) console.error(result.details);
+              process.exit(1);
+            }
+          '
+
       - name: Build
         run: npm run build
 
@@ -369,9 +396,10 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Verify published package with @n8n/scan-community-package
+      - name: Verify published package with @n8n/scan-community-package@beta
         # Wait briefly for npm CDN propagation, then run the official n8n verification
-        # scanner against the just-published version. Same check n8n reviewers run.
+        # scanner against the just-published version. The portal runs the @beta
+        # scanner (stricter rule set than @latest), so verify with the same tag.
         run: |
           VERSION="${{ needs.auto-tag.outputs.version }}"
           for i in 1 2 3 4 5; do
@@ -382,7 +410,7 @@ jobs:
             echo "Waiting for npm propagation (attempt $i/5)..."
             sleep 10
           done
-          npx --yes @n8n/scan-community-package@latest "n8n-nodes-entity-enricher@${VERSION}"
+          npx --yes @n8n/scan-community-package@beta "n8n-nodes-entity-enricher@${VERSION}"
 
       - name: Generate changelog
         id: changelog
