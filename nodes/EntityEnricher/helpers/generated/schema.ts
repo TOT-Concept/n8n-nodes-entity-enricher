@@ -1689,7 +1689,13 @@ export type paths = {
         get: operations["get_database_api_databases__database_id__get"];
         put?: never;
         post?: never;
-        /** Delete Database */
+        /**
+         * Delete Database
+         * @description Delete a database registration: the feed stops, the consumer's own
+         *     database keeps every row it has. Entity state and the schema's database
+         *     model stay by default (they are org data, not database data) — the teardown
+         *     options remove them for the schemas left with no database at all.
+         */
         delete: operations["delete_database_api_databases__database_id__delete"];
         options?: never;
         head?: never;
@@ -1846,6 +1852,32 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/databases/{database_id}/schemas/{saved_schema_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Link
+         * @description Update one schema link — today its enrichment switch.
+         *
+         *     OFF stops the schema's enrichment workflows toward this database (no
+         *     data deltas, no delta_available webhook) without unlinking; schema
+         *     publications keep shipping DDL so the replica stays shape-converged.
+         *     Enrichments that ran while OFF are skipped for this database — only a
+         *     snapshot re-pull backfills them.
+         */
+        patch: operations["update_link_api_databases__database_id__schemas__saved_schema_id__patch"];
+        trace?: never;
+    };
     "/api/databases/{database_id}/schemas/{saved_schema_id}/webhook": {
         parameters: {
             query?: never;
@@ -1891,7 +1923,8 @@ export type paths = {
          * Unlink Schema From Database
          * @description Unlink a schema: its types stop feeding this database. Already-synced
          *     consumer tables and pending deltas stay (valid history); shared tables
-         *     still fed by the remaining schemas keep converging.
+         *     still fed by the remaining schemas keep converging. The teardown options
+         *     apply only when this was the schema's last database.
          */
         delete: operations["unlink_schema_from_database_api_databases__database_id__schemas__schema_id__delete"];
         options?: never;
@@ -3471,7 +3504,7 @@ export type paths = {
         put?: never;
         /**
          * Synchronous schema generation
-         * @description Blocks until schema generation finishes and returns the generated schema. Designed for non-streaming clients such as the MCP server, Make.com, Zapier, or curl. Rejects the samples with 400 `sample_commonality_failed` (mixed entity types) or `sample_field_conformance_failed` (array items sharing no field) before any spend — POST /api/schema/samples/conformance reports both without generating. Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, 500 `schema_generation_empty` (no result), else 502 `schema_generation_failed`.
+         * @description Blocks until schema generation finishes and returns the generated schema. Designed for non-streaming clients such as the MCP server, Make.com, Zapier, or curl. Rejects the samples with 400 `sample_commonality_failed` (mixed entity types) or `sample_field_conformance_failed` (array items sharing no field) before any spend — POST /api/schema/samples/conformance reports both without generating. Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the offending property and `retryable: true`), 500 `schema_generation_empty` (no result), else 502 `schema_generation_failed`.
          */
         post: operations["generate_schema_sync_api_schema_generate_sync_post"];
         delete?: never;
@@ -3513,7 +3546,7 @@ export type paths = {
         put?: never;
         /**
          * Synchronous sample generation
-         * @description Blocks until sample generation finishes and returns the generated sample(s). Designed for non-streaming clients such as Make.com, Zapier, or curl — always runs with auto_answer=true (any attachment- planner clarification questions resolve to the planner's defaults rather than pausing, since a blocking call can't wait for a live answer). Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, 500 `sample_generation_empty` (no result), else 502 `sample_generation_failed`.
+         * @description Blocks until sample generation finishes and returns the generated sample(s). Designed for non-streaming clients such as Make.com, Zapier, or curl — always runs with auto_answer=true (any attachment- planner clarification questions resolve to the planner's defaults rather than pausing, since a blocking call can't wait for a live answer). Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the offending property and `retryable: true`), 500 `sample_generation_empty` (no result), else 502 `sample_generation_failed`.
          */
         post: operations["generate_sample_sync_api_schema_sample_generate_sync_post"];
         delete?: never;
@@ -3616,6 +3649,33 @@ export type paths = {
          *     re-analyzes every property.
          */
         post: operations["analyze_saved_schema_determinism_api_schema_saved__schema_id__analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schema/saved/{schema_id}/classify-database-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Database Model Classification
+         * @description Start the link-time database-model classification pass (LLM job).
+         *
+         *     Proposes database_key / db_type / indexed / owned for the schema's working
+         *     copy. Incremental: the first run classifies every property; later runs only
+         *     properties that are new or whose JSON type / multilingual flag changed
+         *     since the last pass. Results are pending working-copy edits — they reach
+         *     the linked databases only through publish. Stream via
+         *     GET /api/llm/stream/{job_id}; cancel via POST /api/llm/cancel/{job_id}.
+         */
+        post: operations["start_database_model_classification_api_schema_saved__schema_id__classify_database_model_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3989,7 +4049,7 @@ export type paths = {
         put?: never;
         /**
          * Synchronous single-entity enrichment
-         * @description Blocks until the enrichment job finishes and returns the final fused (or best single-model) result. Designed for non-streaming clients such as Make.com, Zapier, or curl. Returns HTTP 422 with classification context if the entity is rejected by pre-flight classification, 504 on timeout, and a typed failure otherwise: 422 `model_retired` (provider retired the model — reselect and retry) or `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, else 502 `enrichment_failed`.
+         * @description Blocks until the enrichment job finishes and returns the final fused (or best single-model) result. Designed for non-streaming clients such as Make.com, Zapier, or curl. Returns HTTP 422 with classification context if the entity is rejected by pre-flight classification, 504 on timeout, and a typed failure otherwise: 422 `model_retired` (provider retired the model — reselect and retry) or `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the model, the offending property and `retryable: true`), else 502 `enrichment_failed`.
          */
         post: operations["enrich_sync_api_single_enrich_sync_post"];
         delete?: never;
@@ -4582,6 +4642,12 @@ export type components = {
              * @description Optional model for pre-flight entity classification
              */
             classification_model?: string | null;
+            /**
+             * Database Sync
+             * @description Whether this batch feeds the schema's entity layer and linked databases. False skips the entire entity-layer write (no entity state, no deltas, no webhooks) for every entity of the batch — same effect as enriching a schema whose database links are all switched off. Records are still saved.
+             * @default true
+             */
+            database_sync: boolean;
             /**
              * Enable Response Schema
              * @description Use the provider response-schema channel (NativeOutput / JSON-schema enforcement) for selected models that support it. Defaults true; when false, even capable models fall back to tool-call or text output.
@@ -6073,6 +6139,24 @@ export type components = {
              */
             status: "pending" | "ok" | "expired" | "cancelled" | "not_found";
         };
+        /**
+         * DatabaseModelClassifyRequest
+         * @description Request to run the link-time database-model classification pass.
+         *
+         *     An LLM job proposing `database_key` / `db_type` / `indexed` / `owned` for
+         *     the schema's WORKING COPY — first run covers every property, later runs
+         *     only properties that are new or whose JSON type / `multilingual` flag
+         *     changed since the last pass (per-schema ledger). Results take effect on
+         *     the linked databases only through publish.
+         */
+        DatabaseModelClassifyRequest: {
+            /**
+             * Model
+             * @description Model composite key. 'auto' (default) resolves to the org's schema-generation default (pinned model, else best benchmark score).
+             * @default auto
+             */
+            model: string;
+        };
         /** DatabaseSync */
         DatabaseSync: {
             /**
@@ -6161,6 +6245,12 @@ export type components = {
         /** DatabaseSyncCreateRequest */
         DatabaseSyncCreateRequest: {
             /**
+             * Auto Publish
+             * @description Immediately publish the schema's working copy as its contract and queue the bootstrap DDL (the pre-publish-model behavior). Default false: the link is created but the schema stays 'unpublished' — nothing reaches the replica (no snapshot, no deltas, no entity writes) until it is published (POST /api/schema/saved/{id}/publish or the Database Sync page).
+             * @default false
+             */
+            auto_publish: boolean;
+            /**
              * Dialect
              * @default postgres
              * @constant
@@ -6194,8 +6284,8 @@ export type components = {
             notify_debounce_s: number;
             /**
              * On Incomplete Child
-             * @description With require_complete: 'reject_entity' refuses the whole enrichment when any non-nullable field is unfilled; 'skip_row' drops only the array items whose own fields are unfilled and admits the rest (root-level gaps still reject)
-             * @default reject_entity
+             * @description With require_complete: 'skip_row' (default) drops only the array items whose own fields are unfilled and admits the rest (root-level gaps still reject); 'reject_entity' refuses the whole enrichment when any non-nullable field is unfilled
+             * @default skip_row
              * @enum {string}
              */
             on_incomplete_child: "reject_entity" | "skip_row";
@@ -6826,6 +6916,13 @@ export type components = {
             /** @description Org per-task quality/speed/cost blends for benchmark overall scores */
             benchmark_score_weights?: components["schemas"]["BenchmarkScoreWeightsByType"] | null;
             /**
+             * Db Type Defaults
+             * @description JSON scalar type → the `db_type` its column gets when the property carries no hint. Served alongside db_types so the editor can NAME the default in its select ('text (auto)') instead of an opaque '(auto)': the value is `db_types.DEFAULT`, from which the projection's own type map is derived, so the label can never promise a column type the consumer's database does not get.
+             */
+            db_type_defaults?: {
+                [key: string]: string;
+            };
+            /**
              * Db Types
              * @description JSON scalar type → the generic SQL column types (`db_type`) that can apply to it, for the SchemaEditor's Database type select. Served rather than duplicated in TypeScript: the table is defined once in services/schema/db_types.py and also drives the generation prompt and the save-time validator, so a hand-copied frontend list would drift and the first symptom would be the editor offering a type the backend rejects. A JSON type absent here (boolean) has no choice to make.
              */
@@ -7269,6 +7366,12 @@ export type components = {
              * @description Optional uploaded attachments passed to the arbitration LLM (ignored when arbitration_model is None — rule-based merge does not see them).
              */
             attachment_ids?: string[] | null;
+            /**
+             * Database Sync
+             * @description Whether the merged result feeds the schema's entity layer and linked databases. False skips the entire entity-layer write for this merge (the arbitration record is still saved) — the enrichment endpoints forward their own database_sync here so a routing-off run's auto-fusion stays out of the databases too.
+             * @default true
+             */
+            database_sync: boolean;
             /**
              * Result Ids
              * @description IDs of enrichment records to merge (minimum 2)
@@ -7799,10 +7902,22 @@ export type components = {
          */
         LinkedSchemaRef: {
             /**
+             * Enrichment Enabled
+             * @description Whether this schema's enrichment workflows feed this database (OFF = no data deltas or notifications; DDL from publications still ships)
+             * @default true
+             */
+            enrichment_enabled: boolean;
+            /**
              * Linked At
              * Format: date-time
              */
             linked_at: string;
+            /**
+             * Publish State
+             * @description The linked schema's publish state: 'unpublished' (linked but never published — nothing reaches this replica yet), 'in_sync' or 'dirty' (working-copy changes pending publish)
+             * @default in_sync
+             */
+            publish_state: string;
             /**
              * Saved Schema Id
              * Format: uuid
@@ -7817,6 +7932,14 @@ export type components = {
              * @description This link's delta-available endpoint (the secret is never returned here)
              */
             webhook_url?: string | null;
+        };
+        /** LinkUpdateRequest */
+        LinkUpdateRequest: {
+            /**
+             * Enrichment Enabled
+             * @description Whether this schema's enrichment workflows feed this database. OFF stops data deltas and delta_available notifications without unlinking; schema publications keep shipping DDL. Enrichments that run while OFF are skipped for this database — re-enabling resumes with new enrichments only (re-pull the snapshot to backfill)
+             */
+            enrichment_enabled: boolean;
         };
         /** LinkWebhookRequest */
         LinkWebhookRequest: {
@@ -9652,6 +9775,16 @@ export type components = {
              */
             database_key?: boolean | null;
             /**
+             * Db Name
+             * @description Physical identifier segment this property contributes to a consumer database (docs/ENTITY_LAYER.md → physical naming). None = use the property name verbatim, which is the case for almost every property. On an OBJECT it renames the flattening prefix of the whole subtree — so every property of that object, and of its descendants, carries the same shortened prefix; on a scalar or array it renames just that column / child table. Stamped automatically when a flattened path would exceed the 63-byte identifier limit PostgreSQL truncates at (MySQL rejects at 64), and editable under each property row in the Database Sync page's Model tab. Once stamped it is NEVER recomputed: deleting the long property that forced it must not rename the columns its siblings already have.
+             */
+            db_name?: string | null;
+            /**
+             * Db Name Absolute
+             * @description True = this property's physical name DETACHES from its ancestors' flattening prefix: the column (or the child table, inside its entity's table name) is called exactly `db_name` or the property name, with no `parent_grandparent_` chain in front (docs/ENTITY_LAYER.md → physical naming). Absent/false = the normal rule, where every column of one object shares its prefix. An escape hatch for matching a column a consumer database already has, not a shortening tool — shortening belongs on the ancestor's `db_name`, which keeps the group together. Only meaningful on a property that actually inherits a prefix; on a detached ancestor the innermost flag wins. Migration-grade on a linked schema: publishing ships an ALTER … RENAME COLUMN.
+             */
+            db_name_absolute?: boolean | null;
+            /**
              * Db Type
              * @description Generic SQL type for this property's column in a consumer database (docs/ENTITY_LAYER.md → projection). None = 'auto': the default type map applies (string→TEXT, integer→BIGINT, …). Deliberately generic rather than dialect-specific — 'nvarchar' is SQL-Server-only and 'TIMESTAMPTZ' PostgreSQL-only, while one schema may feed databases of different dialects, so the renderer maps it per dialect. Proposed by the flags step at schema generation and bounded against the samples; changing it on a linked schema is migration-grade.
              */
@@ -9758,6 +9891,16 @@ export type components = {
              * @description True = this property is part of its containing object's Database key: the upsert conflict target and DDL unique index shared by all schema databases (docs/ENTITY_LAYER.md). Proposed by the flags step at schema generation and finalized by the stamping ladder (semantic_id → Id-like field → natural keys, which also backfills legacy schemas at link time); must be scalar (multilingual allowed — projects a '{prop}_key' companion column); required at write time. Stripped from every LLM prompt.
              */
             database_key?: boolean | null;
+            /**
+             * Db Name
+             * @description Physical identifier segment this property contributes to a consumer database (docs/ENTITY_LAYER.md → physical naming). None = use the property name verbatim, which is the case for almost every property. On an OBJECT it renames the flattening prefix of the whole subtree — so every property of that object, and of its descendants, carries the same shortened prefix; on a scalar or array it renames just that column / child table. Stamped automatically when a flattened path would exceed the 63-byte identifier limit PostgreSQL truncates at (MySQL rejects at 64), and editable under each property row in the Database Sync page's Model tab. Once stamped it is NEVER recomputed: deleting the long property that forced it must not rename the columns its siblings already have.
+             */
+            db_name?: string | null;
+            /**
+             * Db Name Absolute
+             * @description True = this property's physical name DETACHES from its ancestors' flattening prefix: the column (or the child table, inside its entity's table name) is called exactly `db_name` or the property name, with no `parent_grandparent_` chain in front (docs/ENTITY_LAYER.md → physical naming). Absent/false = the normal rule, where every column of one object shares its prefix. An escape hatch for matching a column a consumer database already has, not a shortening tool — shortening belongs on the ancestor's `db_name`, which keeps the group together. Only meaningful on a property that actually inherits a prefix; on a detached ancestor the innermost flag wins. Migration-grade on a linked schema: publishing ships an ALTER … RENAME COLUMN.
+             */
+            db_name_absolute?: boolean | null;
             /**
              * Db Type
              * @description Generic SQL type for this property's column in a consumer database (docs/ENTITY_LAYER.md → projection). None = 'auto': the default type map applies (string→TEXT, integer→BIGINT, …). Deliberately generic rather than dialect-specific — 'nvarchar' is SQL-Server-only and 'TIMESTAMPTZ' PostgreSQL-only, while one schema may feed databases of different dialects, so the renderer maps it per dialect. Proposed by the flags step at schema generation and bounded against the samples; changing it on a linked schema is migration-grade.
@@ -10307,7 +10450,7 @@ export type components = {
              * Kind
              * @enum {string}
              */
-            kind: "key_set" | "key_multilinguality" | "column_type" | "ownership" | "semantic_identity";
+            kind: "key_set" | "key_multilinguality" | "column_type" | "ownership" | "semantic_identity" | "rename";
         };
         /**
          * QualityArrayScore
@@ -10877,6 +11020,12 @@ export type components = {
          * @description Promoted 1-1 reference → target-key columns on the parent row.
          */
         RelationalRef: {
+            /**
+             * Physical Name
+             * @description The reference's flattening chain in physical segments; its columns are '{physical_name}_{target key}'
+             * @default
+             */
+            physical_name: string;
             /** Property Name */
             property_name: string;
             /**
@@ -10940,6 +11089,12 @@ export type components = {
              * @description Optional uploaded attachments (UUIDs from POST /api/attachments).
              */
             attachment_ids?: string[] | null;
+            /**
+             * Database Sync
+             * @description Whether a recovered run feeds the schema's entity layer and linked databases (see the enrichment endpoints' database_sync). False skips the entity-layer write for the recovered run.
+             * @default true
+             */
+            database_sync: boolean;
             /**
              * Enable Response Schema
              * @description Use the provider response-schema channel (NativeOutput) for the model if supported. Defaults true; when false, even capable models fall back to tool-call or text output.
@@ -11274,7 +11429,7 @@ export type components = {
              * @default draft
              * @enum {string}
              */
-            publish_state: "draft" | "in_sync" | "dirty";
+            publish_state: "draft" | "unpublished" | "in_sync" | "dirty";
             /** Tags */
             tags: string[];
             /**
@@ -11338,11 +11493,11 @@ export type components = {
             non_determinism_enabled: boolean;
             /**
              * Publish State
-             * @description draft (no linked database) | in_sync | dirty (structural edits pending publish)
+             * @description draft (no linked database) | unpublished (linked, never published) | in_sync | dirty (structural edits pending publish)
              * @default draft
              * @enum {string}
              */
-            publish_state: "draft" | "in_sync" | "dirty";
+            publish_state: "draft" | "unpublished" | "in_sync" | "dirty";
             /** Published At */
             published_at?: string | null;
             /** Published By Id */
@@ -11613,7 +11768,7 @@ export type components = {
              * Publish State
              * @enum {string}
              */
-            publish_state: "draft" | "in_sync" | "dirty";
+            publish_state: "draft" | "unpublished" | "in_sync" | "dirty";
             /**
              * Requires Confirm
              * @description The diff contains supported transform migrations — publish must be called with confirm_transforms=true
@@ -13115,6 +13270,8 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /** @description Entity-layer outcome of the fused write (None when database_sync was off, no schema is linked, or fusion failed) */
+            database?: components["schemas"]["DatabaseSyncOutcome"] | null;
             /**
              * Entity Index
              * @description Entity index (batch only)
@@ -14534,6 +14691,12 @@ export type components = {
              */
             classification_model?: string | null;
             /**
+             * Database Sync
+             * @description Whether this run feeds the schema's entity layer and linked databases. False skips the entire entity-layer write (no entity state, no deltas, no webhooks) for this run only — same effect as enriching a schema whose database links are all switched off. The record itself is still saved.
+             * @default true
+             */
+            database_sync: boolean;
+            /**
              * Enable Response Schema
              * @description Use the provider response-schema channel (NativeOutput / JSON-schema enforcement) for selected models that support it. Defaults true; when false, even capable models fall back to tool-call or text output.
              * @default true
@@ -14945,6 +15108,12 @@ export type components = {
              * @description Optional model for pre-flight entity classification
              */
             classification_model?: string | null;
+            /**
+             * Database Sync
+             * @description Whether this run feeds the schema's entity layer and linked databases. False skips the entire entity-layer write (no entity state, no deltas, no webhooks) for this run only — same effect as enriching a schema whose database links are all switched off. The record itself is still saved.
+             * @default true
+             */
+            database_sync: boolean;
             /**
              * Enable Response Schema
              * @description Use the provider response-schema channel (NativeOutput / JSON-schema enforcement) for selected models that support it. Defaults true; when false, even capable models fall back to tool-call or text output.
@@ -15545,6 +15714,7 @@ export type DatabaseCredentialResponse = components['schemas']['DatabaseCredenti
 export type DatabaseCredentialState = components['schemas']['DatabaseCredentialState'];
 export type DatabaseDeviceCodeConfirmRequest = components['schemas']['DatabaseDeviceCodeConfirmRequest'];
 export type DatabaseDevicePollResponse = components['schemas']['DatabaseDevicePollResponse'];
+export type DatabaseModelClassifyRequest = components['schemas']['DatabaseModelClassifyRequest'];
 export type DatabaseSync = components['schemas']['DatabaseSync'];
 export type DatabaseSyncChecksumResponse = components['schemas']['DatabaseSyncChecksumResponse'];
 export type DatabaseSyncCreateRequest = components['schemas']['DatabaseSyncCreateRequest'];
@@ -15611,6 +15781,7 @@ export type JoinOrganizationResponse = components['schemas']['JoinOrganizationRe
 export type KeyHealthCheckResponse = components['schemas']['KeyHealthCheckResponse'];
 export type LeaveOrganizationRequest = components['schemas']['LeaveOrganizationRequest'];
 export type LinkedSchemaRef = components['schemas']['LinkedSchemaRef'];
+export type LinkUpdateRequest = components['schemas']['LinkUpdateRequest'];
 export type LinkWebhookRequest = components['schemas']['LinkWebhookRequest'];
 export type LlmModel = components['schemas']['LLMModel'];
 export type LoginRequest = components['schemas']['LoginRequest'];
@@ -19185,6 +19356,10 @@ export interface operations {
     delete_database_api_databases__database_id__delete: {
         parameters: {
             query?: {
+                /** @description Also clear the database model the schema carries: database_key, db_type, indexed, owned and db_name/db_name_absolute on every property, plus the classification ledger and the key-language lock. Implies delete_entity_state — entity identity is derived from those flags, so state surviving them would never converge again. Ignored for a schema still linked to another database. */
+                clear_database_model?: boolean;
+                /** @description Also hard-delete the schema's entity state — the stored current state of its entities, which only a linked database ever writes to. Enrichment records are untouched. Ignored for a schema still linked to another database (that replica mirrors this state). */
+                delete_entity_state?: boolean;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
@@ -19602,6 +19777,48 @@ export interface operations {
             };
         };
     };
+    update_link_api_databases__database_id__schemas__saved_schema_id__patch: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+                saved_schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseSync"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     set_link_webhook_api_databases__database_id__schemas__saved_schema_id__webhook_put: {
         parameters: {
             query?: {
@@ -19647,6 +19864,8 @@ export interface operations {
     link_schema_to_database_api_databases__database_id__schemas__schema_id__post: {
         parameters: {
             query?: {
+                /** @description Immediately publish the schema's working copy as its contract and queue the DDL delta (the pre-publish-model behavior). Default false: the link is created but a never-published schema stays 'unpublished' — its tables/rows reach the replica only after the first explicit publish */
+                auto_publish?: boolean;
                 /** @description Key language for multilingual database keys — required when the schema has one, no lock yet, and the database's schemas carry no language to adopt */
                 key_language?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
@@ -19687,6 +19906,10 @@ export interface operations {
     unlink_schema_from_database_api_databases__database_id__schemas__schema_id__delete: {
         parameters: {
             query?: {
+                /** @description Also clear the database model the schema carries: database_key, db_type, indexed, owned and db_name/db_name_absolute on every property, plus the classification ledger and the key-language lock. Implies delete_entity_state — entity identity is derived from those flags, so state surviving them would never converge again. Ignored for a schema still linked to another database. */
+                clear_database_model?: boolean;
+                /** @description Also hard-delete the schema's entity state — the stored current state of its entities, which only a linked database ever writes to. Enrichment records are untouched. Ignored for a schema still linked to another database (that replica mirrors this state). */
+                delete_entity_state?: boolean;
                 /** @description Required when the schema has entity-state purging anywhere: rows purged while unlinked can never reach this replica again */
                 force?: boolean;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
@@ -23120,6 +23343,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeterminismCheckResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_database_model_classification_api_schema_saved__schema_id__classify_database_model_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DatabaseModelClassifyRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamGenerateResponse"];
                 };
             };
             /** @description Validation Error */
