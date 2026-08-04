@@ -230,9 +230,12 @@ export class EntityEnricherTrigger implements INodeType {
 							method: 'DELETE',
 						});
 					}
-				} catch {
+				} catch (error) {
 					// Deregistration is best-effort: the backend tolerates dangling
 					// subscriptions and the URL becomes a 404 in n8n anyway.
+					this.logger.warn(
+						`Entity Enricher trigger: webhook deregistration failed: ${(error as Error).message}`,
+					);
 				}
 				return true;
 			},
