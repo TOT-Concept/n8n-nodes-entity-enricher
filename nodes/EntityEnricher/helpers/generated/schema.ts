@@ -6988,6 +6988,11 @@ export type components = {
             profile_limits?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Property Formats
+             * @description The `format` values a string property may declare (date, time, date-time, uuid), for the SchemaEditor's Format select. Served for the same anti-drift reason as db_types: the list is defined once in services/schema/formats.py and also drives the generation flags prompt, the dynamic output model and the save-time validator.
+             */
+            property_formats?: string[];
             /** Strategies */
             strategies?: components["schemas"]["StrategyInfo"][];
             /** Total Companies */
@@ -9827,6 +9832,11 @@ export type components = {
              */
             expertise?: string | null;
             /**
+             * Format
+             * @description Machine-checkable shape of a string property's value (JSON Schema 'format'). An ENRICHMENT contract: the dynamic output model types the field natively (date → datetime.date, …), so a malformed value ('9:00', 'circa 1903') is a validation error the model retries on, and serialization stores the canonical ISO rendering. Detected from the sample values at schema generation and bounded against them; also defaults the column type at link time (date→DATE, time→TIME, date-time→TIMESTAMP, uuid→UUID) unless db_type says otherwise. Mutually exclusive with pattern and with multilingual.
+             */
+            format?: ("date" | "time" | "date-time" | "uuid") | null;
+            /**
              * Indexed
              * @description True = a consumer app filters, sorts or facets its LIST screens by this property, so its column gets a secondary index in every database whose index_scalars policy admits explicit flags (docs/ENTITY_LAYER.md → indexing). Redundant on identity properties (is_key/database_key are indexed by identity) and on closed sets (enum refs, booleans, dates are indexed by type) — those keep their own class. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the flags step at schema generation (bounded per entity) and editable in the Schema editor. Stripped from every LLM prompt.
              */
@@ -9855,6 +9865,11 @@ export type components = {
              * @description True = this relationship property (array of entities, or 1-1 $ref / promoted inline object) OWNS its target: the target is a weak entity whose identity is scoped by this containing object (docs/ENTITY_LAYER.md → owned entities). Owned targets project as a child table with owner FK columns instead of a junction; an owned type has exactly one owning site and is referenced nowhere else. Absent/false = shared entity (default).
              */
             owned?: boolean | null;
+            /**
+             * Pattern
+             * @description Regex the value of a string property must match (JSON Schema 'pattern'), for machine-formatted strings no named format covers — emails, codes, identifiers. Enforced by the dynamic output model (StringConstraints), so a non-matching value is a validation error the model retries on. Proposed by the flags step at schema generation and dropped unless every observed sample value matches it. Never for natural-language text. Mutually exclusive with format and with multilingual.
+             */
+            pattern?: string | null;
             /**
              * Preserve
              * @description If true, the original input value is preserved and not overwritten by the enriched value
@@ -9944,6 +9959,11 @@ export type components = {
              */
             expertise?: string | null;
             /**
+             * Format
+             * @description Machine-checkable shape of a string property's value (JSON Schema 'format'). An ENRICHMENT contract: the dynamic output model types the field natively (date → datetime.date, …), so a malformed value ('9:00', 'circa 1903') is a validation error the model retries on, and serialization stores the canonical ISO rendering. Detected from the sample values at schema generation and bounded against them; also defaults the column type at link time (date→DATE, time→TIME, date-time→TIMESTAMP, uuid→UUID) unless db_type says otherwise. Mutually exclusive with pattern and with multilingual.
+             */
+            format?: ("date" | "time" | "date-time" | "uuid") | null;
+            /**
              * Indexed
              * @description True = a consumer app filters, sorts or facets its LIST screens by this property, so its column gets a secondary index in every database whose index_scalars policy admits explicit flags (docs/ENTITY_LAYER.md → indexing). Redundant on identity properties (is_key/database_key are indexed by identity) and on closed sets (enum refs, booleans, dates are indexed by type) — those keep their own class. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the flags step at schema generation (bounded per entity) and editable in the Schema editor. Stripped from every LLM prompt.
              */
@@ -9972,6 +9992,11 @@ export type components = {
              * @description True = this relationship property (array of entities, or 1-1 $ref / promoted inline object) OWNS its target: the target is a weak entity whose identity is scoped by this containing object (docs/ENTITY_LAYER.md → owned entities). Owned targets project as a child table with owner FK columns instead of a junction; an owned type has exactly one owning site and is referenced nowhere else. Absent/false = shared entity (default).
              */
             owned?: boolean | null;
+            /**
+             * Pattern
+             * @description Regex the value of a string property must match (JSON Schema 'pattern'), for machine-formatted strings no named format covers — emails, codes, identifiers. Enforced by the dynamic output model (StringConstraints), so a non-matching value is a validation error the model retries on. Proposed by the flags step at schema generation and dropped unless every observed sample value matches it. Never for natural-language text. Mutually exclusive with format and with multilingual.
+             */
+            pattern?: string | null;
             /**
              * Preserve
              * @description If true, the original input value is preserved and not overwritten by the enriched value
