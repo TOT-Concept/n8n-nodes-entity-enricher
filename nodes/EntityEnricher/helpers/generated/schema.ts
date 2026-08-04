@@ -11,8 +11,25 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** No Frontend */
-        get: operations["no_frontend__get"];
+        /** Serve Index */
+        get: operations["serve_index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve Spa */
+        get: operations["serve_spa__path__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -10553,6 +10570,11 @@ export type components = {
              */
             attachments?: components["schemas"]["AttachmentRef"][];
             /**
+             * Attempts
+             * @description Total LLM call attempts across the record's prompts (exceeds prompt_count when validation retries occurred).
+             */
+            attempts?: number | null;
+            /**
              * Cancelled
              * @default false
              */
@@ -10648,6 +10670,11 @@ export type components = {
             organization_name?: string | null;
             /** Origin */
             origin?: string | null;
+            /**
+             * Output Channel
+             * @description Structured-output channel shared by the record's prompts ('native', 'tool', 'prompted', 'text'), or 'mixed' when expertise calls disagree.
+             */
+            output_channel?: string | null;
             /** Output Tokens */
             output_tokens?: number | null;
             /**
@@ -10714,6 +10741,11 @@ export type components = {
              * @description Wall-clock duration of the run(s) that produced this record (first LLM call start to last call end), accumulated across retries. Null for legacy records.
              */
             wall_clock_ms?: number | null;
+            /**
+             * Web Search Calls
+             * @description Web-search tool calls across the record's prompts.
+             */
+            web_search_calls?: number | null;
         };
         /**
          * RecordsListResponse
@@ -10772,6 +10804,11 @@ export type components = {
          *     Note: Metrics (tokens, cost, processing_time) come from record_metrics view.
          */
         RecordSummary: {
+            /**
+             * Attempts
+             * @description Total LLM call attempts across the record's prompts (exceeds prompt_count when validation retries occurred).
+             */
+            attempts?: number | null;
             /**
              * Cancelled
              * @default false
@@ -10850,6 +10887,11 @@ export type components = {
             organization_name?: string | null;
             /** Origin */
             origin?: string | null;
+            /**
+             * Output Channel
+             * @description Structured-output channel shared by the record's prompts ('native', 'tool', 'prompted', 'text'), or 'mixed' when expertise calls disagree.
+             */
+            output_channel?: string | null;
             /** Output Tokens */
             output_tokens?: number | null;
             /**
@@ -10900,6 +10942,11 @@ export type components = {
              * @description Wall-clock duration of the run(s) that produced this record (first LLM call start to last call end), accumulated across retries. Null for legacy records.
              */
             wall_clock_ms?: number | null;
+            /**
+             * Web Search Calls
+             * @description Web-search tool calls across the record's prompts.
+             */
+            web_search_calls?: number | null;
         };
         /** RefreshTokenRequest */
         RefreshTokenRequest: {
@@ -15969,7 +16016,7 @@ export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutRespon
 export type WebhookSecretResponse = components['schemas']['WebhookSecretResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
-    no_frontend__get: {
+    serve_index__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -15985,6 +16032,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    serve_spa__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
