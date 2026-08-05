@@ -3683,13 +3683,14 @@ export type paths = {
         put?: never;
         /**
          * Start Database Model Classification
-         * @description Start the link-time database-model classification pass (LLM job).
+         * @description Re-run the database-model classification pass (LLM job).
          *
          *     Proposes database_key / db_type / indexed / owned for the schema's working
-         *     copy. Incremental: the first run classifies every property; later runs only
-         *     properties that are new or whose JSON type / multilingual flag changed
-         *     since the last pass. Results are pending working-copy edits — they reach
-         *     the linked databases only through publish. Stream via
+         *     copy. The FIRST pass starts on its own when a database is registered or a
+         *     schema linked; this endpoint re-runs it after schema edits — incrementally,
+         *     covering only properties that are new or whose JSON type / multilingual
+         *     flag changed since the last pass. Results are pending working-copy edits —
+         *     they reach the linked databases only through publish. Stream via
          *     GET /api/llm/stream/{job_id}; cancel via POST /api/llm/cancel/{job_id}.
          */
         post: operations["start_database_model_classification_api_schema_saved__schema_id__classify_database_model_post"];
@@ -6224,6 +6225,11 @@ export type components = {
              * @default false
              */
             propagate_not_null: boolean;
+            /**
+             * Propagate Unique
+             * @default false
+             */
+            propagate_unique: boolean;
             /** Purge Entity State */
             purge_entity_state: boolean;
             /** Purge On Ack */
@@ -6262,12 +6268,6 @@ export type components = {
         /** DatabaseSyncCreateRequest */
         DatabaseSyncCreateRequest: {
             /**
-             * Auto Publish
-             * @description Immediately publish the schema's working copy as its contract and queue the bootstrap DDL (the pre-publish-model behavior). Default false: the link is created but the schema stays 'unpublished' — nothing reaches the replica (no snapshot, no deltas, no entity writes) until it is published (POST /api/schema/saved/{id}/publish or the Database Sync page).
-             * @default false
-             */
-            auto_publish: boolean;
-            /**
              * Dialect
              * @default postgres
              * @constant
@@ -6282,7 +6282,7 @@ export type components = {
             index_scalars: "none" | "keys" | "filterable" | "all";
             /**
              * Key Language
-             * @description Key language for multilingual database keys (docs/ENTITY_LAYER.md): the language the '{prop}_key' identity tokens are written in. REQUIRED when the schema has a multilingual database key and no locked key language yet; ignored otherwise.
+             * @description Key language for multilingual database keys (docs/ENTITY_LAYER.md): the language the '{prop}_key' identity tokens are written in. Optional here — the requirement is enforced at publish, since the link-time classification pass is what decides whether a multilingual property is a database key. Ignored when the schema already locks one.
              */
             key_language?: string | null;
             /**
@@ -6319,6 +6319,12 @@ export type components = {
              */
             propagate_not_null: boolean;
             /**
+             * Propagate Unique
+             * @description Emit a UNIQUE index for every `unique_group` the schema declares (docs/ENTITY_LAYER.md → unique groups). Off by default because a unique constraint can refuse a row the entity layer considers valid, and a refused delta stalls this database's whole feed: opting in also arms the server-side duplicate check, so conflicts are refused at enrichment time instead of reaching your replica. Enabling it on a database that already holds duplicates is a migration that aborts by name with a count; turning it back off drops the constraint and resumes the feed
+             * @default false
+             */
+            propagate_unique: boolean;
+            /**
              * Purge Entity State
              * @description Also delete entity rows once every database of the schema acknowledged their latest revision (data minimization — not GDPR erasure; records remain)
              * @default false
@@ -6340,6 +6346,16 @@ export type components = {
         /** DatabaseSyncCreateResponse */
         DatabaseSyncCreateResponse: {
             /**
+             * Classification Job Id
+             * @description LLM job proposing this schema's database-model flags (database_key, db_type, indexed, owned). Stream it via GET /api/llm/stream/{job_id}; review the result in the Model tab before publishing. None when nothing had to be classified or the pass could not start (see classification_skipped).
+             */
+            classification_job_id?: string | null;
+            /**
+             * Classification Skipped
+             * @description Why no classification job runs — 'up_to_date' (the ledger already covers every property), 'already_running', or a quota/credit reason. The link still succeeded: the deterministic key ladder stamped the schema, and the pass can be re-run anytime from the Model tab (POST /api/schema/saved/{id}/classify-database-model).
+             */
+            classification_skipped?: string | null;
+            /**
              * Custody Warning
              * @description Set when purge_entity_state is enabled: delivered entity rows are deleted server-side, making the replica the ONLY complete copy — backups become the consumer's responsibility, snapshots turn partial, and unlinking loses the un-replicated window permanently
              */
@@ -6355,6 +6371,16 @@ export type components = {
         };
         /** DatabaseSyncLinkResponse */
         DatabaseSyncLinkResponse: {
+            /**
+             * Classification Job Id
+             * @description LLM job proposing this schema's database-model flags (database_key, db_type, indexed, owned). Stream it via GET /api/llm/stream/{job_id}; review the result in the Model tab before publishing. None when nothing had to be classified or the pass could not start (see classification_skipped).
+             */
+            classification_job_id?: string | null;
+            /**
+             * Classification Skipped
+             * @description Why no classification job runs — 'up_to_date' (the ledger already covers every property), 'already_running', or a quota/credit reason. The link still succeeded: the deterministic key ladder stamped the schema, and the pass can be re-run anytime from the Model tab (POST /api/schema/saved/{id}/classify-database-model).
+             */
+            classification_skipped?: string | null;
             database: components["schemas"]["DatabaseSync"];
             /**
              * Ddl Delta Id
@@ -6439,11 +6465,14 @@ export type components = {
              * @description List items that resolved to an identity an earlier sibling already claimed; only the first was written (no silent last-write-wins row, no duplicate link rows)
              */
             key_collisions?: components["schemas"]["EntityKeyCollision"][];
-            /** Missing Fields */
+            /**
+             * Missing Fields
+             * @description Non-nullable property paths the run left unfilled — the cause of the rejection when saved=false, and the cause of every skipped_items drop when status='partial'
+             */
             missing_fields?: string[];
             /**
              * Reason
-             * @description When saved=false: why (e.g. missing required fields)
+             * @description Why the write was not whole: the rejection cause when saved=false, and what was dropped when status='partial'
              */
             reason?: string | null;
             /** Saved */
@@ -6458,6 +6487,12 @@ export type components = {
              * @description Array items dropped by databases in on_incomplete_child='skip_row' mode (their own non-nullable fields were unfilled); the rest of the entity was admitted
              */
             skipped_items?: string[];
+            /**
+             * Status
+             * @description Three-state view of `saved`: 'rejected' (nothing was written), 'saved' (everything the run produced was written), or 'partial' — the entity landed but some of its rows did NOT and nothing re-sends them (skipped_items dropped by a skip_row database, key_collisions dropped as duplicate identities). A partial write is silent data loss until the schema is fixed and the entity re-enriched, so treat it as a warning, not a success
+             * @enum {string}
+             */
+            readonly status: "saved" | "partial" | "rejected";
         };
         /**
          * DatabaseSyncRelationalMapResponse
@@ -6486,6 +6521,8 @@ export type components = {
             page_limit?: number | null;
             /** Propagate Not Null */
             propagate_not_null?: boolean | null;
+            /** Propagate Unique */
+            propagate_unique?: boolean | null;
             /** Purge Entity State */
             purge_entity_state?: boolean | null;
             /** Purge On Ack */
@@ -6914,6 +6951,29 @@ export type components = {
         EmbeddingModelSetting: {
             /** Composite Key */
             composite_key?: string | null;
+        };
+        /**
+         * EnrichmentInputContract
+         * @description What `entity_data` must carry for this schema to be enrichable.
+         */
+        EnrichmentInputContract: {
+            /**
+             * Array Item Keys
+             * @description Array path → the is_key property names of its item type. Supplying items for an array closes it (the model enriches exactly those items) and each supplied item must carry one of these keys so the enriched items can be matched back. An empty list means the item type has no key: leave that array out of the input and let the model discover its items.
+             */
+            array_item_keys?: {
+                [key: string]: string[];
+            };
+            /**
+             * Identifying Keys
+             * @description Dotted paths of the schema's is_key properties. At least ONE must carry a non-empty value — they are what identifies the entity to enrich. Empty list: the schema has no keys and the whole input is used as-is.
+             */
+            identifying_keys?: string[];
+            /**
+             * Preserve
+             * @description Dotted paths of properties flagged preserve. EVERY one must carry a non-empty value: preserve means the value comes from the caller's own system and is copied back untouched, so the enrichment can neither research nor invent it. A path here whose value the caller does not own is a schema bug — clear the flag with update_schema rather than supplying a made-up value.
+             */
+            preserve?: string[];
         };
         /**
          * EnrichmentOptionsResponse
@@ -9907,6 +9967,11 @@ export type components = {
              * @description JSON Schema type: string, number, integer, boolean, array, object
              */
             type?: string | null;
+            /**
+             * Unique Group
+             * @description Label declaring that this property's value identifies AT MOST ONE object of its type. Properties of one object sharing a label form a single UNIQUE constraint over their columns together (first_name + last_name identify jointly); a label used once is a one-column unique. An object may carry several independent labels — three registry identifiers are three constraints, not one composite. This is why the flag is a label and not a boolean, and why `is_key` cannot stand in for it: the default-key ladder already reads N is_key properties as ONE composite key (schema_validation._pick_default_keys). Only materialized on databases that opted into propagate_unique — the consumer owns whether a constraint may stall their feed. Every member must be a non-nullable scalar (NULLs are distinct in SQL, so a nullable member silently disables the constraint). Stripped from every LLM prompt; curated in the Database Sync page's Model tab.
+             */
+            unique_group?: string | null;
         };
         /**
          * PropertySchema
@@ -10034,6 +10099,11 @@ export type components = {
              * @description JSON Schema type: string, number, integer, boolean, array, object
              */
             type?: string | null;
+            /**
+             * Unique Group
+             * @description Label declaring that this property's value identifies AT MOST ONE object of its type. Properties of one object sharing a label form a single UNIQUE constraint over their columns together (first_name + last_name identify jointly); a label used once is a one-column unique. An object may carry several independent labels — three registry identifiers are three constraints, not one composite. This is why the flag is a label and not a boolean, and why `is_key` cannot stand in for it: the default-key ladder already reads N is_key properties as ONE composite key (schema_validation._pick_default_keys). Only materialized on databases that opted into propagate_unique — the consumer owns whether a constraint may stall their feed. Every member must be a non-nullable scalar (NULLs are distinct in SQL, so a nullable member silently disables the constraint). Stripped from every LLM prompt; curated in the Database Sync page's Model tab.
+             */
+            unique_group?: string | null;
         };
         /**
          * ProviderChange
@@ -11549,6 +11619,8 @@ export type components = {
              * Format: uuid
              */
             id: string;
+            /** @description What an enrichment request must supply for this schema — the three gates that reject a request before any LLM spend. Derived from the contract enrichment actually runs against (published when linked, else the working copy), so a caller can build a valid entity_data up front instead of discovering each gate through an HTTP 400. */
+            readonly input_contract: components["schemas"]["EnrichmentInputContract"];
             /** Is Pinned */
             is_pinned: boolean;
             /**
@@ -11847,6 +11919,12 @@ export type components = {
              * @default false
              */
             requires_confirm: boolean;
+            /**
+             * Requires Key Language
+             * @description The schema's database key is multilingual and no key language is locked yet — publish must be called with key_language. Decided here rather than at link because the classification pass is what makes a multilingual property a database key
+             * @default false
+             */
+            requires_key_language: boolean;
         };
         /**
          * SchemaPublishRequest
@@ -11859,6 +11937,11 @@ export type components = {
              * @default false
              */
             confirm_transforms: boolean;
+            /**
+             * Key Language
+             * @description Language the '{prop}_key' identity tokens are written in (docs/ENTITY_LAYER.md → multilingual database keys). REQUIRED on the first publish of a schema whose database key is multilingual and that locks no language yet — the 409 carries code key_language_required. Stamped once, then ignored.
+             */
+            key_language?: string | null;
         };
         /**
          * SchemaPublishResponse
@@ -14854,6 +14937,11 @@ export type components = {
              */
             generate_semantic_ids: boolean;
             /**
+             * Language
+             * @description Language the schema describes ITSELF in — type names, entity and property descriptions, expertise names/descriptions, enum value descriptions and suggestions. Property names come from the samples and are never translated. Omitted (default) means follow the language the sample's property names are written in, so a French sample yields a French schema without stating it. Unrelated to the enrichment output languages and to key_language.
+             */
+            language?: string | null;
+            /**
              * Model
              * @description Model composite key. Optional: 'auto' (default) lets the server pick the organization's default schema-generation model — the pinned per-task default if set, else the model with the best blended overall score from scoring-source benchmarks.
              * @default auto
@@ -15279,6 +15367,11 @@ export type components = {
              * @default false
              */
             generate_semantic_ids: boolean;
+            /**
+             * Language
+             * @description Language the schema describes ITSELF in — type names, entity and property descriptions, expertise names/descriptions, enum value descriptions and suggestions. Property names come from the samples and are never translated. Omitted (default) means follow the language the sample's property names are written in, so a French sample yields a French schema without stating it. Unrelated to the enrichment output languages and to key_language.
+             */
+            language?: string | null;
             /**
              * Model
              * @description Model composite key. Optional: 'auto' (default) lets the server pick the organization's default schema-generation model — the pinned per-task default if set, else the model with the best blended overall score from scoring-source benchmarks.
@@ -15817,6 +15910,7 @@ export type DevPersona = components['schemas']['DevPersona'];
 export type DiscoveredModel = components['schemas']['DiscoveredModel'];
 export type DiscoverModelsResponse = components['schemas']['DiscoverModelsResponse'];
 export type EmbeddingModelSetting = components['schemas']['EmbeddingModelSetting'];
+export type EnrichmentInputContract = components['schemas']['EnrichmentInputContract'];
 export type EnrichmentOptionsResponse = components['schemas']['EnrichmentOptionsResponse'];
 export type EnrichmentPromptSummary = components['schemas']['EnrichmentPromptSummary'];
 export type EntityDefinitionInput = components['schemas']['EntityDefinition-Input'];
@@ -19967,9 +20061,7 @@ export interface operations {
     link_schema_to_database_api_databases__database_id__schemas__schema_id__post: {
         parameters: {
             query?: {
-                /** @description Immediately publish the schema's working copy as its contract and queue the DDL delta (the pre-publish-model behavior). Default false: the link is created but a never-published schema stays 'unpublished' — its tables/rows reach the replica only after the first explicit publish */
-                auto_publish?: boolean;
-                /** @description Key language for multilingual database keys — required when the schema has one, no lock yet, and the database's schemas carry no language to adopt */
+                /** @description Key language for multilingual database keys. Optional: the database's own lock is adopted when it has one, and otherwise the requirement is enforced at publish — the classification pass is what decides whether a multilingual property is a database key */
                 key_language?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
@@ -19977,6 +20069,7 @@ export interface operations {
             header?: {
                 authorization?: string | null;
                 "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
             };
             path: {
                 database_id: string;
@@ -23893,6 +23986,7 @@ export interface operations {
             header?: {
                 authorization?: string | null;
                 "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
             };
             path: {
                 schema_id: string;

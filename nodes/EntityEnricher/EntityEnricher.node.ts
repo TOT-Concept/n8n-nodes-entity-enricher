@@ -632,6 +632,14 @@ export class EntityEnricher implements INodeType {
 				displayOptions: { show: { resource: ['schema'], operation: ['generateSchema'] } },
 			},
 			{
+				displayName: 'Language',
+				name: 'schemaGenLanguage',
+				type: 'string',
+				default: '',
+				description: 'Language the schema describes itself in — type names, descriptions, expertise labels (e.g. \'fr\'). Property names always come from the samples. Empty follows the language the sample\'s property names are written in.',
+				displayOptions: { show: { resource: ['schema'], operation: ['generateSchema'] } },
+			},
+			{
 				displayName: 'Timeout (Seconds)',
 				name: 'schemaGenTimeout',
 				type: 'number',

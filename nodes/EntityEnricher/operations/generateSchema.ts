@@ -51,6 +51,7 @@ export async function execute(
 	const extraInstructions = context.getNodeParameter(
 		'schemaGenExtraInstructions', 0, '',
 	) as string;
+	const language = context.getNodeParameter('schemaGenLanguage', 0, '') as string;
 	const timeoutSeconds = context.getNodeParameter('schemaGenTimeout', 0, 300) as number;
 
 	const body: Record<string, unknown> = {
@@ -61,6 +62,7 @@ export async function execute(
 		timeout_seconds: timeoutSeconds,
 	};
 	if (extraInstructions) body.extra_instructions = extraInstructions;
+	if (language) body.language = language;
 
 	const response = await apiRequest(context, '/api/schema/generate/sync', {
 		method: 'POST',
