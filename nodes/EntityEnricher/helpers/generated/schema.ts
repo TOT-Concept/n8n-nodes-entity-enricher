@@ -7113,6 +7113,12 @@ export type components = {
             processing_time_ms?: number | null;
             /** Raw Response */
             raw_response?: string | null;
+            /**
+             * Retries
+             * @description Validation retries of this prompt's LLM call (attempts - 1).
+             * @default 0
+             */
+            retries: number;
             /** Sequence Order */
             sequence_order: number;
             /** Structured Output */
@@ -7168,6 +7174,11 @@ export type components = {
                 [key: string]: components["schemas"]["PropertySchema-Input"];
             };
             /**
+             * Property Order
+             * @description Display order of the keys in `properties` (see PropertySchema.property_order — same contract, entity level).
+             */
+            property_order?: string[] | null;
+            /**
              * Type
              * @description Always 'object' for entity definitions
              * @default object
@@ -7197,6 +7208,11 @@ export type components = {
             properties: {
                 [key: string]: components["schemas"]["PropertySchema-Output"];
             };
+            /**
+             * Property Order
+             * @description Display order of the keys in `properties` (see PropertySchema.property_order — same contract, entity level).
+             */
+            property_order?: string[] | null;
             /**
              * Type
              * @description Always 'object' for entity definitions
@@ -9985,6 +10001,11 @@ export type components = {
                 [key: string]: components["schemas"]["PropertySchema-Input"];
             } | null;
             /**
+             * Property Order
+             * @description Display order of the keys in `properties`, set by the schema editor when the user arranges them by hand. JSONB storage re-orders object keys, so the order must ride in an ARRAY (which jsonb preserves) to survive a round-trip. Absent = alphabetical (the canonical order generation produces). Names not listed sort alphabetically after the listed ones; stale names are ignored.
+             */
+            property_order?: string[] | null;
+            /**
              * Semantic Concept Type
              * @description Only on the semantic_id property: overrides the concept type scoping embedding matches (default: the $def/entity name, or the object's JSON path for inline objects). Lets schemas naming the same entity differently share one concept space.
              */
@@ -10121,6 +10142,11 @@ export type components = {
             properties?: {
                 [key: string]: components["schemas"]["PropertySchema-Output"];
             } | null;
+            /**
+             * Property Order
+             * @description Display order of the keys in `properties`, set by the schema editor when the user arranges them by hand. JSONB storage re-orders object keys, so the order must ride in an ARRAY (which jsonb preserves) to survive a round-trip. Absent = alphabetical (the canonical order generation produces). Names not listed sort alphabetically after the listed ones; stale names are ignored.
+             */
+            property_order?: string[] | null;
             /**
              * Semantic Concept Type
              * @description Only on the semantic_id property: overrides the concept type scoping embedding matches (default: the $def/entity name, or the object's JSON path for inline objects). Lets schemas naming the same entity differently share one concept space.
@@ -10712,11 +10738,6 @@ export type components = {
              */
             attachments?: components["schemas"]["AttachmentRef"][];
             /**
-             * Attempts
-             * @description Total LLM call attempts across the record's prompts (exceeds prompt_count when validation retries occurred).
-             */
-            attempts?: number | null;
-            /**
              * Cancelled
              * @default false
              */
@@ -10836,6 +10857,11 @@ export type components = {
              */
             prompts?: components["schemas"]["EnrichmentPromptSummary"][];
             /**
+             * Retries
+             * @description Total LLM validation retries across the record's prompts (attempts beyond the first per prompt; 0 when every call succeeded on its first attempt).
+             */
+            retries?: number | null;
+            /**
              * Saved Schema Id
              * @description ID of the saved schema used for this enrichment
              */
@@ -10947,11 +10973,6 @@ export type components = {
          */
         RecordSummary: {
             /**
-             * Attempts
-             * @description Total LLM call attempts across the record's prompts (exceeds prompt_count when validation retries occurred).
-             */
-            attempts?: number | null;
-            /**
              * Cancelled
              * @default false
              */
@@ -11047,6 +11068,11 @@ export type components = {
              * @default 1
              */
             prompt_count: number;
+            /**
+             * Retries
+             * @description Total LLM validation retries across the record's prompts (attempts beyond the first per prompt; 0 when every call succeeded on its first attempt).
+             */
+            retries?: number | null;
             /**
              * Saved Schema Id
              * @description ID of the saved schema used for this enrichment

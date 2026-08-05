@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### ⚠ BREAKING — record-level `attempts` replaced by `retries`
+
+**List Records** items no longer carry `attempts` (total LLM call attempts); they carry **`retries`** instead — attempts beyond the first per prompt (`0` when every call succeeded first try), now computed server-side. Expressions reading `attempts` should read `retries` (or `prompt_count + retries` to reconstruct the old total). **Get Record** gains the same record-level `retries` field, plus a per-prompt `retries` next to the unchanged per-prompt `attempts`.
+
 ### Removed — Generate Schema "Strategy" parameter
 
 The single-call (monolithic) schema-generation pipeline was retired server-side; generation always uses the multi-step (staged) pipeline. The **Strategy** dropdown is removed from **Generate Schema** and the `generation_strategy` request field no longer exists. Saved workflows that had it set keep working — the stored value is simply ignored.
