@@ -6493,6 +6493,11 @@ export type components = {
              * @enum {string}
              */
             readonly status: "saved" | "partial" | "rejected";
+            /**
+             * Unique Conflicts
+             * @description Declared unique groups this enrichment would have violated on a database that materializes them. The write was refused whole (nothing stored, no delta queued): the alternative is a delta the replica's UNIQUE index rejects, which stalls its entire feed
+             */
+            unique_conflicts?: components["schemas"]["EntityUniqueConflict"][];
         };
         /**
          * DatabaseSyncRelationalMapResponse
@@ -7305,6 +7310,38 @@ export type components = {
              * @enum {string}
              */
             source: "semantic_id" | "id_field" | "natural_keys" | "manual" | "adopted" | "owner";
+        };
+        /**
+         * EntityUniqueConflict
+         * @description A declared `unique_group` this enrichment would have violated.
+         *
+         *     Distinct from EntityKeyCollision, which is two items of ONE list inside one
+         *     enrichment: this one is a clash with a row that is already stored (or with
+         *     another entity of the same run), on a constraint that is not the identity.
+         *     Reported as a REFUSAL rather than a silent drop — the row is valid to the
+         *     entity layer, and only the consumer's registration says otherwise, so the
+         *     choice of which of the two to keep is theirs.
+         */
+        EntityUniqueConflict: {
+            /**
+             * Conflicting Entity Id
+             * @description The stored entity already holding them; null when the clash is with another entity of this same enrichment
+             */
+            conflicting_entity_id?: string | null;
+            /** Entity Type */
+            entity_type: string;
+            /**
+             * Label
+             * @description The unique_group label that would be violated
+             */
+            label: string;
+            /**
+             * Values
+             * @description The colliding member values, by payload path
+             */
+            values: {
+                [key: string]: unknown;
+            };
         };
         /**
          * EnumDefinition
@@ -9909,6 +9946,11 @@ export type components = {
             /** @description For array types: schema of array items */
             items?: components["schemas"]["PropertySchema-Input"] | null;
             /**
+             * Language Discriminator
+             * @description True = this string property IS the language axis of its containing object: each sibling row of the parent array carries one language's values, discriminated by this ISO 639-1 code (language is the DATA, as in per-language description rows or official names). Proposed by the flags step at schema generation and dropped unless every observed sample value is a known language code. Its presence turns the integrated language mechanism OFF for the whole subtree: no property under the same parent may be multilingual (enforced at generation and refused at publish), and the property never gets a closed enum — the language set is a per-request parameter, not a domain fact one sample can close.
+             */
+            language_discriminator?: boolean | null;
+            /**
              * Multilingual
              * @description If true, enrichment returns values in all requested languages
              */
@@ -10040,6 +10082,11 @@ export type components = {
             is_key?: boolean | null;
             /** @description For array types: schema of array items */
             items?: components["schemas"]["PropertySchema-Output"] | null;
+            /**
+             * Language Discriminator
+             * @description True = this string property IS the language axis of its containing object: each sibling row of the parent array carries one language's values, discriminated by this ISO 639-1 code (language is the DATA, as in per-language description rows or official names). Proposed by the flags step at schema generation and dropped unless every observed sample value is a known language code. Its presence turns the integrated language mechanism OFF for the whole subtree: no property under the same parent may be multilingual (enforced at generation and refused at publish), and the property never gets a closed enum — the language set is a per-request parameter, not a domain fact one sample can close.
+             */
+            language_discriminator?: boolean | null;
             /**
              * Multilingual
              * @description If true, enrichment returns values in all requested languages
@@ -15919,6 +15966,7 @@ export type EntityKeyCollision = components['schemas']['EntityKeyCollision'];
 export type EntityStateListResponse = components['schemas']['EntityStateListResponse'];
 export type EntityStateRow = components['schemas']['EntityStateRow'];
 export type EntityTypeKeys = components['schemas']['EntityTypeKeys'];
+export type EntityUniqueConflict = components['schemas']['EntityUniqueConflict'];
 export type EnumDefinition = components['schemas']['EnumDefinition'];
 export type ExpertiseBreakdown = components['schemas']['ExpertiseBreakdown'];
 export type ExpertiseDomain = components['schemas']['ExpertiseDomain'];
