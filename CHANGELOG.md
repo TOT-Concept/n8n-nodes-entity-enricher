@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.0.1 (2026-08-06)
+
+Republish of 3.0.0: a stale `v3.0.0` tag on the repository blocked the automated npm publish, so 3.0.0 never reached npm. No code changes beyond the regenerated API types below.
+
+### Changed
+
+- Regenerated API types from the backend OpenAPI schema (sync hosts — managed ee-database provisioning — and sync-client credential preflight endpoints).
+
 ## 3.0.0 (2026-08-06)
 
 ### Changed — nodes-panel category and search aliases
