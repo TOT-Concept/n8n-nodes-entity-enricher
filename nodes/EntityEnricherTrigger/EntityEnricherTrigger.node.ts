@@ -67,6 +67,21 @@ export class EntityEnricherTrigger implements INodeType {
 		version: 1,
 		subtitle: '={{$parameter["event"]}}',
 		description: 'Fires on Entity Enricher enrichment events and database deltas',
+		codex: {
+			categories: ['Data & Storage', 'Development'],
+			alias: [
+				'enrichment', 'entity', 'webhook',
+				'database sync', 'database replication', 'delta', 'cdc', 'postgresql', 'mysql', 'sqlite',
+			],
+			resources: {
+				primaryDocumentation: [
+					{ url: 'https://entityenricher.ai/docs/integrations/n8n' },
+				],
+				credentialDocumentation: [
+					{ url: 'https://entityenricher.ai/docs/platform/api-keys' },
+				],
+			},
+		},
 		defaults: { name: 'Entity Enricher Trigger' },
 		inputs: [],
 		outputs: [NodeConnectionTypes.Main],

@@ -38,11 +38,12 @@ export class EntityEnricher implements INodeType {
 		description: 'Enrich entities with multi-model LLM fusion, multilingual output, and expertise-driven strategies',
 		documentationUrl: 'https://entityenricher.ai/docs/integrations/n8n',
 		codex: {
-			categories: ['AI'],
-			subcategories: {
-				AI: ['Agents & Tools', 'Tools'],
-			},
-			alias: ['enrichment', 'translation', 'llm', 'data enrichment', 'multi-model', 'fusion', 'entity'],
+			categories: ['Data & Storage', 'Development'],
+			alias: [
+				'enrichment', 'translation', 'llm', 'data enrichment', 'multi-model', 'fusion', 'entity',
+				'ai', 'agent', 'ai agent', 'structured output', 'knowledge extraction',
+				'database sync', 'database replication', 'postgresql', 'mysql', 'sqlite', 'sql', 'cdc', 'etl', 'master data',
+			],
 			resources: {
 				primaryDocumentation: [
 					{ url: 'https://entityenricher.ai/docs/integrations/n8n' },

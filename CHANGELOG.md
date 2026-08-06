@@ -1,10 +1,46 @@
 # Changelog
 
-## [Unreleased]
+## 3.0.0 (2026-08-06)
+
+### Changed — nodes-panel category and search aliases
+
+Per n8n's community-node verification review (v2.2.2), the codex category moves from `AI` (reserved for nodes wired via AI connection types; subcategories are forbidden for community nodes) to `Data & Storage` / `Development`. Discovery is search-driven, so the alias lists grow instead: AI terms (`ai`, `agent`, `structured output`, `knowledge extraction`, …) and database-sync terms (`database sync`, `postgresql`, `mysql`, `sqlite`, `cdc`, `etl`, …) on the main node, and the trigger node gains its first codex block (same categories, delta/webhook aliases). The node remains available as an AI Agent tool via `usableAsTool` — unchanged.
 
 ### ⚠ BREAKING — record-level `attempts` replaced by `retries`
 
 **List Records** items no longer carry `attempts` (total LLM call attempts); they carry **`retries`** instead — attempts beyond the first per prompt (`0` when every call succeeded first try), now computed server-side. Expressions reading `attempts` should read `retries` (or `prompt_count + retries` to reconstruct the old total). **Get Record** gains the same record-level `retries` field, plus a per-prompt `retries` next to the unchanged per-prompt `attempts`.
+
+### Added — Generate Schema "Language" option
+
+**Generate Schema** gains an optional **Language** field pinning the language the schema describes *itself* in — type names, property descriptions, expertise labels, enum value descriptions. When left empty, the language is inferred from the samples' property names, as before. Property names themselves always come from the input samples.
+
+### Changed
+
+- Regenerated API types from the backend OpenAPI schema (string `format`/`pattern` property attributes, language-discriminated schemas, unique-conflict reporting, `pk_strategy`, ordered properties).
+
+## 2.2.2 (2026-08-04)
+
+### Changed
+
+- Regenerated API types from the backend OpenAPI schema (record `attempts`/`output_channel` fields, SPA route list). No node behavior changes.
+
+## 2.2.1 (2026-08-04)
+
+### Fixed
+
+- Trigger webhook deregistration failures are now logged instead of being silently swallowed.
+
+## 2.2.0 (2026-08-03)
+
+### Changed
+
+- **Delta trigger registers per linked schema** — a database can aggregate several schemas and each drives its own downstream workflow, so the trigger now registers the `delta_available` webhook on its linked schema instead of on the database. The new optional **Schema (Multi-Schema Databases)** field picks which linked schema to follow; databases holding a single schema resolve it automatically, so existing workflows keep working untouched — only an ambiguous multi-schema database errors and asks for the field.
+
+### Fixed
+
+- n8n verification-portal compliance: credential icons added, themed light/dark node icons, raw errors wrapped in `NodeApiError`/`NodeOperationError`, typed connection literals, `usableAsTool` flags on both nodes, and the OAuth2 client secret field now uses the password type.
+
+## 2.1.0 (2026-07-29)
 
 ### Removed — Generate Schema "Strategy" parameter
 
@@ -18,6 +54,12 @@ The single-call (monolithic) schema-generation pipeline was retired server-side;
 ### ⚠ BREAKING — record output field `llm_provider_name` is now `model_composite_key`
 
 The field never held a provider name — it holds the model composite key (e.g. `anthropic::claude-sonnet-4-5`), so it is renamed to say what it is. Affects the output of **Get Record** and **List Records** (and any expression reading `llm_provider_name` from a record item). **To migrate:** update expressions to reference `model_composite_key`; the value is unchanged.
+
+### Changed
+
+- **Get Options returns a leaner model list** — the models array is roughly half its previous size. Two changes affect expressions reading it: **capability flags are now present only when true** (a model without `supports_vision` does not support vision — test truthiness, e.g. `{{ $json.supports_vision }}`, rather than comparing to `false`), and **null fields are omitted** rather than sent as `null`. Model entries now carry only picker-relevant fields; the per-model rate budgets (`tpm`/`rpm`), token limits (`max_input_tokens`/`max_output_tokens`), latency figures, extended benchmark scores, pricing variants, `deprecation_date`, `supported_reasoning_efforts` and embedding fields were removed — they were never surfaced by the node and remain available from the platform's model-management API. The node's own dropdowns, capability glyphs and benchmark badges are unaffected. Regenerated API types.
+
+## 2.0.0 (2026-07-27)
 
 ### ⚠ BREAKING — "Database" is now "Database Sync"
 
@@ -34,16 +76,19 @@ The feature was named as though Entity Enricher hosted a database for you. It do
 
 Unchanged: the `fetchDeltas` / `ackDeltas` operation values (already accurate), the webhook event values `delta_available` and `rejected_for_database_save`, and every REST path — only the node-facing names moved.
 
-### Changed
+### Added — Generate Schema operation
 
-- **Get Options returns a leaner model list** — the models array is roughly half its previous size. Two changes affect expressions reading it: **capability flags are now present only when true** (a model without `supports_vision` does not support vision — test truthiness, e.g. `{{ $json.supports_vision }}`, rather than comparing to `false`), and **null fields are omitted** rather than sent as `null`. Model entries now carry only picker-relevant fields; the per-model rate budgets (`tpm`/`rpm`), token limits (`max_input_tokens`/`max_output_tokens`), latency figures, extended benchmark scores, pricing variants, `deprecation_date`, `supported_reasoning_efforts` and embedding fields were removed — they were never surfaced by the node and remain available from the platform's model-management API. The node's own dropdowns, capability glyphs and benchmark badges are unaffected. Regenerated API types.
-
-- **Typed enrichment failure codes** — per-model results (and Batch Enrich per-entity results) now carry an `error_code` when they fail: `model_retired` (the provider retired the model, now auto-deactivated — reselect and retry), `rate_limited`, `context_length_exceeded`, or `provider_timeout`. The synchronous enrichment / schema-generation / sample-generation endpoints return matching HTTP statuses (422 for `model_retired` / `context_length_exceeded`, 429 for `rate_limited`, 504 for `provider_timeout`) instead of a blanket 502. Regenerated API types.
-
+New **Schema ▸ Generate Schema** operation: every input item is one sample of the same entity type, so the generated schema covers the union of their fields — a field missing or null in any sample becomes `nullable`, and distinct observed values seed the property examples. The generated schema is auto-saved to the organization. Parameters cover model (default `auto`), strategy, semantic IDs, commonality threshold, extra instructions, and timeout.
 
 ## 1.6.0 (2026-07-21)
 
+### Added
+
+- **Generate Sample operation** — the Schema resource gains **Generate Sample**: describe an entity type and get generated sample JSON object(s) to review and seed schema generation with.
+
 ### Changed
+
+- **Typed enrichment failure codes** — per-model results (and Batch Enrich per-entity results) now carry an `error_code` when they fail: `model_retired` (the provider retired the model, now auto-deactivated — reselect and retry), `rate_limited`, `context_length_exceeded`, or `provider_timeout`. The synchronous enrichment / schema-generation / sample-generation endpoints return matching HTTP statuses (422 for `model_retired` / `context_length_exceeded`, 429 for `rate_limited`, 504 for `provider_timeout`) instead of a blanket 502. Regenerated API types.
 
 - **Multi-schema databases** — a schema database can now be linked to several saved schemas (entity types shared between the schemas merge into the same tables, matched by database key). **List Databases** output rows replace the single `saved_schema_id`/`schema_content_hash` fields with a `schemas` array (`saved_schema_id`, `schema_name`, `schema_content_hash`, `linked_at` per linked schema). The `delta_available` webhook payload received by the **Entity Enricher Trigger** now carries `saved_schema_ids` (array); the legacy `saved_schema_id` key remains populated with the first linked schema for one release. **Fetch Database Deltas** responses add `schema_content_hashes` (per-schema version gates) alongside the deprecated single `schema_content_hash`, and delta batches may now include `kind: "schema"` DDL-migration rows (apply their `sql` like any other delta — they FIFO-precede the data rows that need them).
 - Regenerated API types from the backend OpenAPI schema.
