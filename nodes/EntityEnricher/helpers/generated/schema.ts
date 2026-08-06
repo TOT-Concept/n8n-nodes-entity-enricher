@@ -12267,6 +12267,11 @@ export type components = {
              * @default false
              */
             requires_key_language: boolean;
+            /**
+             * Suggested Key Language
+             * @description Default for key_language when requires_key_language: the language the schema itself is written in (generation request language), None when it is unknown. A suggestion only — publish still requires an explicit key_language
+             */
+            suggested_key_language?: string | null;
         };
         /**
          * SchemaPublishRequest
