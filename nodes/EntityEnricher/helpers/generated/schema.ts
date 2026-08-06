@@ -11,25 +11,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Serve Index */
-        get: operations["serve_index__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/{path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve Spa */
-        get: operations["serve_spa__path__get"];
+        /** No Frontend */
+        get: operations["no_frontend__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1578,6 +1561,32 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/database-sync/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim Database
+         * @description Mint the per-database credential for a registration assigned to this host.
+         *
+         *     The hijack guard is the point: a claim succeeds only for the *assigned*
+         *     host, and only when the database has no active credential (or one this host
+         *     minted earlier — re-claim = rotation). A live classic pairing is never
+         *     evicted by a claim; moving a database under a host is an explicit owner
+         *     action (revoke, then assign), not something automation may do silently.
+         */
+        post: operations["claim_database_api_database_sync_claim_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/database-sync/confirm/{user_code}": {
         parameters: {
             query?: never;
@@ -1632,6 +1641,23 @@ export type paths = {
         put?: never;
         /** Exchange Token */
         post: operations["exchange_token_api_database_sync_exchange_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/database-sync/host-exchange": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Host Exchange Token */
+        post: operations["host_exchange_token_api_database_sync_host_exchange_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2273,6 +2299,51 @@ export type paths = {
          */
         post: operations["test_all_global_keys_api_global_keys_test_all_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hosts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sync Hosts */
+        get: operations["list_sync_hosts_api_hosts_get"];
+        put?: never;
+        /**
+         * Create Sync Host
+         * @description Register a sync host — the one-time response carries the refresh token
+         *     for `ee-database host pair --server <url> --dsn <base-dsn> <token>`.
+         */
+        post: operations["create_sync_host_api_hosts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hosts/{host_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Sync Host
+         * @description Revoke a host and cascade to every credential it minted — revoking the
+         *     host means cutting the machine off, and the machine holds those per-database
+         *     refresh tokens. Classic pairings and host assignments are untouched (the
+         *     assignment survives, so a re-paired host resumes where this one stopped).
+         */
+        delete: operations["revoke_sync_host_api_hosts__host_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -5743,6 +5814,28 @@ export type components = {
              */
             total_fields: number;
         };
+        /**
+         * ConnectedHostRef
+         * @description Compact host reference for assignment-ladder responses.
+         */
+        ConnectedHostRef: {
+            /** Dialect */
+            dialect?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Is Connected
+             * @default false
+             */
+            is_connected: boolean;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /** Name */
+            name: string;
+        };
         /** ConsentDecisionRequest */
         ConsentDecisionRequest: {
             /** Approved */
@@ -6072,6 +6165,11 @@ export type components = {
              */
             created_at: string;
             /**
+             * Host Id
+             * @description Sync host that minted this credential via claim (null = classic pairing)
+             */
+            host_id?: string | null;
+            /**
              * Id
              * Format: uuid
              */
@@ -6102,6 +6200,10 @@ export type components = {
              * Format: uuid
              */
             organization_id: string;
+            /** @description Latest provisioning-rights self-check reported by the client on connect */
+            preflight?: components["schemas"]["DatabasePreflightReport"] | null;
+            /** Preflight At */
+            preflight_at?: string | null;
             /** Revoked At */
             revoked_at?: string | null;
             /**
@@ -6175,8 +6277,50 @@ export type components = {
              */
             model: string;
         };
+        /**
+         * DatabasePreflightReport
+         * @description Provisioning-rights self-check the client runs on its target database.
+         *
+         *     Sent over the WS after hello (CLI >= 1.3.0) and shown on the Sync client
+         *     card, so a missing right is visible before a publish queues deltas that
+         *     could never apply. Null booleans mean "not determinable on this dialect";
+         *     the check is advisory — apply errors remain the real safety net.
+         */
+        DatabasePreflightReport: {
+            /**
+             * Create Db
+             * @description Server-level right to create databases (CREATEDB / global CREATE)
+             */
+            create_db?: boolean | null;
+            /** Database */
+            database?: string | null;
+            /**
+             * Ddl
+             * @description Probe CREATE/DROP TABLE succeeded
+             */
+            ddl?: boolean | null;
+            /** Details */
+            details?: string[];
+            /**
+             * Dialect
+             * @default
+             */
+            dialect: string;
+            /**
+             * Dml
+             * @description Probe INSERT/DELETE succeeded
+             */
+            dml?: boolean | null;
+            /** User */
+            user?: string | null;
+        };
         /** DatabaseSync */
         DatabaseSync: {
+            /**
+             * Assigned Host Id
+             * @description Sync host that provisions this registration (null = unassigned)
+             */
+            assigned_host_id?: string | null;
             /**
              * Created At
              * Format: date-time
@@ -6360,9 +6504,16 @@ export type components = {
              * @default true
              */
             require_complete: boolean;
+            /**
+             * Target Host
+             * @description Sync host (id or name) that provisions this registration. Omitted: auto-assigned when exactly one eligible host is connected, else the registration is created unassigned (the response lists connected_hosts to pick from; assign later via PATCH).
+             */
+            target_host?: string | null;
         };
         /** DatabaseSyncCreateResponse */
         DatabaseSyncCreateResponse: {
+            /** @description Sync host this registration was assigned to (explicit target_host, or auto-assigned when exactly one eligible host was connected) — it claims, provisions and syncs the replica automatically */
+            assigned_host?: components["schemas"]["ConnectedHostRef"] | null;
             /**
              * Classification Job Id
              * @description LLM job proposing this schema's database-model flags (database_key, db_type, indexed, owned). Stream it via GET /api/llm/stream/{job_id}; review the result in the Model tab before publishing. None when nothing had to be classified or the pass could not start (see classification_skipped).
@@ -6373,6 +6524,11 @@ export type components = {
              * @description Why no classification job runs — 'up_to_date' (the ledger already covers every property), 'already_running', or a quota/credit reason. The link still succeeded: the deterministic key ladder stamped the schema, and the pass can be re-run anytime from the Model tab (POST /api/schema/saved/{id}/classify-database-model).
              */
             classification_skipped?: string | null;
+            /**
+             * Connected Hosts
+             * @description Connected sync hosts at creation time. Non-empty with a null assigned_host means several were eligible: relay the choice and assign via PATCH target_host
+             */
+            connected_hosts?: components["schemas"]["ConnectedHostRef"][];
             /**
              * Custody Warning
              * @description Set when purge_entity_state is enabled: delivered entity rows are deleted server-side, making the replica the ONLY complete copy — backups become the consumer's responsibility, snapshots turn partial, and unlinking loses the un-replicated window permanently
@@ -6554,6 +6710,11 @@ export type components = {
             purge_on_ack?: boolean | null;
             /** Require Complete */
             require_complete?: boolean | null;
+            /**
+             * Target Host
+             * @description Sync host (id or name) to assign. Present-with-null clears the assignment; absent leaves it untouched.
+             */
+            target_host?: string | null;
         };
         /**
          * DatabaseSyncValidationResult
@@ -7814,6 +7975,44 @@ export type components = {
             success: boolean;
             /** Suggestions */
             suggestions?: string[] | null;
+        };
+        /** HostClaimRequest */
+        HostClaimRequest: {
+            /**
+             * Database Id
+             * Format: uuid
+             * @description The assigned database sync to claim
+             */
+            database_id: string;
+        };
+        /**
+         * HostClaimResponse
+         * @description Claim result: the minted per-database credential plus what the host
+         *     needs to build the local profile and derive the target DSN.
+         */
+        HostClaimResponse: {
+            credential: components["schemas"]["DatabaseCredentialResponse"];
+            /** Database Id */
+            database_id: string;
+            /** Database Name */
+            database_name: string;
+            /** Dialect */
+            dialect: string;
+            /**
+             * Refresh Token
+             * @description JWT refresh token. The CLI stores it mode-600 in its per-database profile directory (e.g. ~/.config/ee-database/profiles/<database-id>/token).
+             */
+            refresh_token: string;
+            /**
+             * Server Url
+             * @description Base URL of the backend that minted the credential, in the same http(s) form as the install one-liners (e.g. https://entityenricher.ai) — pass it to `ee-database pair --server`; the CLI derives the ws(s) data plane.
+             */
+            server_url: string;
+            /**
+             * Suggested Database Name
+             * @description Snake_cased registration name — the conventional physical database name the host composes with its base DSN (locally overridable)
+             */
+            suggested_database_name: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -16537,6 +16736,109 @@ export type components = {
              */
             typical_objects?: string[] | null;
         };
+        /** SyncHostAccessTokenResponse */
+        SyncHostAccessTokenResponse: {
+            /** Access Token */
+            access_token: string;
+            /** Expires In */
+            expires_in: number;
+            /** Host Id */
+            host_id?: string | null;
+            /** Host Name */
+            host_name?: string | null;
+        };
+        /** SyncHostCreateRequest */
+        SyncHostCreateRequest: {
+            /**
+             * Name
+             * @description Display name, unique per org
+             */
+            name: string;
+        };
+        /**
+         * SyncHostCreateResponse
+         * @description One-time response on creation — the only chance to read the refresh token.
+         */
+        SyncHostCreateResponse: {
+            host: components["schemas"]["SyncHostResponse"];
+            /**
+             * Refresh Token
+             * @description JWT refresh token; the CLI stores it mode-600 in its host profile
+             */
+            refresh_token: string;
+            /**
+             * Server Url
+             * @description Base URL of the backend that minted the credential — pass to `ee-database host pair --server`
+             */
+            server_url: string;
+        };
+        /** SyncHostListResponse */
+        SyncHostListResponse: {
+            /** Hosts */
+            hosts: components["schemas"]["SyncHostResponse"][];
+        };
+        /**
+         * SyncHostResponse
+         * @description Host as shown in the Sync hosts management UI (no secret material).
+         */
+        SyncHostResponse: {
+            /**
+             * Assigned Databases
+             * @description Registrations currently assigned to this host
+             * @default 0
+             */
+            assigned_databases: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Dialect
+             * @description Dialect of the host's base DSN, reported in its hello frame
+             */
+            dialect?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Is Connected
+             * @description Whether the host's control-plane WS session is live (in-process registry)
+             * @default false
+             */
+            is_connected: boolean;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /** Last Seen Ip */
+            last_seen_ip?: string | null;
+            /** Last Seen User Agent */
+            last_seen_user_agent?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** @description Host-level provisioning-rights check (pair time / run startup) */
+            preflight?: components["schemas"]["DatabasePreflightReport"] | null;
+            /** Preflight At */
+            preflight_at?: string | null;
+            /** Revoked At */
+            revoked_at?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "revoked";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /**
          * TaskModelDefaults
          * @description Org-pinned default model per task type (composite keys, None = pick by score).
@@ -16929,6 +17231,7 @@ export type CleanupSpecInfo = components['schemas']['CleanupSpecInfo'];
 export type CommonTypeCompare = components['schemas']['CommonTypeCompare'];
 export type ConfigExport = components['schemas']['ConfigExport'];
 export type ConflictReport = components['schemas']['ConflictReport'];
+export type ConnectedHostRef = components['schemas']['ConnectedHostRef'];
 export type ConsentDecisionRequest = components['schemas']['ConsentDecisionRequest'];
 export type ConsentDecisionResponse = components['schemas']['ConsentDecisionResponse'];
 export type ConsentDetailsResponse = components['schemas']['ConsentDetailsResponse'];
@@ -16949,6 +17252,7 @@ export type DatabaseCredentialState = components['schemas']['DatabaseCredentialS
 export type DatabaseDeviceCodeConfirmRequest = components['schemas']['DatabaseDeviceCodeConfirmRequest'];
 export type DatabaseDevicePollResponse = components['schemas']['DatabaseDevicePollResponse'];
 export type DatabaseModelClassifyRequest = components['schemas']['DatabaseModelClassifyRequest'];
+export type DatabasePreflightReport = components['schemas']['DatabasePreflightReport'];
 export type DatabaseSync = components['schemas']['DatabaseSync'];
 export type DatabaseSyncChecksumResponse = components['schemas']['DatabaseSyncChecksumResponse'];
 export type DatabaseSyncCreateRequest = components['schemas']['DatabaseSyncCreateRequest'];
@@ -17004,6 +17308,8 @@ export type GeneratedJsonSchemaOutput = components['schemas']['GeneratedJsonSche
 export type GenerateSampleRequest = components['schemas']['GenerateSampleRequest'];
 export type GenerateSampleStreamResponse = components['schemas']['GenerateSampleStreamResponse'];
 export type GenerateSchemaResponse = components['schemas']['GenerateSchemaResponse'];
+export type HostClaimRequest = components['schemas']['HostClaimRequest'];
+export type HostClaimResponse = components['schemas']['HostClaimResponse'];
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
 export type ImportBenchmarkResultsRequest = components['schemas']['ImportBenchmarkResultsRequest'];
 export type ImportBenchmarkResultsResponse = components['schemas']['ImportBenchmarkResultsResponse'];
@@ -17187,6 +17493,11 @@ export type SubscriptionPlanWithLimits = components['schemas']['SubscriptionPlan
 export type SyncEnrichRequest = components['schemas']['SyncEnrichRequest'];
 export type SyncGenerateRequest = components['schemas']['SyncGenerateRequest'];
 export type SyncGenerateSampleRequest = components['schemas']['SyncGenerateSampleRequest'];
+export type SyncHostAccessTokenResponse = components['schemas']['SyncHostAccessTokenResponse'];
+export type SyncHostCreateRequest = components['schemas']['SyncHostCreateRequest'];
+export type SyncHostCreateResponse = components['schemas']['SyncHostCreateResponse'];
+export type SyncHostListResponse = components['schemas']['SyncHostListResponse'];
+export type SyncHostResponse = components['schemas']['SyncHostResponse'];
 export type TaskModelDefaults = components['schemas']['TaskModelDefaults'];
 export type TestConnectionResponse = components['schemas']['TestConnectionResponse'];
 export type TunnelAccessTokenResponse = components['schemas']['TunnelAccessTokenResponse'];
@@ -17207,7 +17518,7 @@ export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutRespon
 export type WebhookSecretResponse = components['schemas']['WebhookSecretResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
-    serve_index__get: {
+    no_frontend__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -17223,37 +17534,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    serve_spa__path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -20391,6 +20671,39 @@ export interface operations {
             };
         };
     };
+    claim_database_api_database_sync_claim_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HostClaimRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostClaimResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     confirm_device_code_api_database_sync_confirm__user_code__post: {
         parameters: {
             query?: {
@@ -20484,6 +20797,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DatabaseAccessTokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    host_exchange_token_api_database_sync_host_exchange_post: {
+        parameters: {
+            query: {
+                refresh_token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncHostAccessTokenResponse"];
                 };
             };
             /** @description Validation Error */
@@ -21835,6 +22179,115 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["KeyHealthCheckResponse"][];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sync_hosts_api_hosts_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncHostListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_sync_host_api_hosts_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncHostCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncHostCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_sync_host_api_hosts__host_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                host_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
