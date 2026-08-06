@@ -6215,6 +6215,11 @@ export type components = {
              */
             pending_deltas: number;
             /**
+             * Pk Strategy
+             * @default surrogate
+             */
+            pk_strategy: string;
+            /**
              * Projection Upgrade Pending
              * @description The shipped-shape ledger was written by an older schema→relational projection and the upgrade could not be applied automatically (it migrates replica data). Data deltas are paused until POST /api/databases/{id}/migrate-projection is confirmed
              * @default false
@@ -6241,6 +6246,12 @@ export type components = {
              * @description Schemas linked to this database (their union is what it syncs)
              */
             schemas?: components["schemas"]["LinkedSchemaRef"][];
+            /**
+             * Shape Shipped
+             * @description The replica shape has shipped (first snapshot or DDL delta — the shipped-shape ledger exists). Locks propagate_not_null AND pk_strategy: no DDL travels on those toggles, so changing them on a live replica would silently diverge from what the replica holds
+             * @default false
+             */
+            shape_shipped: boolean;
             /**
              * Snapshot Required
              * @description The replica must re-pull the .sql snapshot before data deltas resume (set on re-link — rows enriched while unlinked are only in the snapshot; cleared by a snapshot download)
@@ -6313,20 +6324,27 @@ export type components = {
              */
             page_limit: number;
             /**
+             * Pk Strategy
+             * @description Physical PRIMARY KEY shape (docs/ENTITY_LAYER.md → pk_strategy). 'surrogate' (default) — every projected table gets a synthetic `id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY` and the schema's database key becomes a composite UNIQUE + NOT NULL. ORM-friendly (Django/Rails/Prisma model one PK column); children reference `_owner_id` / `_source_id` / `_target_id` BIGINT FKs; database-key changes stay migratable after publication (children reference the immutable id). 'natural' — schema database keys are the PRIMARY KEY (today's shape, lean, one column less per table); database keys are FROZEN after first publication (re-keys would have to re-point every child, refused at publish). Decide at registration: locked once the replica shape has shipped — no DDL travels on the toggle. Mutable freely until first ship.
+             * @default surrogate
+             * @enum {string}
+             */
+            pk_strategy: "surrogate" | "natural";
+            /**
              * Propagate Not Null
-             * @description Emit NOT NULL on columns the schema declares always-present. Forces require_complete on: the constraint and the admission gate are one feature — without the gate the replica rejects the delta, aborts the transaction and stalls its own feed. Enabling this on a database that already has rows is a migration (existing NULLs abort it by name); disabling is a plain DROP NOT NULL
+             * @description Emit NOT NULL on columns the schema declares always-present. Forces require_complete on: the constraint and the admission gate are one feature — without the gate the replica rejects the delta, aborts the transaction and stalls its own feed. Decide it at registration: once the replica shape has shipped (first snapshot or DDL delta), the flag is locked — no DDL travels on a toggle, so a change would silently diverge from what the replica holds
              * @default false
              */
             propagate_not_null: boolean;
             /**
              * Propagate Unique
-             * @description Emit a UNIQUE index for every `unique_group` the schema declares (docs/ENTITY_LAYER.md → unique groups). Off by default because a unique constraint can refuse a row the entity layer considers valid, and a refused delta stalls this database's whole feed: opting in also arms the server-side duplicate check, so conflicts are refused at enrichment time instead of reaching your replica. Enabling it on a database that already holds duplicates is a migration that aborts by name with a count; turning it back off drops the constraint and resumes the feed
+             * @description Emit a UNIQUE index for every `unique_group` the schema declares (docs/ENTITY_LAYER.md → unique groups). Off by default because a unique constraint can refuse a row the entity layer considers valid, and a refused delta stalls this database's whole feed: opting in also arms the server-side duplicate check, so conflicts are refused at enrichment time instead of reaching your replica. Enabling it on a database that already holds duplicates is a migration that aborts by name with a count; turning it back off drops the constraint and resumes the feed. Mutually exclusive with purge_entity_state: the pre-check and the write-time probe both read the retained entity state, and a purged row is invisible to them — a colliding write would reach the replica's UNIQUE index and stall the feed
              * @default false
              */
             propagate_unique: boolean;
             /**
              * Purge Entity State
-             * @description Also delete entity rows once every database of the schema acknowledged their latest revision (data minimization — not GDPR erasure; records remain)
+             * @description Also delete entity rows once every database of the schema acknowledged their latest revision (data minimization — not GDPR erasure; records remain). The server stops being a source of truth: snapshots become partial, the convergence checksum goes blind, re-enrichments lose their merge base, and a paused link cannot backfill. Mutually exclusive with propagate_unique, whose duplicate checks read the state this deletes
              * @default false
              */
             purge_entity_state: boolean;
@@ -6524,6 +6542,8 @@ export type components = {
             on_incomplete_child?: ("reject_entity" | "skip_row") | null;
             /** Page Limit */
             page_limit?: number | null;
+            /** Pk Strategy */
+            pk_strategy?: ("surrogate" | "natural") | null;
             /** Propagate Not Null */
             propagate_not_null?: boolean | null;
             /** Propagate Unique */
@@ -9910,6 +9930,11 @@ export type components = {
              */
             database_key?: boolean | null;
             /**
+             * Database Key Reason
+             * @description Why this property was made a `database_key`, in the schema's own prose language — written by whatever stamped it (the link-time classification call, or the deterministic ladder). Review provenance only, never an input to any decision: it is stripped from every LLM prompt, ignored by the publish diff, and CLEARED the moment a human changes `database_key` by hand, which is exactly how the editor tells a proposal from your own choice. A set flag with no reason means a person set it.
+             */
+            database_key_reason?: string | null;
+            /**
              * Db Name
              * @description Physical identifier segment this property contributes to a consumer database (docs/ENTITY_LAYER.md → physical naming). None = use the property name verbatim, which is the case for almost every property. On an OBJECT it renames the flattening prefix of the whole subtree — so every property of that object, and of its descendants, carries the same shortened prefix; on a scalar or array it renames just that column / child table. Stamped automatically when a flattened path would exceed the 63-byte identifier limit PostgreSQL truncates at (MySQL rejects at 64), and editable under each property row in the Database Sync page's Model tab. Once stamped it is NEVER recomputed: deleting the long property that forced it must not rename the columns its siblings already have.
              */
@@ -9979,10 +10004,20 @@ export type components = {
              */
             nullable?: boolean | null;
             /**
+             * Ordered
+             * @description Array-only. True = the order of items is part of the answer (steps, rankings, timelines). Projected child/junction rows keep their `_ordinal` position column and are identified by position — a reordered re-enrichment rewrites the moved rows. Absent/false (default) = set semantics: item identity is the value itself (or the item's declared key for object arrays, or a `value_key` token for multilingual scalar arrays); duplicates collapse (keep-first), nulls are skipped, and a reordered re-enrichment becomes a no-op — but the LLM's original answer order is NOT preserved in the projected replica (it survives in `records` and in the entity layer). The shuffle test decides: if shuffling the items would lose information, mark it ordered. Refused on non-array properties (docs/ENTITY_LAYER.md → ordered arrays).
+             */
+            ordered?: boolean | null;
+            /**
              * Owned
              * @description True = this relationship property (array of entities, or 1-1 $ref / promoted inline object) OWNS its target: the target is a weak entity whose identity is scoped by this containing object (docs/ENTITY_LAYER.md → owned entities). Owned targets project as a child table with owner FK columns instead of a junction; an owned type has exactly one owning site and is referenced nowhere else. Absent/false = shared entity (default).
              */
             owned?: boolean | null;
+            /**
+             * Owned Reason
+             * @description Why this relationship's target is owned by this parent — or why it is SHARED — in the schema's own prose language. Same provenance contract as `database_key_reason`, but unlike the other two it is written on BOTH answers: `owned` decides whether rows converge across parents, so the reviewer needs the argument whichever way it went, and a `owned` site reached by the deterministic default is exactly the one whose reasoning is otherwise invisible. Every automatic path writes it — the classification call, the multi-site rule, the ownership repair — so a relationship carrying none was decided by hand.
+             */
+            owned_reason?: string | null;
             /**
              * Pattern
              * @description Regex the value of a string property must match (JSON Schema 'pattern'), for machine-formatted strings no named format covers — emails, codes, identifiers. Enforced by the dynamic output model (StringConstraints), so a non-matching value is a validation error the model retries on. Proposed by the flags step at schema generation and dropped unless every observed sample value matches it. Never for natural-language text. Mutually exclusive with format and with multilingual.
@@ -10026,6 +10061,11 @@ export type components = {
              */
             semantic_threshold?: number | null;
             /**
+             * Shared
+             * @description The link-time classification's ownership VERDICT for this relationship site, recorded verbatim and in both directions: true = one target row serves every parent, false = the target belongs to the parent it was enriched under. Set on every relationship a classification pass touches, so a later pass starts from the answer already on record instead of resetting to the default — which used to discard a hand-curated site on any full re-run. `owned` remains the EFFECTIVE flag the projection and write path read (it is what the deterministic rules and the repair pass conclude); this is what was decided, paired with `owned_reason` saying why. Both are cleared together when a human changes the flag, so the pair never contradicts `owned`. null = no pass has judged this site.
+             */
+            shared?: boolean | null;
+            /**
              * Type
              * @description JSON Schema type: string, number, integer, boolean, array, object
              */
@@ -10035,6 +10075,11 @@ export type components = {
              * @description Label declaring that this property's value identifies AT MOST ONE object of its type. Properties of one object sharing a label form a single UNIQUE constraint over their columns together (first_name + last_name identify jointly); a label used once is a one-column unique. An object may carry several independent labels — three registry identifiers are three constraints, not one composite. This is why the flag is a label and not a boolean, and why `is_key` cannot stand in for it: the default-key ladder already reads N is_key properties as ONE composite key (schema_validation._pick_default_keys). Only materialized on databases that opted into propagate_unique — the consumer owns whether a constraint may stall their feed. Every member must be a non-nullable scalar (NULLs are distinct in SQL, so a nullable member silently disables the constraint). Stripped from every LLM prompt; curated in the Database Sync page's Model tab.
              */
             unique_group?: string | null;
+            /**
+             * Unique Reason
+             * @description Why this property carries its `unique_group`, in the schema's own prose language. Same provenance contract as `database_key_reason` — and the one that matters most: a wrong UNIQUE makes the consumer's database refuse a row and stops their whole feed, so the classification call must justify the constraint or it is not proposed at all.
+             */
+            unique_reason?: string | null;
         };
         /**
          * PropertySchema
@@ -10051,6 +10096,11 @@ export type components = {
              * @description True = this property is part of its containing object's Database key: the upsert conflict target and DDL unique index shared by all schema databases (docs/ENTITY_LAYER.md). Proposed by the flags step at schema generation and finalized by the stamping ladder (semantic_id → Id-like field → natural keys, which also backfills legacy schemas at link time); must be scalar (multilingual allowed — projects a '{prop}_key' companion column); required at write time. Stripped from every LLM prompt.
              */
             database_key?: boolean | null;
+            /**
+             * Database Key Reason
+             * @description Why this property was made a `database_key`, in the schema's own prose language — written by whatever stamped it (the link-time classification call, or the deterministic ladder). Review provenance only, never an input to any decision: it is stripped from every LLM prompt, ignored by the publish diff, and CLEARED the moment a human changes `database_key` by hand, which is exactly how the editor tells a proposal from your own choice. A set flag with no reason means a person set it.
+             */
+            database_key_reason?: string | null;
             /**
              * Db Name
              * @description Physical identifier segment this property contributes to a consumer database (docs/ENTITY_LAYER.md → physical naming). None = use the property name verbatim, which is the case for almost every property. On an OBJECT it renames the flattening prefix of the whole subtree — so every property of that object, and of its descendants, carries the same shortened prefix; on a scalar or array it renames just that column / child table. Stamped automatically when a flattened path would exceed the 63-byte identifier limit PostgreSQL truncates at (MySQL rejects at 64), and editable under each property row in the Database Sync page's Model tab. Once stamped it is NEVER recomputed: deleting the long property that forced it must not rename the columns its siblings already have.
@@ -10121,10 +10171,20 @@ export type components = {
              */
             nullable?: boolean | null;
             /**
+             * Ordered
+             * @description Array-only. True = the order of items is part of the answer (steps, rankings, timelines). Projected child/junction rows keep their `_ordinal` position column and are identified by position — a reordered re-enrichment rewrites the moved rows. Absent/false (default) = set semantics: item identity is the value itself (or the item's declared key for object arrays, or a `value_key` token for multilingual scalar arrays); duplicates collapse (keep-first), nulls are skipped, and a reordered re-enrichment becomes a no-op — but the LLM's original answer order is NOT preserved in the projected replica (it survives in `records` and in the entity layer). The shuffle test decides: if shuffling the items would lose information, mark it ordered. Refused on non-array properties (docs/ENTITY_LAYER.md → ordered arrays).
+             */
+            ordered?: boolean | null;
+            /**
              * Owned
              * @description True = this relationship property (array of entities, or 1-1 $ref / promoted inline object) OWNS its target: the target is a weak entity whose identity is scoped by this containing object (docs/ENTITY_LAYER.md → owned entities). Owned targets project as a child table with owner FK columns instead of a junction; an owned type has exactly one owning site and is referenced nowhere else. Absent/false = shared entity (default).
              */
             owned?: boolean | null;
+            /**
+             * Owned Reason
+             * @description Why this relationship's target is owned by this parent — or why it is SHARED — in the schema's own prose language. Same provenance contract as `database_key_reason`, but unlike the other two it is written on BOTH answers: `owned` decides whether rows converge across parents, so the reviewer needs the argument whichever way it went, and a `owned` site reached by the deterministic default is exactly the one whose reasoning is otherwise invisible. Every automatic path writes it — the classification call, the multi-site rule, the ownership repair — so a relationship carrying none was decided by hand.
+             */
+            owned_reason?: string | null;
             /**
              * Pattern
              * @description Regex the value of a string property must match (JSON Schema 'pattern'), for machine-formatted strings no named format covers — emails, codes, identifiers. Enforced by the dynamic output model (StringConstraints), so a non-matching value is a validation error the model retries on. Proposed by the flags step at schema generation and dropped unless every observed sample value matches it. Never for natural-language text. Mutually exclusive with format and with multilingual.
@@ -10168,6 +10228,11 @@ export type components = {
              */
             semantic_threshold?: number | null;
             /**
+             * Shared
+             * @description The link-time classification's ownership VERDICT for this relationship site, recorded verbatim and in both directions: true = one target row serves every parent, false = the target belongs to the parent it was enriched under. Set on every relationship a classification pass touches, so a later pass starts from the answer already on record instead of resetting to the default — which used to discard a hand-curated site on any full re-run. `owned` remains the EFFECTIVE flag the projection and write path read (it is what the deterministic rules and the repair pass conclude); this is what was decided, paired with `owned_reason` saying why. Both are cleared together when a human changes the flag, so the pair never contradicts `owned`. null = no pass has judged this site.
+             */
+            shared?: boolean | null;
+            /**
              * Type
              * @description JSON Schema type: string, number, integer, boolean, array, object
              */
@@ -10177,6 +10242,11 @@ export type components = {
              * @description Label declaring that this property's value identifies AT MOST ONE object of its type. Properties of one object sharing a label form a single UNIQUE constraint over their columns together (first_name + last_name identify jointly); a label used once is a one-column unique. An object may carry several independent labels — three registry identifiers are three constraints, not one composite. This is why the flag is a label and not a boolean, and why `is_key` cannot stand in for it: the default-key ladder already reads N is_key properties as ONE composite key (schema_validation._pick_default_keys). Only materialized on databases that opted into propagate_unique — the consumer owns whether a constraint may stall their feed. Every member must be a non-nullable scalar (NULLs are distinct in SQL, so a nullable member silently disables the constraint). Stripped from every LLM prompt; curated in the Database Sync page's Model tab.
              */
             unique_group?: string | null;
+            /**
+             * Unique Reason
+             * @description Why this property carries its `unique_group`, in the schema's own prose language. Same provenance contract as `database_key_reason` — and the one that matters most: a wrong UNIQUE makes the consumer's database refuse a row and stops their whole feed, so the classification call must justify the constraint or it is not proposed at all.
+             */
+            unique_reason?: string | null;
         };
         /**
          * ProviderChange
@@ -12472,6 +12542,12 @@ export type components = {
          */
         SSEArbitrationCompleted: {
             /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
              * Completed Models
              * @default 0
              */
@@ -12500,6 +12576,12 @@ export type components = {
              * @constant
              */
             event: "arbitration_completed";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Fallback To Rule Based
              * @default false
@@ -12534,12 +12616,23 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
             /** Success */
             success: boolean;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -12553,6 +12646,12 @@ export type components = {
         SSEArbitrationStarted: {
             /** Arbitration Model */
             arbitration_model: string;
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -12573,6 +12672,12 @@ export type components = {
              * @constant
              */
             event: "arbitration_started";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -12598,10 +12703,21 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -12618,6 +12734,12 @@ export type components = {
          *     aborts the job with error_code='incoherent_attachments' in the terminal payload.
          */
         SSEAttachmentCoherence: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -12641,6 +12763,12 @@ export type components = {
              * @description Odd-one-out files dropped from generation
              */
             excluded_attachments?: components["schemas"]["SSEAttachmentFile"][];
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -12683,10 +12811,21 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -12714,7 +12853,11 @@ export type components = {
          * @description Emitted when the entire batch enrichment job finishes.
          */
         SSEBatchCompleted: {
-            /** Completed Entities */
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
             completed_entities: number;
             /**
              * Completed Models
@@ -12734,7 +12877,11 @@ export type components = {
              * @constant
              */
             event: "batch_completed";
-            /** Failed Entities */
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
             failed_entities: number;
             /**
              * Is Paused
@@ -12760,7 +12907,11 @@ export type components = {
             max_attempts: number;
             /** Running Models */
             running_models?: string[];
-            /** Skipped Entities */
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
             skipped_entities: number;
             /**
              * Status
@@ -12772,8 +12923,11 @@ export type components = {
              * @description Set when skipped_entities > 0 because quota/credit ran out mid-batch ('prompt_limit_reached' / 'insufficient_credits'); absent for a plain cancellation or a batch that ran to completion.
              */
             stopped_early_reason?: string | null;
-            /** Total Entities */
-            total_entities: number;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -12783,8 +12937,17 @@ export type components = {
         /**
          * SSEBatchStarted
          * @description Emitted when a batch enrichment job begins.
+         *
+         *     total_entities (and the other entity counters) come from the base job
+         *     state — always populated on batch jobs.
          */
         SSEBatchStarted: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -12803,6 +12966,12 @@ export type components = {
              * @constant
              */
             event: "batch_started";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -12828,12 +12997,21 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /** Total Entities */
-            total_entities: number;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -12847,6 +13025,12 @@ export type components = {
         SSEClassificationCompleted: {
             /** @description Classification result (None if failed) */
             classification?: components["schemas"]["ClassificationContext"] | null;
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -12873,6 +13057,12 @@ export type components = {
              */
             event: "classification_completed";
             /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
              * Is Paused
              * @default false
              */
@@ -12902,12 +13092,23 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
             /** Success */
             success: boolean;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -12920,6 +13121,12 @@ export type components = {
          */
         SSEClassificationMismatchPause: {
             classification: components["schemas"]["ClassificationContext"];
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -12938,6 +13145,12 @@ export type components = {
              * @constant
              */
             event: "classification_mismatch_pause";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -12963,12 +13176,23 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
             /** Timeout Seconds */
             timeout_seconds: number;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -12980,6 +13204,12 @@ export type components = {
          * @description Emitted when pre-flight classification begins.
          */
         SSEClassificationStarted: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -13004,6 +13234,12 @@ export type components = {
              */
             event: "classification_started";
             /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
              * Is Paused
              * @default false
              */
@@ -13033,10 +13269,21 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -13050,6 +13297,12 @@ export type components = {
         SSEConflictsDetected: {
             /** Agreed Fields */
             agreed_fields: number;
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -13070,6 +13323,12 @@ export type components = {
              * @constant
              */
             event: "conflicts_detected";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -13095,12 +13354,214 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /** Total Fields */
             total_fields: number;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
+         * SSEDatabaseRejected
+         * @description Emitted when the admission gate refused a run's final result: the
+         *     enrichment succeeded but nothing reached the entity layer or any linked
+         *     database. `database.reason` / `database.missing_fields` say why.
+         */
+        SSEDatabaseRejected: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            database: components["schemas"]["DatabaseSyncOutcome"];
+            /**
+             * Entity Index
+             * @description Entity index (batch only)
+             */
+            entity_index?: number | null;
+            /**
+             * Event
+             * @default database_rejected
+             * @constant
+             */
+            event: "database_rejected";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Last Error Summary */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /**
+             * Record Id
+             * @description Record whose output was refused
+             */
+            record_id: string;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
+         * SSEDatabaseSaved
+         * @description Emitted when a run's final result was admitted into the entity layer
+         *     (single-model record or fused record — the one `record_id` points to).
+         *
+         *     `database.status` distinguishes a whole write ('saved') from a partial one
+         *     ('partial': the entity landed but some rows were dropped and nothing
+         *     re-sends them) — treat partial as a warning, not a success.
+         */
+        SSEDatabaseSaved: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            database: components["schemas"]["DatabaseSyncOutcome"];
+            /**
+             * Entity Index
+             * @description Entity index (batch only)
+             */
+            entity_index?: number | null;
+            /**
+             * Event
+             * @default database_saved
+             * @constant
+             */
+            event: "database_saved";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Last Error Summary */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /**
+             * Record Id
+             * @description Record whose output the entity layer admitted
+             */
+            record_id: string;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -13112,6 +13573,12 @@ export type components = {
          * @description Emitted when processing finishes for a single entity in a batch.
          */
         SSEEntityCompleted: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -13136,6 +13603,12 @@ export type components = {
              * @constant
              */
             event: "entity_completed";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -13166,6 +13639,12 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
@@ -13177,6 +13656,11 @@ export type components = {
              * @default 0
              */
             total_cost_usd: number;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -13201,6 +13685,12 @@ export type components = {
              */
             code: "cancelled" | "prompt_limit_reached" | "insufficient_credits";
             /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
              * Completed Models
              * @default 0
              */
@@ -13222,6 +13712,12 @@ export type components = {
              * @constant
              */
             event: "entity_skipped";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -13247,10 +13743,21 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -13262,6 +13769,12 @@ export type components = {
          * @description Emitted when processing begins for a single entity in a batch.
          */
         SSEEntityStarted: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -13285,6 +13798,12 @@ export type components = {
              */
             event: "entity_started";
             /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
              * Is Paused
              * @default false
              */
@@ -13309,10 +13828,21 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -13324,6 +13854,12 @@ export type components = {
          * @description Error event within a job.
          */
         SSEError: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -13345,6 +13881,12 @@ export type components = {
              */
             event: "error";
             /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
              * Is Paused
              * @default false
              */
@@ -13369,10 +13911,21 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -13384,6 +13937,12 @@ export type components = {
          * @description Emitted when one expertise domain finishes within a model's run.
          */
         SSEExpertiseCompleted: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /** Completed Expertises */
             completed_expertises: number;
             /**
@@ -13424,6 +13983,12 @@ export type components = {
             expertise_result?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /** Input Tokens */
             input_tokens?: number | null;
             /**
@@ -13464,12 +14029,23 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
             /** Success */
             success: boolean;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /** Total Expertises */
             total_expertises: number;
             /**
@@ -13483,6 +14059,12 @@ export type components = {
          * @description Emitted when fusion finishes. Contains the full FusionResponse fields flat.
          */
         SSEFusionCompleted: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -13513,6 +14095,12 @@ export type components = {
              * @constant
              */
             event: "fusion_completed";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /** Input Tokens */
             input_tokens?: number | null;
             /**
@@ -13553,12 +14141,23 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
             /** Success */
             success: boolean;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -13574,6 +14173,12 @@ export type components = {
         SSEFusionStarted: {
             /** Arbitration Model */
             arbitration_model?: string | null;
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -13598,6 +14203,12 @@ export type components = {
              */
             event: "fusion_started";
             /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
              * Is Paused
              * @default false
              */
@@ -13622,6 +14233,12 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Source Record Ids
              * @description IDs of records being fused
              */
@@ -13631,6 +14248,11 @@ export type components = {
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -13642,6 +14264,12 @@ export type components = {
          * @description Terminal event: job was cancelled.
          */
         SSEJobCancelled: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -13660,6 +14288,12 @@ export type components = {
              * @constant
              */
             event: "cancelled";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -13685,14 +14319,27 @@ export type components = {
             /** Result */
             result?: {
                 [key: string]: unknown;
-            }[] | null;
+            }[] | {
+                [key: string]: unknown;
+            } | null;
             /** Running Models */
             running_models?: string[];
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -13704,6 +14351,12 @@ export type components = {
          * @description Terminal event: job completed successfully.
          */
         SSEJobCompleted: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -13722,6 +14375,12 @@ export type components = {
              * @constant
              */
             event: "completed";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -13746,18 +14405,31 @@ export type components = {
             max_attempts: number;
             /**
              * Result
-             * @description Accumulated results (if any)
+             * @description Accumulated results (if any). Batch jobs store their terminal summary here: entity/database-outcome counts plus a compact per-entity list with record IDs (see BatchJobResult).
              */
             result?: {
                 [key: string]: unknown;
-            }[] | null;
+            }[] | {
+                [key: string]: unknown;
+            } | null;
             /** Running Models */
             running_models?: string[];
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -13769,6 +14441,12 @@ export type components = {
          * @description Terminal event: job failed.
          */
         SSEJobFailed: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -13787,6 +14465,12 @@ export type components = {
              * @constant
              */
             event: "failed";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -13812,14 +14496,27 @@ export type components = {
             /** Result */
             result?: {
                 [key: string]: unknown;
-            }[] | null;
+            }[] | {
+                [key: string]: unknown;
+            } | null;
             /** Running Models */
             running_models?: string[];
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -13836,6 +14533,12 @@ export type components = {
          *     show a badge and API clients can log which model actually ran.
          */
         SSEModelAutoSelected: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -13854,6 +14557,12 @@ export type components = {
              * @constant
              */
             event: "model_auto_selected";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -13903,6 +14612,12 @@ export type components = {
             /** Scenario Names */
             scenario_names?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Source
              * @description Scoring-source provenance: 'organization' or 'global' (None for an unscored pinned model)
              */
@@ -13917,6 +14632,11 @@ export type components = {
              * @description Task the model was selected for: enrichment / schema_generation / sample_generation
              */
             task_type: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -13934,6 +14654,12 @@ export type components = {
              * @default false
              */
             cancelled: boolean;
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -13963,6 +14689,12 @@ export type components = {
             event: "model_completed";
             /** Expertise Breakdown */
             expertise_breakdown?: components["schemas"]["ExpertiseBreakdown"][] | null;
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /** Input Tokens */
             input_tokens?: number | null;
             /**
@@ -14018,12 +14750,23 @@ export type components = {
              */
             scoreable?: boolean | null;
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
             /** Success */
             success: boolean;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -14035,6 +14778,12 @@ export type components = {
          * @description Emitted when a model starts processing.
          */
         SSEModelStarted: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -14058,6 +14807,12 @@ export type components = {
              * @constant
              */
             event: "model_started";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -14088,10 +14843,21 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -14108,6 +14874,12 @@ export type components = {
          *     the planner may pause again or proceed to generate.
          */
         SSESampleClarificationPause: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -14131,6 +14903,12 @@ export type components = {
              * @constant
              */
             event: "sample_clarification_pause";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -14164,6 +14942,12 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Source Mode
              * @description transcribe_data | structure_only | describe_subject
              */
@@ -14175,6 +14959,11 @@ export type components = {
             status: string;
             /** Timeout Seconds */
             timeout_seconds: number;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -14195,6 +14984,12 @@ export type components = {
              */
             completed: number;
             /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
              * Completed Models
              * @default 0
              */
@@ -14212,6 +15007,12 @@ export type components = {
              * @constant
              */
             event: "sample_instance_progress";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -14237,6 +15038,12 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
@@ -14246,6 +15053,11 @@ export type components = {
              * @description Total samples requested for this job
              */
             total: number;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -14265,6 +15077,12 @@ export type components = {
          */
         SSESampleInstanceRoster: {
             /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
              * Completed Models
              * @default 0
              */
@@ -14282,6 +15100,12 @@ export type components = {
              * @constant
              */
             event: "sample_instance_roster";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * First Instance
              * @description Identity of the sample that already ran
@@ -14317,6 +15141,12 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
@@ -14326,6 +15156,11 @@ export type components = {
              * @description Total samples requested for this job
              */
             total: number;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -14395,6 +15230,12 @@ export type components = {
          */
         SSEScoringCompleted: {
             /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
              * Completed Models
              * @default 0
              */
@@ -14412,6 +15253,12 @@ export type components = {
              * @constant
              */
             event: "scoring_completed";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -14442,6 +15289,12 @@ export type components = {
              */
             scored: number;
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
@@ -14451,6 +15304,11 @@ export type components = {
              * @description Results that were scoreable
              */
             total: number;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -14463,6 +15321,12 @@ export type components = {
          *     exact/normalized matching only.
          */
         SSEScoringDegraded: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -14481,6 +15345,12 @@ export type components = {
              * @constant
              */
             event: "scoring_degraded";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -14511,10 +15381,21 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -14527,6 +15408,12 @@ export type components = {
          *     The generation results are saved — the standalone Score action can retry.
          */
         SSEScoringFailed: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -14547,6 +15434,12 @@ export type components = {
              * @constant
              */
             event: "scoring_failed";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -14572,10 +15465,21 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -14588,6 +15492,12 @@ export type components = {
          *     mean quality so the run modal can badge rows as they are scored.
          */
         SSEScoringProgress: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -14612,6 +15522,12 @@ export type components = {
              * @constant
              */
             event: "scoring_progress";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /** Hallucination Rate */
             hallucination_rate?: number | null;
             /**
@@ -14654,6 +15570,12 @@ export type components = {
              */
             scored: number;
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
@@ -14670,6 +15592,11 @@ export type components = {
              */
             total: number;
             /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
+            /**
              * Total Models
              * @default 0
              */
@@ -14683,6 +15610,12 @@ export type components = {
          *     carries the exact final counts.
          */
         SSEScoringStarted: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -14702,6 +15635,12 @@ export type components = {
              */
             event: "scoring_started";
             /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
              * Is Paused
              * @default false
              */
@@ -14726,10 +15665,21 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -14746,6 +15696,12 @@ export type components = {
          * @description Emitted when scoring runs against a reference that is not verified.
          */
         SSEScoringUnverifiedReference: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -14765,6 +15721,12 @@ export type components = {
              */
             event: "scoring_unverified_reference";
             /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
              * Is Paused
              * @default false
              */
@@ -14789,10 +15751,21 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -14808,6 +15781,12 @@ export type components = {
          *     so users aren't surprised when auto picks a costlier strategy.
          */
         SSEStrategySelected: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
             /**
              * Completed Models
              * @default 0
@@ -14831,6 +15810,12 @@ export type components = {
              * @constant
              */
             event: "strategy_selected";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
             /**
              * Is Paused
              * @default false
@@ -14873,6 +15858,12 @@ export type components = {
                 [key: string]: number;
             } | null;
             /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
@@ -14882,6 +15873,11 @@ export type components = {
              * @description The concrete strategy that will run
              */
             strategy: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
             /**
              * Total Models
              * @default 0
@@ -16151,6 +17147,8 @@ export type SseClassificationCompleted = components['schemas']['SSEClassificatio
 export type SseClassificationMismatchPause = components['schemas']['SSEClassificationMismatchPause'];
 export type SseClassificationStarted = components['schemas']['SSEClassificationStarted'];
 export type SseConflictsDetected = components['schemas']['SSEConflictsDetected'];
+export type SseDatabaseRejected = components['schemas']['SSEDatabaseRejected'];
+export type SseDatabaseSaved = components['schemas']['SSEDatabaseSaved'];
 export type SseEntityCompleted = components['schemas']['SSEEntityCompleted'];
 export type SseEntitySkipped = components['schemas']['SSEEntitySkipped'];
 export type SseEntityStarted = components['schemas']['SSEEntityStarted'];
@@ -20942,7 +21940,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
+                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
                 };
             };
         };
