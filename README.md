@@ -29,7 +29,15 @@ pnpm install n8n-nodes-entity-enricher
 
 ### Credential Setup — API Key (recommended for service-to-service)
 
-1. In n8n, go to **Credentials > New Credential**
+First get an API key from Entity Enricher (organization owner role required):
+
+1. In [Entity Enricher](https://entityenricher.ai), go to **API Keys → App Access Keys**
+2. Click **Create Access Key**, name it (e.g. *n8n*), and pick a role — **operator** is enough to run enrichments and read records, **editor** also manages schemas — and an expiration
+3. Copy the generated `ent_…` key immediately — it is shown only once
+
+Then create the credential in n8n:
+
+1. Go to **Credentials > New Credential**
 2. Search for **Entity Enricher API**
 3. Enter your API key (format: `ent_XXXXXXXXXXXX`)
 4. Set the Base URL (default: `https://entityenricher.ai`)

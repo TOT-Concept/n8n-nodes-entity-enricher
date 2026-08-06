@@ -2316,8 +2316,8 @@ export type paths = {
         put?: never;
         /**
          * Create Sync Host
-         * @description Register a sync host — the one-time response carries the refresh token
-         *     for `ee-database host pair --server <url> --dsn <base-dsn> <token>`.
+         * @description Register a sync host — the one-time response carries the opaque pairing
+         *     key for `ee-database host pair --server <url> --dsn <base-dsn> <key>`.
          */
         post: operations["create_sync_host_api_hosts_post"];
         delete?: never;
@@ -16757,13 +16757,13 @@ export type components = {
         };
         /**
          * SyncHostCreateResponse
-         * @description One-time response on creation — the only chance to read the refresh token.
+         * @description One-time response on creation — the only chance to read the pairing key.
          */
         SyncHostCreateResponse: {
             host: components["schemas"]["SyncHostResponse"];
             /**
              * Refresh Token
-             * @description JWT refresh token; the CLI stores it mode-600 in its host profile
+             * @description Opaque pairing key (`eeh_…`), revoke-only; the CLI stores it mode-600 in its host profile
              */
             refresh_token: string;
             /**
