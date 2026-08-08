@@ -1533,7 +1533,9 @@ export type paths = {
         };
         /**
          * Get Prompt History
-         * @description Get custom prompt execution history.
+         * @description Get custom prompt execution history for the caller's organization.
+         *
+         *     Admins see cross-org history; other roles are scoped to `user.organization_id`.
          */
         get: operations["get_prompt_history_api_custom_prompt_history_get"];
         put?: never;
@@ -2977,7 +2979,9 @@ export type paths = {
          * Bulk Delete Preview
          * @description Preview the impact of deleting providers.
          *
-         *     Returns organization API keys that would be cascade-deleted.
+         *     Returns organization API keys that would be cascade-deleted. Non-admin
+         *     owners only see their own org's keys (plus global keys) — the response
+         *     must never enumerate other tenants' key names or org names.
          */
         post: operations["bulk_delete_preview_api_providers_bulk_delete_preview_post"];
         delete?: never;
@@ -6675,6 +6679,13 @@ export type components = {
              * @default 0
              */
             entity_count: number;
+            /**
+             * Entity Keys
+             * @description Root row's identity as stored: physical database-key column name → stored value (the semantic-id column for sid-keyed schemas, natural key values otherwise; multilingual keys contribute their '{prop}_key' token column). Correlate by THIS, never by input text — key text is an ordinary output field the model may canonicalize (fix a misspelling, drop a redundant disambiguator), so the stored value can differ from what the caller sent. Present only when saved=true
+             */
+            entity_keys?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Key Collisions
              * @description List items that resolved to an identity an earlier sibling already claimed; only the first was written (no silent last-write-wins row, no duplicate link rows)
