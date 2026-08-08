@@ -11,25 +11,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Serve Index */
-        get: operations["serve_index__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/{path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve Spa */
-        get: operations["serve_spa__path__get"];
+        /** No Frontend */
+        get: operations["no_frontend__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6401,6 +6384,11 @@ export type components = {
             /** Page Limit */
             page_limit: number;
             /**
+             * Pattern Index Localized Keys
+             * @default false
+             */
+            pattern_index_localized_keys: boolean;
+            /**
              * Pending Deltas
              * @default 0
              */
@@ -6515,8 +6503,14 @@ export type components = {
              */
             page_limit: number;
             /**
+             * Pattern Index Localized Keys
+             * @description Emit a per-language pattern-match companion index on every LOCALIZED column of the `key` class (identity/label columns already indexed at every tier). The extra index is `((lower(col->>'lang')) text_pattern_ops)` — a stock btree, no extension needed — which answers left-anchored `LIKE 'foo%'` regardless of the database collation. Autocomplete stays case-insensitive by lowering both sides in the query: `WHERE lower(col->>'lang') LIKE lower('litt%')`. Off by default because every extra index is paid on every write, and only the consumer's list-screen search box says these indexes earn their cost. Widening queues CREATE INDEX, narrowing queues DROP INDEX — like index_scalars, an ordinary index-set change
+             * @default false
+             */
+            pattern_index_localized_keys: boolean;
+            /**
              * Pk Strategy
-             * @description Physical PRIMARY KEY shape (docs/ENTITY_LAYER.md → pk_strategy). 'surrogate' (default) — every projected table gets a synthetic `id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY` and the schema's database key becomes a composite UNIQUE + NOT NULL. ORM-friendly (Django/Rails/Prisma model one PK column); children reference `_owner_id` / `_source_id` / `_target_id` BIGINT FKs; database-key changes stay migratable after publication (children reference the immutable id). 'natural' — schema database keys are the PRIMARY KEY (today's shape, lean, one column less per table); database keys are FROZEN after first publication (re-keys would have to re-point every child, refused at publish). Decide at registration: locked once the replica shape has shipped — no DDL travels on the toggle. Mutable freely until first ship.
+             * @description Physical PRIMARY KEY shape (docs/ENTITY_LAYER.md → pk_strategy). 'surrogate' (default) — every projected table gets a synthetic `_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY` (underscored so a schema property literally named `id` does not collide) and the schema's database key becomes a composite UNIQUE + NOT NULL. ORM-friendly (Django/Rails/Prisma model one PK column); children reference `_owner_id` / `_source_id` / `_target_id` BIGINT FKs onto the parent's `_id`; database-key changes stay migratable after publication (children reference the immutable `_id`). 'natural' — schema database keys are the PRIMARY KEY (today's shape, lean, one column less per table); database keys are FROZEN after first publication (re-keys would have to re-point every child, refused at publish). Decide at registration: locked once the replica shape has shipped — no DDL travels on the toggle. Mutable freely until first ship.
              * @default surrogate
              * @enum {string}
              */
@@ -6745,6 +6739,8 @@ export type components = {
             on_incomplete_child?: ("reject_entity" | "skip_row") | null;
             /** Page Limit */
             page_limit?: number | null;
+            /** Pattern Index Localized Keys */
+            pattern_index_localized_keys?: boolean | null;
             /** Pk Strategy */
             pk_strategy?: ("surrogate" | "natural") | null;
             /** Propagate Not Null */
@@ -7606,7 +7602,7 @@ export type components = {
             entity_type: string;
             /**
              * Owned By
-             * @description Owning entity type when this type is a weak entity (owned relationship site); its rows are identified by the owner's keys plus database_keys (1-1-owned types by the owner alone — database_keys is then empty, source 'owner')
+             * @description Owning entity type when this type is a weak entity (owned relationship site); its rows are identified by the owner's keys plus database_keys. A 1-1-owned type with a non-nullable semantic_id keeps that column as its database key (source 'semantic_id') so the row's identity column is indexed; a 1-1-owned type without one is identified by the owner alone (database_keys is empty, source 'owner')
              */
             owned_by?: string | null;
             /**
@@ -17636,7 +17632,7 @@ export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutRespon
 export type WebhookSecretResponse = components['schemas']['WebhookSecretResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
-    serve_index__get: {
+    no_frontend__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -17652,37 +17648,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    serve_spa__path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
