@@ -11,8 +11,25 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** No Frontend */
-        get: operations["no_frontend__get"];
+        /** Serve Index */
+        get: operations["serve_index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve Spa */
+        get: operations["serve_spa__path__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1848,6 +1865,28 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/databases/{database_id}/deltas/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Delta Summary
+         * @description Aggregate view of the outbox for the Deltas tab: id range, ack watermark
+         *     (id + timestamp), DDL vs data boundary, and per-state counts. One
+         *     round-trip so the scrubber and header don't fan out to /changes.
+         */
+        get: operations["delta_summary_api_databases__database_id__deltas_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/databases/{database_id}/migrate-projection": {
         parameters: {
             query?: never;
@@ -1912,11 +1951,13 @@ export type paths = {
          * Update Link
          * @description Update one schema link — today its enrichment switch.
          *
-         *     OFF stops the schema's enrichment workflows toward this database (no
-         *     data deltas, no delta_available webhook) without unlinking; schema
-         *     publications keep shipping DDL so the replica stays shape-converged.
-         *     Enrichments that ran while OFF are skipped for this database — only a
-         *     snapshot re-pull backfills them.
+         *     OFF holds this link's DML in the outbox: enrichments still write entity
+         *     state and queue delta rows against the currently published shape, but
+         *     delivery is gated by the push loop so the replica sees nothing new for
+         *     this schema. Schema publications keep shipping DDL — the merged
+         *     projection spans every linked schema (including paused ones), so sibling
+         *     active links stay shape-converged. Flipping ON drains the queued backlog
+         *     in FIFO order (issue #79) — no snapshot re-pull needed.
          */
         patch: operations["update_link_api_databases__database_id__schemas__saved_schema_id__patch"];
         trace?: never;
@@ -6329,6 +6370,12 @@ export type components = {
             /** Dialect */
             dialect: string;
             /**
+             * Entity Count
+             * @description Total entities feeding this database across every linked schema (0 = nothing to snapshot or checksum yet)
+             * @default 0
+             */
+            entity_count: number;
+            /**
              * Id
              * Format: uuid
              */
@@ -6881,6 +6928,21 @@ export type components = {
         /** DeltaRow */
         DeltaRow: {
             /**
+             * Acked At
+             * @description When the sync client acknowledged this delta (null on pending rows). Retained rows carry it until purge_on_ack drops them
+             */
+            acked_at?: string | null;
+            /**
+             * Batch Id
+             * @description Enrichment this delta belongs to; rows sharing a batch_id are applied in one replica transaction
+             */
+            batch_id?: string | null;
+            /**
+             * Claim Expires At
+             * @description Currently-leased pending row: expires at this instant if not acked
+             */
+            claim_expires_at?: string | null;
+            /**
              * Created At
              * Format: date-time
              */
@@ -6907,6 +6969,56 @@ export type components = {
             revision?: number | null;
             /** Sql */
             sql: string;
+        };
+        /**
+         * DeltaSummaryResponse
+         * @description Aggregate view of a database's delta outbox — one round-trip for the
+         *     Deltas tab scrubber + counts.
+         */
+        DeltaSummaryResponse: {
+            /**
+             * Ack Watermark At
+             * @description When the ack-watermark delta was acknowledged
+             */
+            ack_watermark_at?: string | null;
+            /**
+             * Ack Watermark Id
+             * @description Highest acked delta id (null when nothing is acked)
+             */
+            ack_watermark_id?: number | null;
+            /**
+             * Acked Count
+             * @description Count of retained rows with acked_at IS NOT NULL
+             * @default 0
+             */
+            acked_count: number;
+            /**
+             * First Data Id
+             * @description Lowest id of a kind='data' delta — the boundary between the DDL band and the data feed on the scrubber rail (null when only DDL or empty)
+             */
+            first_data_id?: number | null;
+            /**
+             * Max Id
+             * @description Highest retained delta id (null when empty)
+             */
+            max_id?: number | null;
+            /**
+             * Min Id
+             * @description Lowest retained delta id (null when empty)
+             */
+            min_id?: number | null;
+            /**
+             * Pending Count
+             * @description Count of retained rows with acked_at IS NULL
+             * @default 0
+             */
+            pending_count: number;
+            /**
+             * Schema Delta Count
+             * @description Count of retained kind='schema' DDL rows
+             * @default 0
+             */
+            schema_delta_count: number;
         };
         /**
          * DeterminismCheckResponse
@@ -10170,9 +10282,9 @@ export type components = {
             expertise?: string | null;
             /**
              * Format
-             * @description Machine-checkable shape of a string property's value (JSON Schema 'format'). An ENRICHMENT contract: the dynamic output model types the field natively (date → datetime.date, …), so a malformed value ('9:00', 'circa 1903') is a validation error the model retries on, and serialization stores the canonical ISO rendering. Detected from the sample values at schema generation and bounded against them; also defaults the column type at link time (date→DATE, time→TIME, date-time→TIMESTAMP, uuid→UUID) unless db_type says otherwise. Mutually exclusive with pattern and with multilingual.
+             * @description Machine-checkable shape of a string property's value (JSON Schema 'format'). An ENRICHMENT contract: the dynamic output model enforces the shape (date → datetime.date, uuid → UUID, email/uri/ipv4/ipv6 → StringConstraints regex), so a malformed value ('9:00', 'not@ok', '999.0.0.1') is a validation error the model retries on; date-family and uuid additionally re-serialize into the canonical rendering. Detected from the sample values at schema generation and bounded against them (every value must prove the format, else it is dropped); the URI shape requires 'scheme://' so bare domains like 'example.com' stay plain strings. Also defaults the column type at link time (date→DATE, time→TIME, date-time→TIMESTAMP, uuid→UUID) unless db_type says otherwise; email/uri/ipv4/ipv6 stay TEXT. Mutually exclusive with pattern and with multilingual.
              */
-            format?: ("date" | "time" | "date-time" | "uuid") | null;
+            format?: ("date" | "time" | "date-time" | "uuid" | "email" | "uri" | "ipv4" | "ipv6") | null;
             /**
              * Indexed
              * @description True = a consumer app filters, sorts or facets its LIST screens by this property, so its column gets a secondary index in every database whose index_scalars policy admits explicit flags (docs/ENTITY_LAYER.md → indexing). Redundant on identity properties (is_key/database_key are indexed by identity) and on closed sets (enum refs, booleans, dates are indexed by type) — those keep their own class. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the flags step at schema generation (bounded per entity) and editable in the Schema editor. Stripped from every LLM prompt.
@@ -10337,9 +10449,9 @@ export type components = {
             expertise?: string | null;
             /**
              * Format
-             * @description Machine-checkable shape of a string property's value (JSON Schema 'format'). An ENRICHMENT contract: the dynamic output model types the field natively (date → datetime.date, …), so a malformed value ('9:00', 'circa 1903') is a validation error the model retries on, and serialization stores the canonical ISO rendering. Detected from the sample values at schema generation and bounded against them; also defaults the column type at link time (date→DATE, time→TIME, date-time→TIMESTAMP, uuid→UUID) unless db_type says otherwise. Mutually exclusive with pattern and with multilingual.
+             * @description Machine-checkable shape of a string property's value (JSON Schema 'format'). An ENRICHMENT contract: the dynamic output model enforces the shape (date → datetime.date, uuid → UUID, email/uri/ipv4/ipv6 → StringConstraints regex), so a malformed value ('9:00', 'not@ok', '999.0.0.1') is a validation error the model retries on; date-family and uuid additionally re-serialize into the canonical rendering. Detected from the sample values at schema generation and bounded against them (every value must prove the format, else it is dropped); the URI shape requires 'scheme://' so bare domains like 'example.com' stay plain strings. Also defaults the column type at link time (date→DATE, time→TIME, date-time→TIMESTAMP, uuid→UUID) unless db_type says otherwise; email/uri/ipv4/ipv6 stay TEXT. Mutually exclusive with pattern and with multilingual.
              */
-            format?: ("date" | "time" | "date-time" | "uuid") | null;
+            format?: ("date" | "time" | "date-time" | "uuid" | "email" | "uri" | "ipv4" | "ipv6") | null;
             /**
              * Indexed
              * @description True = a consumer app filters, sorts or facets its LIST screens by this property, so its column gets a secondary index in every database whose index_scalars policy admits explicit flags (docs/ENTITY_LAYER.md → indexing). Redundant on identity properties (is_key/database_key are indexed by identity) and on closed sets (enum refs, booleans, dates are indexed by type) — those keep their own class. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the flags step at schema generation (bounded per entity) and editable in the Schema editor. Stripped from every LLM prompt.
@@ -17277,6 +17389,7 @@ export type DeltaAckRequest = components['schemas']['DeltaAckRequest'];
 export type DeltaAckResponse = components['schemas']['DeltaAckResponse'];
 export type DeltaBatchResponse = components['schemas']['DeltaBatchResponse'];
 export type DeltaRow = components['schemas']['DeltaRow'];
+export type DeltaSummaryResponse = components['schemas']['DeltaSummaryResponse'];
 export type DeterminismCheckResponse = components['schemas']['DeterminismCheckResponse'];
 export type DeviceCodeConfirmRequest = components['schemas']['DeviceCodeConfirmRequest'];
 export type DeviceCodePollRequest = components['schemas']['DeviceCodePollRequest'];
@@ -17523,7 +17636,7 @@ export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutRespon
 export type WebhookSecretResponse = components['schemas']['WebhookSecretResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
-    no_frontend__get: {
+    serve_index__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -17539,6 +17652,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    serve_spa__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -21095,10 +21239,16 @@ export interface operations {
     fetch_changes_api_databases__database_id__changes_get: {
         parameters: {
             query?: {
+                /** @description Desc-mode cursor: return rows with id < before. Ignored in asc mode. Omit for the newest window. */
+                before?: number | null;
                 claim?: boolean;
                 format?: string;
+                /** @description Row set: 'pending' (default) = unacked FIFO feed for sync clients; 'acked' = already-acknowledged rows retained by purge_on_ack=false; 'all' = everything still in the outbox. Non-pending modes never lease (claim is ignored) and skip the batch-boundary invariant since they are UI browses, not applied windows. */
+                include?: "pending" | "acked" | "all";
                 lease_s?: number;
                 limit?: number | null;
+                /** @description Cursor direction. 'asc' (default) walks ids forward with `since` (id > since) — the sync-client contract, so external callers that omit this see no change. 'desc' walks ids backward with `before` (id < before, or the newest window when omitted) — the UI Deltas tab uses it so the newest deltas render at the top of the list and infinite scroll pages back into older history. `claim` is ignored in desc mode: a lease would be useless for a browse. */
+                order?: "asc" | "desc";
                 since?: number;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
@@ -21305,6 +21455,43 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delta_summary_api_databases__database_id__deltas_summary_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeltaSummaryResponse"];
+                };
             };
             /** @description Validation Error */
             422: {
