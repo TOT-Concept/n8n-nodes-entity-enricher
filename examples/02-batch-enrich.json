@@ -1,0 +1,49 @@
+{
+  "name": "Entity Enricher · 02 — Batch enrich (one item per entity)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-420, 0],
+      "id": "a2000000-0002-4000-8000-000000000001",
+      "name": "When clicking 'Execute workflow'"
+    },
+    {
+      "parameters": {
+        "jsCode": "// One n8n item = one entity. Replace with your real source\n// (Google Sheets, Postgres, a webhook payload, …).\nreturn [\n  { json: { symbol: 'C',  name: 'Carbon' } },\n  { json: { symbol: 'O',  name: 'Oxygen' } },\n  { json: { symbol: 'He', name: 'Helium' } },\n  { json: { symbol: 'Si', name: 'Silicon' } },\n  { json: { symbol: 'Al', name: 'Aluminium' } },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-200, 0],
+      "id": "a2000000-0002-4000-8000-000000000002",
+      "name": "Entities"
+    },
+    {
+      "parameters": {
+        "connectionInfo": "connected",
+        "operation": "batchEnrichSimple",
+        "schemaId": "PASTE_YOUR_SCHEMA_ID",
+        "attachInputBinaries": false,
+        "languages": ["en", "fr"],
+        "enableWebSearch": "off"
+      },
+      "type": "n8n-nodes-entity-enricher.entityEnricher",
+      "typeVersion": 1,
+      "position": [20, 0],
+      "id": "a2000000-0002-4000-8000-000000000003",
+      "name": "Batch Enrich"
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [[{ "node": "Entities", "type": "main", "index": 0 }]]
+    },
+    "Entities": {
+      "main": [[{ "node": "Batch Enrich", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

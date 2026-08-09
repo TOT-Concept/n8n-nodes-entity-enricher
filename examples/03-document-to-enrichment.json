@@ -1,0 +1,73 @@
+{
+  "name": "Entity Enricher · 03 — PDF in, structured entity out",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-640, 0],
+      "id": "a3000000-0003-4000-8000-000000000001",
+      "name": "When clicking 'Execute workflow'"
+    },
+    {
+      "parameters": {
+        "url": "https://example.com/reports/annual-report-2025.pdf",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-420, 0],
+      "id": "a3000000-0003-4000-8000-000000000002",
+      "name": "Download the PDF"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"name\": \"Novartis AG\"\n}\n",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-200, 0],
+      "id": "a3000000-0003-4000-8000-000000000003",
+      "name": "Entity (keeps the binary)"
+    },
+    {
+      "parameters": {
+        "connectionInfo": "connected",
+        "schemaId": "PASTE_YOUR_SCHEMA_ID",
+        "attachInputBinaries": true,
+        "binaryPropertiesToAttach": "",
+        "languages": ["en", "fr"],
+        "enableWebSearch": "off"
+      },
+      "type": "n8n-nodes-entity-enricher.entityEnricher",
+      "typeVersion": 1,
+      "position": [20, 0],
+      "id": "a3000000-0003-4000-8000-000000000004",
+      "name": "Enrich Entity (uploads + cleans up the file)"
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [[{ "node": "Download the PDF", "type": "main", "index": 0 }]]
+    },
+    "Download the PDF": {
+      "main": [[{ "node": "Entity (keeps the binary)", "type": "main", "index": 0 }]]
+    },
+    "Entity (keeps the binary)": {
+      "main": [[{ "node": "Enrich Entity (uploads + cleans up the file)", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "name": "Entity Enricher · 06 — Delta feed → your own PostgreSQL",
+  "nodes": [
+    {
+      "parameters": {
+        "event": "delta_available",
+        "databaseSyncId": "PASTE_YOUR_DATABASE_SYNC_ID",
+        "fetchOnFire": true,
+        "deltaSchemaId": ""
+      },
+      "type": "n8n-nodes-entity-enricher.entityEnricherTrigger",
+      "typeVersion": 1,
+      "position": [-640, 0],
+      "id": "a6000000-0006-4000-8000-000000000001",
+      "name": "Deltas Available"
+    },
+    {
+      "parameters": {
+        "jsCode": "// The trigger emits ONE ITEM PER DELTA, already leased.\n// Apply a whole window in ONE transaction: all deltas of one enrichment\n// share a batch, the projected tables carry deferred foreign keys, and the\n// window never splits a batch — so one fire = one transaction = one ack.\nconst deltas = $input.all().map((item) => item.json);\nif (!deltas.length) return [];\nreturn [{\n  json: {\n    sql: deltas.map((d) => d.sql).join('\\n'),\n    up_to_id: Math.max(...deltas.map((d) => Number(d.id))),\n    delta_count: deltas.length,\n    schema_migrations: deltas.filter((d) => d.kind === 'schema').length,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-420, 0],
+      "id": "a6000000-0006-4000-8000-000000000002",
+      "name": "Aggregate the window"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-200, 0],
+      "id": "a6000000-0006-4000-8000-000000000003",
+      "name": "Apply to your replica"
+    },
+    {
+      "parameters": {
+        "connectionInfo": "connected",
+        "resource": "databaseSync",
+        "operation": "ackDeltas",
+        "databaseSyncId": "PASTE_YOUR_DATABASE_SYNC_ID",
+        "upToId": "={{ $('Aggregate the window').first().json.up_to_id }}"
+      },
+      "type": "n8n-nodes-entity-enricher.entityEnricher",
+      "typeVersion": 1,
+      "position": [20, 0],
+      "id": "a6000000-0006-4000-8000-000000000004",
+      "name": "Acknowledge Deltas"
+    }
+  ],
+  "connections": {
+    "Deltas Available": {
+      "main": [[{ "node": "Aggregate the window", "type": "main", "index": 0 }]]
+    },
+    "Aggregate the window": {
+      "main": [[{ "node": "Apply to your replica", "type": "main", "index": 0 }]]
+    },
+    "Apply to your replica": {
+      "main": [[{ "node": "Acknowledge Deltas", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

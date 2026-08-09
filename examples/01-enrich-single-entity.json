@@ -1,0 +1,50 @@
+{
+  "name": "Entity Enricher · 01 — Enrich one entity (multilingual, auto model)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-420, 0],
+      "id": "a1000000-0001-4000-8000-000000000001",
+      "name": "When clicking 'Execute workflow'"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"symbol\": \"Au\",\n  \"name\": \"Gold\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-200, 0],
+      "id": "a1000000-0001-4000-8000-000000000002",
+      "name": "Entity"
+    },
+    {
+      "parameters": {
+        "connectionInfo": "connected",
+        "schemaId": "PASTE_YOUR_SCHEMA_ID",
+        "attachInputBinaries": false,
+        "languages": ["en", "fr", "de", "ja"],
+        "enableWebSearch": "off"
+      },
+      "type": "n8n-nodes-entity-enricher.entityEnricher",
+      "typeVersion": 1,
+      "position": [20, 0],
+      "id": "a1000000-0001-4000-8000-000000000003",
+      "name": "Enrich Entity"
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [[{ "node": "Entity", "type": "main", "index": 0 }]]
+    },
+    "Entity": {
+      "main": [[{ "node": "Enrich Entity", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added — `examples/` workflows, and a README that matches the node
+
+Six importable workflows under [`examples/`](examples/), with a walkthrough README: single enrichment, batch enrichment, **a PDF as source material**, **a photo → sample → schema**, three samples → a saved schema, and the delta trigger draining into your own PostgreSQL in one transaction (the n8n counterpart of the platform's end-to-end sync test). They ship with placeholders instead of ids and no credentials, and are repo-only — `files` publishes `dist` alone, so nothing changes in the npm package.
+
+The README was refreshed to the node as it stands: it still listed 12 operations and never mentioned **Generate Sample**, **Generate Schema**, the **Database Sync** resource, or the **Entity Enricher Trigger** node at all. It now also documents the `auto` / `expert_domains` strategies, the advanced Options collection, the typed per-model `error_code`s, `usableAsTool`, and the Code node needed between Generate Sample and Generate Schema (the former wraps each sample under `sample`, the latter reads whole input items).
+
 ## 3.0.1 (2026-08-06)
 
 Republish of 3.0.0: a stale `v3.0.0` tag on the repository blocked the automated npm publish, so 3.0.0 never reached npm. No code changes beyond the regenerated API types below.

@@ -1,0 +1,74 @@
+{
+  "name": "Entity Enricher · 05 — 3 samples → a saved schema (scenario-001 authoring)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-420, 0],
+      "id": "a5000000-0005-4000-8000-000000000001",
+      "name": "When clicking 'Execute workflow'"
+    },
+    {
+      "parameters": {
+        "connectionInfo": "connected",
+        "resource": "schema",
+        "operation": "generateSample",
+        "sampleEntityType": "Chemical element",
+        "sampleCount": 3,
+        "typicalObjects": "Gold, Iron, Carbon",
+        "namingConvention": "snake_case",
+        "sampleExtraInstructions": "Every property must be a settled, public fact a reference work states for ANY well-known instance of this type — never operational or time-varying data (prices, stock, opening hours, current staff). Leave a property null in a sample when that instance legitimately lacks it, so the schema marks it nullable instead of required. Include: two identifying properties on the root, one multilingual free-text description, one array of strings, one array of objects owned by this entity (its parts — e.g. isotopes), and at least two nested objects describing things that exist independently and recur across instances (a discoverer, a laboratory, a category), each with its own identifying field. Nest at least three levels deep.",
+        "sampleEnableWebSearch": "off",
+        "sampleLanguage": "en",
+        "sampleModel": "auto",
+        "sampleTimeout": 600000
+      },
+      "type": "n8n-nodes-entity-enricher.entityEnricher",
+      "typeVersion": 1,
+      "position": [-200, 0],
+      "id": "a5000000-0005-4000-8000-000000000002",
+      "name": "Generate Sample (3 instances)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate Sample emits { success, sample: {...}, sample_index, … } per sample.\n// Generate Schema treats every input ITEM as one sample object of the SAME type,\n// so hand it the samples themselves, not the wrappers.\nreturn $input.all().map((item) => ({ json: item.json.sample }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [20, 0],
+      "id": "a5000000-0005-4000-8000-000000000003",
+      "name": "Unwrap samples"
+    },
+    {
+      "parameters": {
+        "connectionInfo": "connected",
+        "resource": "schema",
+        "operation": "generateSchema",
+        "schemaGenModel": "auto",
+        "schemaGenSemanticIds": true,
+        "schemaGenCommonalityThreshold": 0.5,
+        "schemaGenTimeout": 600
+      },
+      "type": "n8n-nodes-entity-enricher.entityEnricher",
+      "typeVersion": 1,
+      "position": [240, 0],
+      "id": "a5000000-0005-4000-8000-000000000004",
+      "name": "Generate Schema"
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [[{ "node": "Generate Sample (3 instances)", "type": "main", "index": 0 }]]
+    },
+    "Generate Sample (3 instances)": {
+      "main": [[{ "node": "Unwrap samples", "type": "main", "index": 0 }]]
+    },
+    "Unwrap samples": {
+      "main": [[{ "node": "Generate Schema", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

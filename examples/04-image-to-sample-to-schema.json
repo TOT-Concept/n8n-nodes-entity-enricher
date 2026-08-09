@@ -1,0 +1,127 @@
+{
+  "name": "Entity Enricher · 04 — Photo in, schema out (image → sample → schema)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-860, 0],
+      "id": "a4000000-0004-4000-8000-000000000001",
+      "name": "When clicking 'Execute workflow'"
+    },
+    {
+      "parameters": {
+        "url": "https://example.com/photos/mineral-specimen.jpg",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-640, 0],
+      "id": "a4000000-0004-4000-8000-000000000002",
+      "name": "Download the photo"
+    },
+    {
+      "parameters": {
+        "connectionInfo": "connected",
+        "resource": "attachment",
+        "operation": "addAttachment",
+        "binaryPropertyName": "data"
+      },
+      "type": "n8n-nodes-entity-enricher.entityEnricher",
+      "typeVersion": 1,
+      "position": [-420, 0],
+      "id": "a4000000-0004-4000-8000-000000000003",
+      "name": "Add Attachment"
+    },
+    {
+      "parameters": {
+        "connectionInfo": "connected",
+        "resource": "schema",
+        "operation": "generateSample",
+        "sampleEntityType": "Mineral specimen photographed for a catalogue",
+        "sampleCount": 1,
+        "namingConvention": "snake_case",
+        "sampleAttachmentIds": "={{ $json.id }}",
+        "sampleExtraInstructions": "Describe only what is visible in the photograph — colour, habit, lustre, matrix, visible dimensions, label text. Do not invent provenance, price or ownership.",
+        "sampleEnableWebSearch": "off",
+        "sampleLanguage": "en",
+        "sampleModel": "auto",
+        "sampleTimeout": 300000
+      },
+      "type": "n8n-nodes-entity-enricher.entityEnricher",
+      "typeVersion": 1,
+      "position": [-200, 0],
+      "id": "a4000000-0004-4000-8000-000000000004",
+      "name": "Generate Sample"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate Sample emits { success, sample: {...}, sample_index, … }.\n// Generate Schema treats every input ITEM as one sample object,\n// so hand it the sample itself, not the wrapper.\nreturn $input.all().map((item) => ({ json: item.json.sample }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [20, 0],
+      "id": "a4000000-0004-4000-8000-000000000005",
+      "name": "Unwrap sample"
+    },
+    {
+      "parameters": {
+        "connectionInfo": "connected",
+        "resource": "schema",
+        "operation": "generateSchema",
+        "schemaGenModel": "auto",
+        "schemaGenSemanticIds": false,
+        "schemaGenCommonalityThreshold": 0.5,
+        "schemaGenTimeout": 300
+      },
+      "type": "n8n-nodes-entity-enricher.entityEnricher",
+      "typeVersion": 1,
+      "position": [240, 0],
+      "id": "a4000000-0004-4000-8000-000000000006",
+      "name": "Generate Schema"
+    },
+    {
+      "parameters": {
+        "connectionInfo": "connected",
+        "resource": "attachment",
+        "operation": "deleteAttachment",
+        "attachmentId": "={{ $('Add Attachment').first().json.id }}"
+      },
+      "type": "n8n-nodes-entity-enricher.entityEnricher",
+      "typeVersion": 1,
+      "position": [460, 0],
+      "id": "a4000000-0004-4000-8000-000000000007",
+      "name": "Delete Attachment"
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [[{ "node": "Download the photo", "type": "main", "index": 0 }]]
+    },
+    "Download the photo": {
+      "main": [[{ "node": "Add Attachment", "type": "main", "index": 0 }]]
+    },
+    "Add Attachment": {
+      "main": [[{ "node": "Generate Sample", "type": "main", "index": 0 }]]
+    },
+    "Generate Sample": {
+      "main": [[{ "node": "Unwrap sample", "type": "main", "index": 0 }]]
+    },
+    "Unwrap sample": {
+      "main": [[{ "node": "Generate Schema", "type": "main", "index": 0 }]]
+    },
+    "Generate Schema": {
+      "main": [[{ "node": "Delete Attachment", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
