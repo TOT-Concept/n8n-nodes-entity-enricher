@@ -658,7 +658,7 @@ export class EntityEnricher implements INodeType {
 				required: true,
 				default: '',
 				description: 'UUID of the enrichment record to retrieve',
-				hint: '={{$parameter["recordId"] ? \'<a href="https://entityenricher.ai/records/\' + $parameter["recordId"] + \'" target="_blank">View record in Entity Enricher</a>\' : \'Find record IDs in the <a href="https://entityenricher.ai/records" target="_blank">Records page</a>\'}}',
+				hint: '={{$parameter["recordId"] ? \'<a href="https://entityenricher.ai/history/\' + $parameter["recordId"] + \'" target="_blank">View record in Entity Enricher</a>\' : \'Find record IDs in <a href="https://entityenricher.ai/history" target="_blank">Entity Enricher</a>\'}}',
 				displayOptions: {
 					show: {
 						resource: ['record'],

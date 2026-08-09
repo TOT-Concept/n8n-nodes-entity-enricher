@@ -8283,7 +8283,7 @@ export type components = {
         };
         /**
          * JobSummary
-         * @description Summary of a job for the Records page grouping view.
+         * @description Summary of a job for the History page grouping view.
          */
         JobSummary: {
             /** Failed Count */
