@@ -373,7 +373,7 @@ export class EntityEnricher implements INodeType {
 				required: true,
 				default: '',
 				description: 'Target schema defining the enrichment output structure. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
-				hint: 'Don\'t have a schema? <a href="https://entityenricher.ai/schema-editor" target="_blank">Create one in Schema Editor</a>',
+				hint: 'Don\'t have a schema? <a href="https://entityenricher.ai/workflow-editor" target="_blank">Create a schema in Entity Enricher</a>',
 				displayOptions: {
 					show: {
 						resource: ['enrichment'],
@@ -474,7 +474,7 @@ export class EntityEnricher implements INodeType {
 				required: true,
 				default: '',
 				description: 'Schema to retrieve full details for. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
-				hint: 'Don\'t have a schema? <a href="https://entityenricher.ai/schema-editor" target="_blank">Create one in Schema Editor</a>',
+				hint: 'Don\'t have a schema? <a href="https://entityenricher.ai/workflow-editor" target="_blank">Create a schema in Entity Enricher</a>',
 				displayOptions: {
 					show: {
 						resource: ['schema'],
@@ -990,9 +990,9 @@ export class EntityEnricher implements INodeType {
 
 				if (!schemas.length) {
 					return [{
-						name: 'No schemas found - create one in Schema Editor',
+						name: 'No schemas found - create a schema in Entity Enricher',
 						value: '',
-						description: `${baseUrl}/schema-editor`,
+						description: `${baseUrl}/workflow-editor`,
 					}];
 				}
 
