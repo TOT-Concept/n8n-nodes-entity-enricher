@@ -990,7 +990,7 @@ export class EntityEnricher implements INodeType {
 
 				if (!schemas.length) {
 					return [{
-						name: 'No schemas found - create a schema in Entity Enricher',
+						name: 'No Schemas Found - Create a Schema in Entity Enricher',
 						value: '',
 						description: `${baseUrl}/workflow-editor`,
 					}];
