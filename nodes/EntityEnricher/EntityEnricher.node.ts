@@ -575,8 +575,8 @@ export class EntityEnricher implements INodeType {
 				displayName: 'Language',
 				name: 'sampleLanguage',
 				type: 'string',
-				default: 'en',
-				description: 'Output language code for field names AND values (e.g. \'en\', \'fr\')',
+				default: 'auto',
+				description: 'Output language code for field names AND values (e.g. \'en\', \'fr\'). \'auto\' (default) follows the language the Entity Type and Typical Objects are written in, else the attached document\'s, else English.',
 				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
 			},
 			{

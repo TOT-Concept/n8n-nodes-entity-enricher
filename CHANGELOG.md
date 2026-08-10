@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed — Generate Sample: **Language** defaults to `auto`
+
+The **Language** field of Generate Sample was `en`, so every generated sample came back in English whatever language the workflow was written in. It now defaults to `auto`: the field is omitted from the request, and the API infers the language from the **Entity Type** and **Typical Objects** you wrote (else the attached document's, else English) — field names and values alike. The schema built from that sample then follows the sample's own property names. An explicit code (`en`, `fr`, …) still forces one language as before.
+
 ### Added — `examples/` workflows, and a README that matches the node
 
 Six importable workflows under [`examples/`](examples/), with a walkthrough README: single enrichment, batch enrichment, **a PDF as source material**, **a photo → sample → schema**, three samples → a saved schema, and the delta trigger draining into your own PostgreSQL in one transaction (the n8n counterpart of the platform's end-to-end sync test). They ship with placeholders instead of ids and no credentials, and are repo-only — `files` publishes `dist` alone, so nothing changes in the npm package.

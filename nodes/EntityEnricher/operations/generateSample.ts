@@ -58,7 +58,7 @@ export async function execute(
 	const enableWebSearch = context.getNodeParameter(
 		'sampleEnableWebSearch', itemIndex, 'off',
 	) as 'on' | 'off';
-	const language = context.getNodeParameter('sampleLanguage', itemIndex, 'en') as string;
+	const language = context.getNodeParameter('sampleLanguage', itemIndex, 'auto') as string;
 	const model = context.getNodeParameter('sampleModel', itemIndex, 'auto') as string;
 	const timeout = context.getNodeParameter('sampleTimeout', itemIndex, 300000) as number;
 
@@ -79,9 +79,12 @@ export async function execute(
 		sample_count: sampleCount,
 		model,
 		naming_convention: namingConvention,
-		language,
 		auto_answer: true,
 	};
+	// 'auto' (or blank) travels as an omitted field — the API's own "no language
+	// requested" value, which is what lets the generator read the language off the
+	// request and the schema follow the sample.
+	if (language && language.trim().toLowerCase() !== 'auto') body.language = language.trim();
 	if (typicalObjects.length) body.typical_objects = typicalObjects;
 	if (fields.length) body.fields = fields;
 	if (attachmentIds.length) body.attachment_ids = attachmentIds;

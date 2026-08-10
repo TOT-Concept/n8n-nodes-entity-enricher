@@ -8143,10 +8143,9 @@ export type components = {
             fields?: string[];
             /**
              * Language
-             * @description Output language code for generated sample values AND field names (e.g. 'en', 'fr'); applies even when the attachment is in another language. Default English.
-             * @default en
+             * @description Output language code for generated sample values AND field names (e.g. 'en', 'fr'); an explicit code applies even when the attachment is in another language. Omitted (or 'auto', the default) → the generator follows the language the request itself is written in (entity type, named typical instances, extra instructions), else the attached document's language, else English.
              */
-            language: string;
+            language?: string | null;
             /**
              * Model
              * @description Model composite key. Optional: 'auto' (default) lets the server pick the organization's default sample-generation model — the pinned per-task default if set, else the model with the best blended overall score from scoring-source benchmarks.
@@ -17167,10 +17166,9 @@ export type components = {
             fields?: string[];
             /**
              * Language
-             * @description Output language code for generated sample values AND field names (e.g. 'en', 'fr'); applies even when the attachment is in another language. Default English.
-             * @default en
+             * @description Output language code for generated sample values AND field names (e.g. 'en', 'fr'); an explicit code applies even when the attachment is in another language. Omitted (or 'auto', the default) → the generator follows the language the request itself is written in (entity type, named typical instances, extra instructions), else the attached document's language, else English.
              */
-            language: string;
+            language?: string | null;
             /**
              * Model
              * @description Model composite key. Optional: 'auto' (default) lets the server pick the organization's default sample-generation model — the pinned per-task default if set, else the model with the best blended overall score from scoring-source benchmarks.
