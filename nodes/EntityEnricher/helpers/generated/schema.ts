@@ -3634,6 +3634,36 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/records/sync-states": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get Record Sync States
+         * @description Resolve what happened to these records' rows on their databases.
+         *
+         *     Separate from the records list because the two answer different questions on
+         *     different clocks: the list is a page of enrichment history, this is the live
+         *     state of a feed that drains in the background. Keeping it its own call lets
+         *     the History page poll only the rows it is showing — and only while some of
+         *     them are still pending — instead of re-running the list query.
+         *
+         *     Deliberately derived per request (docs/ENTITY_LAYER.md → Record sync state):
+         *     a record stores the admission gate's verdict and a pointer to the batch it
+         *     queued; what each replica did with that batch is read from the delta feed.
+         */
+        post: operations["get_record_sync_states_api_records_sync_states_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/records/sync-to-database": {
         parameters: {
             query?: never;
@@ -6770,6 +6800,11 @@ export type components = {
          */
         DatabaseSyncOutcome: {
             /**
+             * Batch Id
+             * @description The delta batch this write queued — one id shared by every row it produced, across all the schema's databases, and the replica's transaction unit. Stamped on the record so the per-database apply state can be derived later; null when nothing was queued
+             */
+            batch_id?: string | null;
+            /**
              * Declared Unknown
              * @description Of the missing_fields, the ones a model explicitly declared it could not answer (rather than returning null with no signal), with the models that declared each. A declined field means the data was not in the model's knowledge — a stronger model, web search or a source document may fix it; a missing field with no entry here left no trace, which points at the schema or the input instead. Empty on runs that predate declaration capture
              */
@@ -7089,6 +7124,11 @@ export type components = {
              * @description The replica refused this enrichment's SQL, so its whole batch was set aside and the feed moved on past it. Quarantined rows are never pushed and never acked — they wait for a reinjection or a deletion
              */
             quarantined_at?: string | null;
+            /**
+             * Record Id
+             * @description The enrichment record whose write queued this delta, resolved from the batch (records.db_sync_batch_id — the delta itself stores no record reference). Provenance for browsing, so it is filled on the read-only feed only and is always null on the claiming feed sync clients pull: a replica applies SQL and has no use for it, and the claim query cannot carry the join. Also null for schema DDL rows, for rows queued before the link existed, and for rows whose record was hard-deleted
+             */
+            record_id?: string | null;
             /** Revision */
             revision?: number | null;
             /** Sql */
@@ -11843,6 +11883,112 @@ export type components = {
              * @description Web-search tool calls across the record's prompts.
              */
             web_search_calls?: number | null;
+        };
+        /**
+         * RecordSyncDatabaseState
+         * @description What one database did with a record's rows.
+         */
+        RecordSyncDatabaseState: {
+            /**
+             * Acked
+             * @description Rows the sync client acknowledged and this database still retains (always 0 when purge_on_ack drops them on delivery)
+             * @default 0
+             */
+            acked: number;
+            /**
+             * Apply Error
+             * @description The SQL error the replica reported for this batch, if any
+             */
+            apply_error?: string | null;
+            /**
+             * Database Id
+             * Format: uuid
+             */
+            database_id: string;
+            /** Database Name */
+            database_name: string;
+            /** Dialect */
+            dialect?: string | null;
+            /**
+             * Pending
+             * @description Rows queued and neither acknowledged nor quarantined
+             * @default 0
+             */
+            pending: number;
+            /**
+             * Quarantined
+             * @description Rows set aside after the replica refused this enrichment's batch
+             * @default 0
+             */
+            quarantined: number;
+            /**
+             * Schema Name
+             * @description Linked schema these rows belong to (a database can aggregate several)
+             */
+            schema_name?: string | null;
+        };
+        /**
+         * RecordSyncState
+         * @description A record's full database-sync story: the gate's verdict and the replica's.
+         *
+         *     `state` collapses both into the one thing a list cell can show. The two
+         *     halves stay separately visible because they fail for different reasons and
+         *     have different fixes: the gate refuses data (fix the schema or re-enrich),
+         *     the replica refuses SQL (fix the constraint or the conflicting row).
+         */
+        RecordSyncState: {
+            /**
+             * Batch Id
+             * @description Delta batch this record's write queued; null when it queued nothing
+             */
+            batch_id?: string | null;
+            /** Databases */
+            databases?: components["schemas"]["RecordSyncDatabaseState"][];
+            /**
+             * Gate Error
+             * @description Why the gate refused the write, or what a partial write dropped
+             */
+            gate_error?: string | null;
+            /**
+             * Gate State
+             * @description The stored admission-gate outcome: 'saved', 'partial' or 'rejected'
+             */
+            gate_state?: string | null;
+            /**
+             * Pending
+             * @default 0
+             */
+            pending: number;
+            /**
+             * Quarantined
+             * @default 0
+             */
+            quarantined: number;
+            /**
+             * Record Id
+             * Format: uuid
+             */
+            record_id: string;
+            /**
+             * State
+             * @description Resolved outcome, worst-state-wins across every database: 'rejected' (the admission gate refused it — nothing was queued), 'failed' (a replica refused the batch; its rows are quarantined), 'pending' (queued, not yet acknowledged), 'partial' (admitted but some rows were dropped and nothing re-sends them), 'applied' (every queued row was acknowledged), 'queued' (admitted, but the record predates the delta link so apply state is unknowable). Null when no write was ever attempted
+             */
+            state?: ("rejected" | "failed" | "pending" | "partial" | "applied" | "queued") | null;
+            /** Synced At */
+            synced_at?: string | null;
+        };
+        /** RecordSyncStatesRequest */
+        RecordSyncStatesRequest: {
+            /**
+             * Record Ids
+             * @description Records to resolve (the History page sends its visible rows)
+             */
+            record_ids: string[];
+        };
+        /** RecordSyncStatesResponse */
+        RecordSyncStatesResponse: {
+            /** States */
+            states: components["schemas"]["RecordSyncState"][];
         };
         /** RefreshTokenRequest */
         RefreshTokenRequest: {
@@ -17862,6 +18008,10 @@ export type RecordInjectionResult = components['schemas']['RecordInjectionResult
 export type RecordsListResponse = components['schemas']['RecordsListResponse'];
 export type RecordStatsResponse = components['schemas']['RecordStatsResponse'];
 export type RecordSummary = components['schemas']['RecordSummary'];
+export type RecordSyncDatabaseState = components['schemas']['RecordSyncDatabaseState'];
+export type RecordSyncState = components['schemas']['RecordSyncState'];
+export type RecordSyncStatesRequest = components['schemas']['RecordSyncStatesRequest'];
+export type RecordSyncStatesResponse = components['schemas']['RecordSyncStatesResponse'];
 export type RefreshTokenRequest = components['schemas']['RefreshTokenRequest'];
 export type RefreshTokenResponse = components['schemas']['RefreshTokenResponse'];
 export type RegisterRequest = components['schemas']['RegisterRequest'];
@@ -25243,6 +25393,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecordStatsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_record_sync_states_api_records_sync_states_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordSyncStatesRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordSyncStatesResponse"];
                 };
             };
             /** @description Validation Error */

@@ -42,7 +42,7 @@
 		"lint": "n8n-node lint",
 		"lintfix": "n8n-node lint --fix",
 		"prepublishOnly": "npm run build",
-		"generate-api": "openapi-typescript http://localhost:18808/api/openapi.json -o nodes/EntityEnricher/helpers/generated/schema.ts --root-types --root-types-no-schema-prefix -t --alphabetize",
+		"generate-api": "node scripts/generate-api.mjs",
 		"sync-workflows:push": "bash ../sync-workflows.sh push",
 		"sync-workflows:push:dry-run": "bash ../sync-workflows.sh push --dry-run",
 		"sync-workflows:push:activate": "bash ../sync-workflows.sh push --activate",
