@@ -26,6 +26,7 @@ import * as listDatabaseSyncs from './operations/listDatabaseSyncs';
 import * as fetchDeltas from './operations/fetchDeltas';
 import * as ackDeltas from './operations/ackDeltas';
 import * as mergeResults from './operations/mergeResults';
+import * as syncRecordsToDatabase from './operations/syncRecordsToDatabase';
 
 export class EntityEnricher implements INodeType {
 	description: INodeTypeDescription = {
@@ -212,6 +213,12 @@ export class EntityEnricher implements INodeType {
 						value: 'getRecord',
 						description: 'Retrieve an enrichment record by ID',
 						action: 'Get an enrichment record',
+					},
+					{
+						name: 'Sync Records to Database',
+						value: 'syncRecordsToDatabase',
+						description: 'Send a stored (or transformed) enrichment output to its schema\'s database sync — re-validated against the published contract, then the admission gate',
+						action: 'Sync records to database',
 					},
 				],
 				default: 'listRecords',
@@ -727,6 +734,49 @@ export class EntityEnricher implements INodeType {
 					show: {
 						resource: ['fusion'],
 						operation: ['mergeResults'],
+					},
+				},
+			},
+
+			// ─── Sync Records to Database Parameters ───
+			{
+				displayName: 'Record ID',
+				name: 'recordId',
+				type: 'string',
+				default: '',
+				placeholder: '={{ $json.record_id }}',
+				description: 'Stored record to send — an enrichment record or the fusion of one; any other record type is skipped. Leave empty to send a Structured Output that came from somewhere else (a Schema is then required).',
+				displayOptions: {
+					show: {
+						resource: ['record'],
+						operation: ['syncRecordsToDatabase'],
+					},
+				},
+			},
+			{
+				displayName: 'Structured Output (JSON)',
+				name: 'structuredOutput',
+				type: 'json',
+				default: '',
+				description: 'Replacement output to send instead of the record\'s stored one — the transform round-trip. Leave empty to send the record unchanged. A modified output mints a NEW record, because records are immutable.',
+				displayOptions: {
+					show: {
+						resource: ['record'],
+						operation: ['syncRecordsToDatabase'],
+					},
+				},
+			},
+			{
+				displayName: 'Schema Name or ID',
+				name: 'savedSchemaId',
+				type: 'options',
+				typeOptions: { loadOptionsMethod: 'getSchemas' },
+				default: '',
+				description: 'Schema whose published contract validates the output and whose linked databases receive it. Required only when no Record ID is given; otherwise the record\'s own schema is used. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+				displayOptions: {
+					show: {
+						resource: ['record'],
+						operation: ['syncRecordsToDatabase'],
 					},
 				},
 			},
@@ -1403,6 +1453,8 @@ export class EntityEnricher implements INodeType {
 					results = await deleteAttachment.execute(this, i);
 				} else if (resource === 'fusion' && operation === 'mergeResults') {
 					results = await mergeResults.execute(this, i);
+				} else if (resource === 'record' && operation === 'syncRecordsToDatabase') {
+					results = await syncRecordsToDatabase.execute(this, i);
 				} else {
 					throw new NodeOperationError(
 						this.getNode(),

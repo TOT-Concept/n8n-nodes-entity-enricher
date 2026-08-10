@@ -1898,6 +1898,77 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/databases/{database_id}/quarantine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Quarantine
+         * @description Quarantined deltas grouped by entity (docs/ENTITY_LAYER.md → Quarantine).
+         *
+         *     Entity-shaped rather than delta-shaped because that is the unit the actions
+         *     take: a reinjection re-projects an entity's current state, it never replays
+         *     these rows.
+         */
+        get: operations["list_quarantine_api_databases__database_id__quarantine_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/databases/{database_id}/quarantine/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete Quarantined
+         * @description Drop quarantined deltas without reinjecting them.
+         *
+         *     For work the consumer no longer wants: the entity keeps its server-side
+         *     state, so a later enrichment (or a reinjection) can still ship it.
+         */
+        post: operations["delete_quarantined_api_databases__database_id__quarantine_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/databases/{database_id}/quarantine/reinject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reinject Quarantined
+         * @description Re-project quarantined entities as a fresh tail batch, then drop the originals.
+         *
+         *     Not a replay: the quarantined rows carry the payload from when they were
+         *     written, and re-applying them behind newer revisions would regress the
+         *     replica. Current state also picks up whatever was fixed since the failure.
+         */
+        post: operations["reinject_quarantined_api_databases__database_id__quarantine_reinject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/databases/{database_id}/relational-map": {
         parameters: {
             query?: never;
@@ -3164,6 +3235,7 @@ export type paths = {
          * @description Revert a single field on the override row to the base value.
          *
          *     Auto-deletes the override row if no overridden fields remain afterwards.
+         *     Same scope resolution as ``delete_model_override``.
          */
         delete: operations["clear_model_override_field_api_providers_models__model_id__override_fields__field__delete"];
         options?: never;
@@ -3556,6 +3628,32 @@ export type paths = {
         get: operations["get_stats_api_records_stats_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/records/sync-to-database": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync Records To Database
+         * @description Inject stored (or transformed) enrichment output into the entity layer.
+         *
+         *     Blocking by design: the caller gets every entity's outcome in the response,
+         *     which is what the confirmation modal renders and what n8n/Make map from.
+         *     Each item re-validates against its schema's current published contract and
+         *     then passes the ordinary admission gate, so an injection can never write
+         *     something an enrichment could not (docs/ENTITY_LAYER.md → Injection).
+         */
+        post: operations["sync_records_to_database_api_records_sync_to_database_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6394,6 +6492,7 @@ export type components = {
             pattern_index_localized_keys: boolean;
             /**
              * Pending Deltas
+             * @description Deltas waiting to be delivered: unacked and not quarantined. Quarantined rows are counted separately — they are set aside, not queued, and no client will be offered them again until they are reinjected
              * @default 0
              */
             pending_deltas: number;
@@ -6422,6 +6521,12 @@ export type components = {
             purge_entity_state: boolean;
             /** Purge On Ack */
             purge_on_ack: boolean;
+            /**
+             * Quarantined Deltas
+             * @description Deltas set aside after the consumer's database refused their batch (docs/ENTITY_LAYER.md → Quarantine): the feed keeps flowing past them, but they need a reinject or a delete
+             * @default 0
+             */
+            quarantined_deltas: number;
             /** Require Complete */
             require_complete: boolean;
             /**
@@ -6940,6 +7045,13 @@ export type components = {
              */
             acked_at?: string | null;
             /**
+             * Apply Error
+             * @description The SQL error the sync client reported, on the ONE row that failed (its batch siblings carry only quarantined_at)
+             */
+            apply_error?: string | null;
+            /** Apply Error At */
+            apply_error_at?: string | null;
+            /**
              * Batch Id
              * @description Enrichment this delta belongs to; rows sharing a batch_id are applied in one replica transaction
              */
@@ -6972,6 +7084,11 @@ export type components = {
             payload: {
                 [key: string]: unknown;
             };
+            /**
+             * Quarantined At
+             * @description The replica refused this enrichment's SQL, so its whole batch was set aside and the feed moved on past it. Quarantined rows are never pushed and never acked — they wait for a reinjection or a deletion
+             */
+            quarantined_at?: string | null;
             /** Revision */
             revision?: number | null;
             /** Sql */
@@ -11098,6 +11215,78 @@ export type components = {
             score: number;
         };
         /**
+         * QuarantineActionRequest
+         * @description Which quarantined entities to act on — omit to mean all of them.
+         */
+        QuarantineActionRequest: {
+            /**
+             * Entity Ids
+             * @description Entities to reinject or delete. Omit for every quarantined entity of the database. Reinjecting entities that reference each other in ONE call lets the deferred foreign keys settle at COMMIT
+             */
+            entity_ids?: string[] | null;
+        };
+        /**
+         * QuarantinedEntity
+         * @description One entity whose deltas the replica refused — the Quarantine tab's row.
+         *
+         *     Grouped by entity rather than by delta because the action is entity-shaped:
+         *     reinjection re-projects current entity state, it does not replay these rows.
+         */
+        QuarantinedEntity: {
+            /**
+             * Apply Error
+             * @description That delta's SQL error (SQLSTATE, constraint and offending line, as the client reported it)
+             */
+            apply_error?: string | null;
+            /** Batch Ids */
+            batch_ids?: string[];
+            /**
+             * Delta Count
+             * @default 0
+             */
+            delta_count: number;
+            /** Entity Id */
+            entity_id?: string | null;
+            /** Entity Type */
+            entity_type?: string | null;
+            /**
+             * Failing Delta Id
+             * @description The delta the replica actually refused, when it belongs to this entity
+             */
+            failing_delta_id?: number | null;
+            /** First Delta Id */
+            first_delta_id?: number | null;
+            /** Quarantined At */
+            quarantined_at?: string | null;
+            /** Saved Schema Id */
+            saved_schema_id?: string | null;
+        };
+        /** QuarantineListResponse */
+        QuarantineListResponse: {
+            /** Entities */
+            entities: components["schemas"]["QuarantinedEntity"][];
+            /**
+             * Total Deltas
+             * @default 0
+             */
+            total_deltas: number;
+        };
+        /** QuarantineReinjectResponse */
+        QuarantineReinjectResponse: {
+            /** Batch Id */
+            batch_id?: string | null;
+            /**
+             * Queued
+             * @description Fresh deltas queued, carrying current entity state
+             */
+            queued: number;
+            /**
+             * Removed
+             * @description Quarantined delta rows dropped in their place
+             */
+            removed: number;
+        };
+        /**
          * QuestionAnswer
          * @description A user's answer to one interactive clarifying question.
          */
@@ -11149,6 +11338,21 @@ export type components = {
             created_at: string;
             /** Created By Name */
             created_by_name?: string | null;
+            /**
+             * Db Sync Error
+             * @description Why the write was rejected, or what a 'partial' write dropped. Null when db_sync_state is 'saved' or unset.
+             */
+            db_sync_error?: string | null;
+            /**
+             * Db Sync State
+             * @description Entity-layer outcome of this record: 'saved' (admitted, deltas queued for every linked database), 'partial' (the entity landed but some rows did not), or 'rejected' (the admission gate refused it; nothing was stored). Null = never attempted — the schema has no linked database, the run opted out with database_sync=false, or the record predates this tracking. NOTE 'saved' means queued, not applied by the consumer's replica: apply state is per-database and lives on the delta feed, never on a record.
+             */
+            db_sync_state?: string | null;
+            /**
+             * Db Synced At
+             * @description When the entity-layer write was last attempted for this record.
+             */
+            db_synced_at?: string | null;
             /**
              * Declared Unknown Fields
              * @description Field paths the model itself declared it could not answer, rather than silently returning null. Null for records written before this was captured; [] when the model declared nothing.
@@ -11255,6 +11459,12 @@ export type components = {
              */
             saved_schema_id?: string | null;
             /**
+             * Schema Changed
+             * @description The schema's published contract changed since this record was produced, so re-injecting it re-validates against a different contract than the one that generated it. False when either hash is unknown (legacy records), so this never warns speculatively.
+             * @default false
+             */
+            schema_changed: boolean;
+            /**
              * Schema Content Hash
              * @description Schema content hash for grouping
              */
@@ -11302,6 +11512,116 @@ export type components = {
              * @description Web-search tool calls across the record's prompts.
              */
             web_search_calls?: number | null;
+        };
+        /**
+         * RecordInjectionItem
+         * @description One entity to (re-)inject into the entity layer.
+         *
+         *     Three shapes, differing only in whether a record is minted:
+         *       - record_id alone: inject the record's stored output as-is; no new record.
+         *       - structured_output alone: inject arbitrary output; mints a record
+         *         (saved_schema_id is then required — nothing else names the contract).
+         *       - both: the record supplies the schema and input context, but the modified
+         *         output mints a NEW record, so entity state never disagrees with the
+         *         record it points at.
+         */
+        RecordInjectionItem: {
+            /**
+             * Record Id
+             * @description Stored record to inject (and, with structured_output, the provenance of the new one).
+             */
+            record_id?: string | null;
+            /**
+             * Saved Schema Id
+             * @description Schema whose contract validates this output and whose linked databases receive it. Required when no record_id is given; otherwise defaults to the record's schema.
+             */
+            saved_schema_id?: string | null;
+            /**
+             * Structured Output
+             * @description Replacement output to inject instead of the record's stored one — the workflow round-trip (enrich with database_sync=false, transform, inject). Validated against the schema's current published contract like any enrichment result.
+             */
+            structured_output?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * RecordInjectionRequest
+         * @description Inject one or more entities into the entity layer / database sync.
+         */
+        RecordInjectionRequest: {
+            /**
+             * Items
+             * @description Entities to inject, processed in order (max 100 per call).
+             */
+            items: components["schemas"]["RecordInjectionItem"][];
+        };
+        /**
+         * RecordInjectionResponse
+         * @description Result of an injection request, per item and in aggregate.
+         */
+        RecordInjectionResponse: {
+            /**
+             * Partial
+             * @default 0
+             */
+            partial: number;
+            /**
+             * Rejected
+             * @default 0
+             */
+            rejected: number;
+            /** Results */
+            results: components["schemas"]["RecordInjectionResult"][];
+            /**
+             * Saved
+             * @default 0
+             */
+            saved: number;
+            /**
+             * Skipped
+             * @default 0
+             */
+            skipped: number;
+        };
+        /**
+         * RecordInjectionResult
+         * @description Per-item outcome of an injection request.
+         */
+        RecordInjectionResult: {
+            /**
+             * Created Record
+             * @description Whether this injection minted a new record (modified or standalone output).
+             * @default false
+             */
+            created_record: boolean;
+            /** @description Full entity-layer outcome (keys written, gate rejections, conflicts). */
+            database?: components["schemas"]["DatabaseSyncOutcome"] | null;
+            /**
+             * Reason
+             * @description Why the item was rejected or skipped, or what a partial write dropped.
+             */
+            reason?: string | null;
+            /**
+             * Record Id
+             * @description Record the outcome belongs to — the minted one when the injection created a record.
+             */
+            record_id?: string | null;
+            /**
+             * Source Record Id
+             * @description Record the item referenced, when it differs from record_id.
+             */
+            source_record_id?: string | null;
+            /**
+             * Status
+             * @description 'saved'/'partial'/'rejected' mirror the entity-layer outcome; 'skipped' means nothing was attempted — the item named no linked, published schema, or it is a base record of a fusion in the same request (the fused result is what the entity layer stores).
+             * @enum {string}
+             */
+            status: "saved" | "partial" | "rejected" | "skipped";
+            /**
+             * Validation Errors
+             * @description Schema-validation errors against the current published contract. Non-empty means the output was refused before the admission gate — typically the schema changed since the record was produced.
+             */
+            validation_errors?: string[];
         };
         /**
          * RecordsListResponse
@@ -11382,6 +11702,21 @@ export type components = {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Db Sync Error
+             * @description Why the write was rejected, or what a 'partial' write dropped. Null when db_sync_state is 'saved' or unset.
+             */
+            db_sync_error?: string | null;
+            /**
+             * Db Sync State
+             * @description Entity-layer outcome of this record: 'saved' (admitted, deltas queued for every linked database), 'partial' (the entity landed but some rows did not), or 'rejected' (the admission gate refused it; nothing was stored). Null = never attempted — the schema has no linked database, the run opted out with database_sync=false, or the record predates this tracking. NOTE 'saved' means queued, not applied by the consumer's replica: apply state is per-database and lives on the delta feed, never on a record.
+             */
+            db_sync_state?: string | null;
+            /**
+             * Db Synced At
+             * @description When the entity-layer write was last attempted for this record.
+             */
+            db_synced_at?: string | null;
             /**
              * Embedding Cost Usd
              * @description Billed cost of the semantic-ID embedding pass for this record, if any. Tracked separately from cost_usd; the total cost is cost_usd + this.
@@ -11466,6 +11801,12 @@ export type components = {
              * @description ID of the saved schema used for this enrichment
              */
             saved_schema_id?: string | null;
+            /**
+             * Schema Changed
+             * @description The schema's published contract changed since this record was produced, so re-injecting it re-validates against a different contract than the one that generated it. False when either hash is unknown (legacy records), so this never warns speculatively.
+             * @default false
+             */
+            schema_changed: boolean;
             /**
              * Schema Content Hash
              * @description Schema content hash for grouping
@@ -17510,8 +17851,16 @@ export type PublishTransform = components['schemas']['PublishTransform'];
 export type QualityArrayScore = components['schemas']['QualityArrayScore'];
 export type QualityDetail = components['schemas']['QualityDetail'];
 export type QualityFieldScore = components['schemas']['QualityFieldScore'];
+export type QuarantineActionRequest = components['schemas']['QuarantineActionRequest'];
+export type QuarantinedEntity = components['schemas']['QuarantinedEntity'];
+export type QuarantineListResponse = components['schemas']['QuarantineListResponse'];
+export type QuarantineReinjectResponse = components['schemas']['QuarantineReinjectResponse'];
 export type QuestionAnswer = components['schemas']['QuestionAnswer'];
 export type RecordDetail = components['schemas']['RecordDetail'];
+export type RecordInjectionItem = components['schemas']['RecordInjectionItem'];
+export type RecordInjectionRequest = components['schemas']['RecordInjectionRequest'];
+export type RecordInjectionResponse = components['schemas']['RecordInjectionResponse'];
+export type RecordInjectionResult = components['schemas']['RecordInjectionResult'];
 export type RecordsListResponse = components['schemas']['RecordsListResponse'];
 export type RecordStatsResponse = components['schemas']['RecordStatsResponse'];
 export type RecordSummary = components['schemas']['RecordSummary'];
@@ -19954,7 +20303,7 @@ export interface operations {
     get_credit_balance_api_billing_balance_get: {
         parameters: {
             query?: {
-                /** @description View another org (admin only) */
+                /** @description Target organization (admin only) */
                 organization_id?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
@@ -20069,7 +20418,7 @@ export interface operations {
     get_billing_overview_api_billing_overview_get: {
         parameters: {
             query?: {
-                /** @description View another org (admin only) */
+                /** @description Target organization (admin only) */
                 organization_id?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
@@ -20354,7 +20703,7 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
-                /** @description View another org (admin only) */
+                /** @description Target organization (admin only) */
                 organization_id?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
@@ -20431,11 +20780,11 @@ export interface operations {
     get_cost_by_model_api_costs_by_model_get: {
         parameters: {
             query?: {
-                /** @description Show all organizations (admin/owner only) */
+                /** @description Aggregate across all organizations (admin only) */
                 all_orgs?: boolean;
                 /** @description End date (exclusive) */
                 end_date?: string | null;
-                /** @description Filter to specific org (admin only) */
+                /** @description Target organization (admin only) */
                 organization_id?: string | null;
                 /** @description Start date (inclusive) */
                 start_date?: string | null;
@@ -20474,11 +20823,11 @@ export interface operations {
     get_performance_stats_api_costs_performance_get: {
         parameters: {
             query?: {
-                /** @description Show all organizations (admin/owner only) */
+                /** @description Aggregate across all organizations (admin only) */
                 all_orgs?: boolean;
                 /** @description End date (exclusive) */
                 end_date?: string | null;
-                /** @description Filter to specific org (admin only) */
+                /** @description Target organization (admin only) */
                 organization_id?: string | null;
                 /** @description Filter by record type */
                 record_type?: string | null;
@@ -20519,9 +20868,9 @@ export interface operations {
     get_performance_preset_api_costs_performance_presets__preset__get: {
         parameters: {
             query?: {
-                /** @description Show all organizations (admin/owner only) */
+                /** @description Aggregate across all organizations (admin only) */
                 all_orgs?: boolean;
-                /** @description Filter to specific org (admin only) */
+                /** @description Target organization (admin only) */
                 organization_id?: string | null;
                 /** @description Filter by record type */
                 record_type?: string | null;
@@ -20562,9 +20911,9 @@ export interface operations {
     get_cost_preset_api_costs_presets__preset__get: {
         parameters: {
             query?: {
-                /** @description Show all organizations (admin/owner only) */
+                /** @description Aggregate across all organizations (admin only) */
                 all_orgs?: boolean;
-                /** @description Filter to specific org (admin only) */
+                /** @description Target organization (admin only) */
                 organization_id?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
@@ -20603,13 +20952,13 @@ export interface operations {
     get_cost_stats_api_costs_stats_get: {
         parameters: {
             query?: {
-                /** @description Show all organizations (admin/owner only) */
+                /** @description Aggregate across all organizations (admin only) */
                 all_orgs?: boolean;
                 /** @description End date (exclusive) */
                 end_date?: string | null;
                 /** @description Group by: day, week, or month */
                 group_by?: string;
-                /** @description Filter to specific org (admin only) */
+                /** @description Target organization (admin only) */
                 organization_id?: string | null;
                 /** @description Start date (inclusive) */
                 start_date?: string | null;
@@ -20648,11 +20997,11 @@ export interface operations {
     get_cost_summary_api_costs_summary_get: {
         parameters: {
             query?: {
-                /** @description Show all organizations (admin/owner only) */
+                /** @description Aggregate across all organizations (admin only) */
                 all_orgs?: boolean;
                 /** @description End date (exclusive) */
                 end_date?: string | null;
-                /** @description Filter to specific org (admin only) */
+                /** @description Target organization (admin only) */
                 organization_id?: string | null;
                 /** @description Start date (inclusive) */
                 start_date?: string | null;
@@ -21508,6 +21857,125 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectionMigrationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_quarantine_api_databases__database_id__quarantine_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuarantineListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_quarantined_api_databases__database_id__quarantine_delete_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuarantineActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeltaAckResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reinject_quarantined_api_databases__database_id__quarantine_reinject_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuarantineActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuarantineReinjectResponse"];
                 };
             };
             /** @description Validation Error */
@@ -24062,6 +24530,7 @@ export interface operations {
     delete_model_override_api_providers_models__model_id__override_delete: {
         parameters: {
             query?: {
+                /** @description Target organization for the override (admin only; omit for the global override) */
                 organization_id?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
@@ -24098,6 +24567,7 @@ export interface operations {
     clear_model_override_field_api_providers_models__model_id__override_fields__field__delete: {
         parameters: {
             query?: {
+                /** @description Target organization for the override (admin only; omit for the global override) */
                 organization_id?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
@@ -24518,6 +24988,7 @@ export interface operations {
     list_records_api_records_get: {
         parameters: {
             query?: {
+                /** @description List across all organizations (admin only) */
                 all_orgs?: boolean;
                 /** @description Filter by capabilities exercised by the record (match ANY): 'web_search', 'prompt_caching', 'reasoning', 'structured_output', 'pdf_input', 'vision', 'audio_input', 'video_input', 'binary'. */
                 capabilities?: string[] | null;
@@ -24526,6 +24997,12 @@ export interface operations {
                 job_id?: string | null;
                 /** @description Filter by model composite key (e.g. 'anthropic::claude-sonnet-4-5') */
                 model?: string | null;
+                /** @description Target organization (admin only) */
+                organization_id?: string | null;
+                /**
+                 * @deprecated
+                 * @description Deprecated alias for `organization_id`.
+                 */
                 organization_id_filter?: string | null;
                 /** @description Filter by client origin: 'web', 'n8n', 'make', 'api', or 'legacy' (records created before origin tracking). */
                 origin?: string | null;
@@ -24578,6 +25055,7 @@ export interface operations {
     get_record_api_records__record_id__get: {
         parameters: {
             query?: {
+                /** @description List across all organizations (admin only) */
                 all_orgs?: boolean;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
@@ -24616,6 +25094,7 @@ export interface operations {
     batch_delete_records_api_records_batch_delete_post: {
         parameters: {
             query?: {
+                /** @description List across all organizations (admin only) */
                 all_orgs?: boolean;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
@@ -24695,10 +25174,17 @@ export interface operations {
     list_jobs_api_records_jobs_get: {
         parameters: {
             query?: {
+                /** @description List across all organizations (admin only) */
                 all_orgs?: boolean;
                 /** @description Filter to jobs containing a record that exercised any of these capabilities (match ANY): 'web_search', 'prompt_caching', 'reasoning', 'structured_output', 'pdf_input', 'vision', 'audio_input', 'video_input', 'binary'. */
                 capabilities?: string[] | null;
                 include_deleted?: boolean;
+                /** @description Target organization (admin only) */
+                organization_id?: string | null;
+                /**
+                 * @deprecated
+                 * @description Deprecated alias for `organization_id`.
+                 */
                 organization_id_filter?: string | null;
                 page?: number;
                 page_size?: number;
@@ -24759,6 +25245,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecordStatsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_records_to_database_api_records_sync_to_database_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordInjectionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordInjectionResponse"];
                 };
             };
             /** @description Validation Error */
