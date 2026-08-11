@@ -58,6 +58,10 @@ async function resolveLink(context: IHookFunctions, databaseId: string): Promise
  *   on fire, fetches the next window of deltas with a lease — emit one item per
  *   delta and finish the workflow with the "Acknowledge Deltas" operation.
  */
+// n8n's scan-community-package forbids usableAsTool on trigger nodes while this
+// lint rule demands it (and the INodeTypeDescription type rejects `false`) —
+// the scanner is the blocking check, so it wins and the lint rule is silenced.
+// eslint-disable-next-line @n8n/community-nodes/node-usable-as-tool
 export class EntityEnricherTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Entity Enricher Trigger',
