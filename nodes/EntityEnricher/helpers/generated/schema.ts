@@ -2731,9 +2731,11 @@ export type paths = {
          * Set Embedding Model
          * @description Set the org's embedding model. Plan-gated (org default parameter).
          *
-         *     Near-immutable: once any semantic concepts exist, the model can only be CLEARED
-         *     (set to null), not switched to a different one — stored vectors live in a single
-         *     model's space and are never comparable across models. Re-embedding is a Phase-2 job.
+         *     Near-immutable: once any semantic concepts exist, this endpoint can only CLEAR the
+         *     model (set it to null), never switch it — stored vectors live in one model's space
+         *     and are not comparable across models. Switching is the migration's job
+         *     (`POST /api/semantic-concepts/migration/start`), which re-embeds every concept and
+         *     flips this setting itself at cutover.
          */
         put: operations["set_embedding_model_api_org_keys_embedding_model_put"];
         post?: never;
@@ -4234,6 +4236,346 @@ export type paths = {
          * @description Delete by id or by exact url (used by connector trigger detach).
          */
         delete: operations["delete_subscription_api_schemas__schema_id__subscriptions_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Concepts
+         * @description Filtered, sorted page of the organization's semantic concepts.
+         */
+        get: operations["list_concepts_api_semantic_concepts_get"];
+        put?: never;
+        /**
+         * Create Concept
+         * @description Add a concept to the vocabulary at usage 0.
+         *
+         *     Refused with 409 when an existing concept already matches at or above the
+         *     threshold: the new row could never win a resolution, and two twins split future
+         *     matches unpredictably. The 409 body carries the probe so the UI can offer the
+         *     incumbent instead.
+         */
+        post: operations["create_concept_api_semantic_concepts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/{concept_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Concept
+         * @description One concept plus the records that resolved to it.
+         */
+        get: operations["get_concept_api_semantic_concepts__concept_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Concept
+         * @description Delete one concept. Its record links drop; the next enrichment mints a new id.
+         */
+        delete: operations["delete_concept_api_semantic_concepts__concept_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/{concept_id}/neighbors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Neighbors
+         * @description Nearest concepts within this concept's own slice, similarity descending.
+         *
+         *     This is the authoritative similarity source for the table's Similarity column and
+         *     for coloring both the orbit and 3D views.
+         */
+        get: operations["get_neighbors_api_semantic_concepts__concept_id__neighbors_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete Concepts
+         * @description Delete concepts. Record links drop; future enrichments mint fresh ids.
+         *
+         *     Clearing a whole concept type (no explicit ids) is owner+: it is the maintenance
+         *     action for a changed identity basis and rewrites the vocabulary wholesale.
+         */
+        post: operations["delete_concepts_api_semantic_concepts_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/delete-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get Delete Impact
+         * @description Counts behind the confirm dialog: concepts, record links, schemas, databases.
+         */
+        post: operations["get_delete_impact_api_semantic_concepts_delete_impact_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/duplicates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Duplicates
+         * @description Concept pairs in the gray zone — close, but not close enough to have merged.
+         *
+         *     The band runs from `threshold - band_width` up to (not including) `threshold`:
+         *     above it the pair would already be one concept, below it they are unrelated.
+         */
+        get: operations["list_duplicates_api_semantic_concepts_duplicates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Concepts
+         * @description Download the current filter as CSV (the table's "Export view" action).
+         */
+        get: operations["export_concepts_api_semantic_concepts_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Concepts
+         * @description Resolve a batch of identity texts through the same ladder an enrichment uses.
+         *
+         *     `mint=false` (editor+) reports what would happen and writes nothing. `mint=true`
+         *     creates the unmatched rows and needs owner+, since it grows the shared vocabulary.
+         *     Synchronous by design: the row cap keeps one request's worth of embedding calls
+         *     inside a normal request budget.
+         */
+        post: operations["import_concepts_api_semantic_concepts_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/migration/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Migration Cancel
+         * @description Abandon the transition. The current model was never demoted, so nothing to undo.
+         */
+        post: operations["migration_cancel_api_semantic_concepts_migration_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/migration/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Migration Preview
+         * @description Dry run: cost estimate plus the pairs that would converge under the new model.
+         */
+        post: operations["migration_preview_api_semantic_concepts_migration_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/migration/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Migration Start
+         * @description Re-embed the source space's concepts (optionally one concept type) with the
+         *     target model.
+         *
+         *     Returns immediately; the backfill runs in the background and enrichments keep
+         *     resolving against the current model throughout. Resolution follows each type's
+         *     slice after cutover; the org default flips only once the whole vocabulary sits on
+         *     the target. Safe to call again to resume an interrupted run — staged vectors are
+         *     kept and skipped.
+         */
+        post: operations["migration_start_api_semantic_concepts_migration_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/migration/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Migration Status
+         * @description Progress of the org's embedding-model transition (null when none ever ran).
+         */
+        get: operations["migration_status_api_semantic_concepts_migration_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Probe Concept
+         * @description Dry-run the resolution ladder for a text — nothing is created or bumped.
+         *
+         *     Costs one embedding call unless the exact text is already known, billed into the
+         *     day's grouped interactive-embedding entry.
+         */
+        post: operations["probe_concept_api_semantic_concepts_probe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/projection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Projection
+         * @description 3D layout of one concept slice for the map view.
+         *
+         *     Positions carry cluster shape only — the client colors points by their true
+         *     similarity from `/{id}/neighbors`, never by distance on screen.
+         */
+        get: operations["get_projection_api_semantic_concepts_projection_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Concept Types
+         * @description Concept-type facets — one entry per (type, embedding model) slice.
+         */
+        get: operations["list_concept_types_api_semantic_concepts_types_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -5920,6 +6262,266 @@ export type components = {
             identity_keys_existing?: string[];
         };
         /**
+         * ConceptCreateRequest
+         * @description Manually add a concept to the vocabulary (curate bar).
+         */
+        ConceptCreateRequest: {
+            /** Concept Type */
+            concept_type: string;
+            /** Text */
+            text: string;
+            /**
+             * Threshold
+             * @default 0.92
+             */
+            threshold: number;
+        };
+        /**
+         * ConceptDeleteImpact
+         * @description What a delete would take with it — the numbers shown in the confirm dialog.
+         */
+        ConceptDeleteImpact: {
+            /** Concept Count */
+            concept_count: number;
+            /** Database Names */
+            database_names: string[];
+            /** Record Link Count */
+            record_link_count: number;
+            /** Schema Names */
+            schema_names: string[];
+        };
+        /**
+         * ConceptDeleteRequest
+         * @description Bulk delete by explicit ids, or every unused concept of a scope.
+         */
+        ConceptDeleteRequest: {
+            /** Concept Type */
+            concept_type?: string | null;
+            /** Ids */
+            ids?: string[];
+            /**
+             * Unused Only
+             * @default false
+             */
+            unused_only: boolean;
+        };
+        /** ConceptDeleteResult */
+        ConceptDeleteResult: {
+            /** Deleted Count */
+            deleted_count: number;
+            /** Record Link Count */
+            record_link_count: number;
+        };
+        /**
+         * ConceptImportRequest
+         * @description Resolve a batch of identity texts against one concept space.
+         */
+        ConceptImportRequest: {
+            /** Concept Type */
+            concept_type: string;
+            /**
+             * Mint
+             * @default false
+             */
+            mint: boolean;
+            /** Texts */
+            texts: string[];
+            /**
+             * Threshold
+             * @default 0.92
+             */
+            threshold: number;
+        };
+        /** ConceptImportResult */
+        ConceptImportResult: {
+            /** Concept Type */
+            concept_type: string;
+            /** Embedding Model */
+            embedding_model?: string | null;
+            /**
+             * Exact Count
+             * @default 0
+             */
+            exact_count: number;
+            /**
+             * Matched Count
+             * @default 0
+             */
+            matched_count: number;
+            /** Minted */
+            minted: boolean;
+            /**
+             * Minted Count
+             * @default 0
+             */
+            minted_count: number;
+            /** Rows */
+            rows: components["schemas"]["ConceptImportRow"][];
+            /**
+             * Skipped Count
+             * @default 0
+             */
+            skipped_count: number;
+            /** Threshold */
+            threshold: number;
+            /**
+             * Would Mint Count
+             * @default 0
+             */
+            would_mint_count: number;
+        };
+        /** ConceptImportRow */
+        ConceptImportRow: {
+            /** Matched Text */
+            matched_text?: string | null;
+            /** Normalized */
+            normalized: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "exact" | "matched" | "would_mint" | "minted" | "skipped";
+            /** Semantic Id */
+            semantic_id?: string | null;
+            /** Similarity */
+            similarity?: number | null;
+            /** Text */
+            text: string;
+        };
+        /**
+         * ConceptNeighbor
+         * @description A concept in the same slice, with its true similarity to the focus concept.
+         */
+        ConceptNeighbor: {
+            /** Canonical Text */
+            canonical_text: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Ref Count */
+            ref_count: number;
+            /** Similarity */
+            similarity: number;
+        };
+        /** ConceptNeighborList */
+        ConceptNeighborList: {
+            /** Concept Type */
+            concept_type: string;
+            /** Embedding Model */
+            embedding_model: string;
+            /**
+             * Focus Id
+             * Format: uuid
+             */
+            focus_id: string;
+            /** Items */
+            items: components["schemas"]["ConceptNeighbor"][];
+        };
+        /**
+         * ConceptProbeRequest
+         * @description Dry-run of the resolution ladder for a typed text (no concept is created).
+         */
+        ConceptProbeRequest: {
+            /** Concept Type */
+            concept_type: string;
+            /**
+             * Neighbors
+             * @default 10
+             */
+            neighbors: number;
+            /** Text */
+            text: string;
+            /**
+             * Threshold
+             * @default 0.92
+             */
+            threshold: number;
+        };
+        /**
+         * ConceptProbeResponse
+         * @description What resolution *would* do with this text, plus its nearest neighbours.
+         */
+        ConceptProbeResponse: {
+            /** Concept Type */
+            concept_type: string;
+            /** Detail */
+            detail?: string | null;
+            /** Embedding Model */
+            embedding_model?: string | null;
+            /**
+             * Embedding Tokens
+             * @default 0
+             */
+            embedding_tokens: number;
+            /** Matched Id */
+            matched_id?: string | null;
+            /** Matched Text */
+            matched_text?: string | null;
+            /** Neighbors */
+            neighbors: components["schemas"]["ConceptNeighbor"][];
+            /** Normalized Text */
+            normalized_text: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "exact_hit" | "match" | "no_match" | "unavailable";
+            /** Similarity */
+            similarity?: number | null;
+            /**
+             * Threshold
+             * @default 0.92
+             */
+            threshold: number;
+        };
+        /**
+         * ConceptProjection
+         * @description 3D layout of one concept slice. Positions are contextual, never exact.
+         *
+         *     Similarity to a focus concept is served separately (`/neighbors`) and is what the
+         *     UI colors by — a projection into 3 dimensions cannot preserve pairwise distances.
+         */
+        ConceptProjection: {
+            /** Concept Type */
+            concept_type: string;
+            /** Embedding Model */
+            embedding_model: string;
+            /** Items */
+            items: components["schemas"]["ProjectedConcept"][];
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "umap" | "pca";
+            /** Point Count */
+            point_count: number;
+            /** Truncated */
+            truncated: boolean;
+        };
+        /**
+         * ConceptRecordLink
+         * @description A record that resolved to this concept.
+         */
+        ConceptRecordLink: {
+            /** Cosine */
+            cosine: number | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Entity Name */
+            entity_name?: string | null;
+            /** Json Path */
+            json_path: string;
+            /**
+             * Record Id
+             * Format: uuid
+             */
+            record_id: string;
+            /** Schema Name */
+            schema_name?: string | null;
+        };
+        /**
          * ConfigExport
          * @description Full export format for providers, models, and canonical specs.
          *
@@ -7407,6 +8009,45 @@ export type components = {
             success: boolean;
         };
         /**
+         * DuplicatePair
+         * @description Two concepts of one slice whose similarity sits inside the review band.
+         */
+        DuplicatePair: {
+            /**
+             * A Id
+             * Format: uuid
+             */
+            a_id: string;
+            /** A Ref Count */
+            a_ref_count: number;
+            /** A Text */
+            a_text: string;
+            /**
+             * B Id
+             * Format: uuid
+             */
+            b_id: string;
+            /** B Ref Count */
+            b_ref_count: number;
+            /** B Text */
+            b_text: string;
+            /** Concept Type */
+            concept_type: string;
+            /** Embedding Model */
+            embedding_model: string;
+            /** Similarity */
+            similarity: number;
+        };
+        /** DuplicatePairList */
+        DuplicatePairList: {
+            /** Band High */
+            band_high: number;
+            /** Band Low */
+            band_low: number;
+            /** Items */
+            items: components["schemas"]["DuplicatePair"][];
+        };
+        /**
          * EmbeddingModelSetting
          * @description Org's embedding model for semantic IDs (composite key provider::model).
          */
@@ -8676,6 +9317,92 @@ export type components = {
             /** Refresh Token */
             refresh_token: string;
             user: components["schemas"]["UserResponse"];
+        };
+        /**
+         * MigrationCollisionPair
+         * @description Two concepts that are distinct today but would converge under the target model.
+         */
+        MigrationCollisionPair: {
+            /** A Text */
+            a_text: string;
+            /** B Text */
+            b_text: string;
+            /** Concept Type */
+            concept_type: string;
+            /** Similarity After */
+            similarity_after: number;
+            /** Similarity Now */
+            similarity_now: number;
+        };
+        /** MigrationPreviewResponse */
+        MigrationPreviewResponse: {
+            /** Collisions */
+            collisions: components["schemas"]["MigrationCollisionPair"][];
+            /**
+             * Collisions Sampled
+             * @default 0
+             */
+            collisions_sampled: number;
+            /** Concept Count */
+            concept_count: number;
+            /** Concept Type */
+            concept_type?: string | null;
+            /** Estimated Cost Usd */
+            estimated_cost_usd: number;
+            /** Estimated Tokens */
+            estimated_tokens: number;
+            /** Note */
+            note?: string | null;
+            /** Source Model */
+            source_model: string | null;
+            /** Target Dims */
+            target_dims: number;
+            /** Target Model */
+            target_model: string;
+        };
+        /** MigrationStartRequest */
+        MigrationStartRequest: {
+            /** Concept Type */
+            concept_type?: string | null;
+            /** Source Model */
+            source_model?: string | null;
+            /** Target Model */
+            target_model: string;
+        };
+        /**
+         * MigrationStatusResponse
+         * @description Progress of the dual-write transition; null when no migration ever ran.
+         */
+        MigrationStatusResponse: {
+            /** Completed At */
+            completed_at?: string | null;
+            /** Concept Type */
+            concept_type?: string | null;
+            /**
+             * Embedded Count
+             * @default 0
+             */
+            embedded_count: number;
+            /**
+             * Embedding Tokens
+             * @default 0
+             */
+            embedding_tokens: number;
+            /** Last Error */
+            last_error?: string | null;
+            /** Source Model */
+            source_model?: string | null;
+            /** Started At */
+            started_at?: string | null;
+            /** Status */
+            status?: ("running" | "completed" | "failed" | "cancelled") | null;
+            /** Target Model */
+            target_model?: string | null;
+            /**
+             * Total Count
+             * @default 0
+             */
+            total_count: number;
         };
         /**
          * MissingAttachment
@@ -10367,6 +11094,27 @@ export type components = {
              */
             total: number;
         };
+        /**
+         * ProjectedConcept
+         * @description One concept laid out in 3D by the projection endpoint.
+         */
+        ProjectedConcept: {
+            /** Canonical Text */
+            canonical_text: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Ref Count */
+            ref_count: number;
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
+            /** Z */
+            z: number;
+        };
         /** ProjectionMigrationRequest */
         ProjectionMigrationRequest: {
             /**
@@ -10519,6 +11267,11 @@ export type components = {
              * @description Only on the semantic_id property: overrides the concept type scoping embedding matches (default: the $def/entity name, or the object's JSON path for inline objects). Lets schemas naming the same entity differently share one concept space.
              */
             semantic_concept_type?: string | null;
+            /**
+             * Semantic Embedding Model
+             * @description Only on the semantic_id property: provider::model composite pinning the embedding model resolving this object's concepts. Default (absent): the model the concept type's existing concepts are already stored under, else the organization default. Setting it steers a NEW concept type to a specific model, or deliberately diverges from the org default; for a type with existing concepts, converge them with a type-scoped embedding-model migration (Semantic IDs page), since concepts only match within one model.
+             */
+            semantic_embedding_model?: string | null;
             /**
              * Semantic Id
              * @description True = this string property holds the embedding-based semantic ID of its containing object (the root entity, a 1-1 nested object, or an array item). Written post-enrichment (not by the LLM); mutually exclusive with is_key; at most one per object.
@@ -10686,6 +11439,11 @@ export type components = {
              * @description Only on the semantic_id property: overrides the concept type scoping embedding matches (default: the $def/entity name, or the object's JSON path for inline objects). Lets schemas naming the same entity differently share one concept space.
              */
             semantic_concept_type?: string | null;
+            /**
+             * Semantic Embedding Model
+             * @description Only on the semantic_id property: provider::model composite pinning the embedding model resolving this object's concepts. Default (absent): the model the concept type's existing concepts are already stored under, else the organization default. Setting it steers a NEW concept type to a specific model, or deliberately diverges from the org default; for a type with existing concepts, converge them with a type-scoped embedding-model migration (Semantic IDs page), since concepts only match within one model.
+             */
+            semantic_embedding_model?: string | null;
             /**
              * Semantic Id
              * @description True = this string property holds the embedding-based semantic ID of its containing object (the root entity, a 1-1 nested object, or an array item). Written post-enrichment (not by the LLM); mutually exclusive with is_key; at most one per object.
@@ -12950,6 +13708,50 @@ export type components = {
              */
             model_keys?: string[] | null;
         };
+        /** SemanticConceptDetail */
+        SemanticConceptDetail: {
+            /** Canonical Text */
+            canonical_text: string;
+            /** Concept Type */
+            concept_type: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Dims */
+            dims: number;
+            /** Embedding Model */
+            embedding_model: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Normalized Text */
+            normalized_text: string;
+            /** Records */
+            records: components["schemas"]["ConceptRecordLink"][];
+            /** Ref Count */
+            ref_count: number;
+            /** Source Keys */
+            source_keys: {
+                [key: string]: unknown;
+            };
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /** SemanticConceptList */
+        SemanticConceptList: {
+            /** Items */
+            items: components["schemas"]["SemanticConceptSummary"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
         /**
          * SemanticConceptRef
          * @description Concept linked to an enrichment record, for the record-detail panel.
@@ -12968,6 +13770,52 @@ export type components = {
             cosine: number | null;
             /** Json Path */
             json_path: string;
+        };
+        /**
+         * SemanticConceptSummary
+         * @description One concept row in the management table.
+         */
+        SemanticConceptSummary: {
+            /** Canonical Text */
+            canonical_text: string;
+            /** Concept Type */
+            concept_type: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Dims */
+            dims: number;
+            /** Embedding Model */
+            embedding_model: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Normalized Text */
+            normalized_text: string;
+            /** Ref Count */
+            ref_count: number;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /**
+         * SemanticConceptTypeInfo
+         * @description Facet entry: one (concept_type, embedding_model) slice.
+         */
+        SemanticConceptTypeInfo: {
+            /** Concept Count */
+            concept_count: number;
+            /** Concept Type */
+            concept_type: string;
+            /** Dims */
+            dims: number;
+            /** Embedding Model */
+            embedding_model: string;
+            /** Unused Count */
+            unused_count: number;
         };
         /**
          * SemanticConceptUsage
@@ -17838,6 +18686,19 @@ export type CleanupDeactivatedRequest = components['schemas']['CleanupDeactivate
 export type CleanupDeactivatedResponse = components['schemas']['CleanupDeactivatedResponse'];
 export type CleanupSpecInfo = components['schemas']['CleanupSpecInfo'];
 export type CommonTypeCompare = components['schemas']['CommonTypeCompare'];
+export type ConceptCreateRequest = components['schemas']['ConceptCreateRequest'];
+export type ConceptDeleteImpact = components['schemas']['ConceptDeleteImpact'];
+export type ConceptDeleteRequest = components['schemas']['ConceptDeleteRequest'];
+export type ConceptDeleteResult = components['schemas']['ConceptDeleteResult'];
+export type ConceptImportRequest = components['schemas']['ConceptImportRequest'];
+export type ConceptImportResult = components['schemas']['ConceptImportResult'];
+export type ConceptImportRow = components['schemas']['ConceptImportRow'];
+export type ConceptNeighbor = components['schemas']['ConceptNeighbor'];
+export type ConceptNeighborList = components['schemas']['ConceptNeighborList'];
+export type ConceptProbeRequest = components['schemas']['ConceptProbeRequest'];
+export type ConceptProbeResponse = components['schemas']['ConceptProbeResponse'];
+export type ConceptProjection = components['schemas']['ConceptProjection'];
+export type ConceptRecordLink = components['schemas']['ConceptRecordLink'];
 export type ConfigExport = components['schemas']['ConfigExport'];
 export type ConflictReport = components['schemas']['ConflictReport'];
 export type ConnectedHostRef = components['schemas']['ConnectedHostRef'];
@@ -17892,6 +18753,8 @@ export type DevLoginRequest = components['schemas']['DevLoginRequest'];
 export type DevPersona = components['schemas']['DevPersona'];
 export type DiscoveredModel = components['schemas']['DiscoveredModel'];
 export type DiscoverModelsResponse = components['schemas']['DiscoverModelsResponse'];
+export type DuplicatePair = components['schemas']['DuplicatePair'];
+export type DuplicatePairList = components['schemas']['DuplicatePairList'];
 export type EmbeddingModelSetting = components['schemas']['EmbeddingModelSetting'];
 export type EnrichmentInputContract = components['schemas']['EnrichmentInputContract'];
 export type EnrichmentOptionsResponse = components['schemas']['EnrichmentOptionsResponse'];
@@ -17938,6 +18801,10 @@ export type LinkWebhookRequest = components['schemas']['LinkWebhookRequest'];
 export type LlmModel = components['schemas']['LLMModel'];
 export type LoginRequest = components['schemas']['LoginRequest'];
 export type LoginResponse = components['schemas']['LoginResponse'];
+export type MigrationCollisionPair = components['schemas']['MigrationCollisionPair'];
+export type MigrationPreviewResponse = components['schemas']['MigrationPreviewResponse'];
+export type MigrationStartRequest = components['schemas']['MigrationStartRequest'];
+export type MigrationStatusResponse = components['schemas']['MigrationStatusResponse'];
 export type MissingAttachment = components['schemas']['MissingAttachment'];
 export type ModelBenchmarkScores = components['schemas']['ModelBenchmarkScores'];
 export type ModelChange = components['schemas']['ModelChange'];
@@ -17978,6 +18845,7 @@ export type PricingSyncRequest = components['schemas']['PricingSyncRequest'];
 export type PricingSyncResponse = components['schemas']['PricingSyncResponse'];
 export type PricingSyncSummary = components['schemas']['PricingSyncSummary'];
 export type ProgressEvent = components['schemas']['ProgressEvent'];
+export type ProjectedConcept = components['schemas']['ProjectedConcept'];
 export type ProjectionMigrationRequest = components['schemas']['ProjectionMigrationRequest'];
 export type ProjectionMigrationResponse = components['schemas']['ProjectionMigrationResponse'];
 export type PropertySchemaInput = components['schemas']['PropertySchema-Input'];
@@ -18054,7 +18922,11 @@ export type SchemaPublishResponse = components['schemas']['SchemaPublishResponse
 export type SchemaSemanticUsage = components['schemas']['SchemaSemanticUsage'];
 export type ScoreBenchmarkJobResponse = components['schemas']['ScoreBenchmarkJobResponse'];
 export type ScoreBenchmarkRequest = components['schemas']['ScoreBenchmarkRequest'];
+export type SemanticConceptDetail = components['schemas']['SemanticConceptDetail'];
+export type SemanticConceptList = components['schemas']['SemanticConceptList'];
 export type SemanticConceptRef = components['schemas']['SemanticConceptRef'];
+export type SemanticConceptSummary = components['schemas']['SemanticConceptSummary'];
+export type SemanticConceptTypeInfo = components['schemas']['SemanticConceptTypeInfo'];
 export type SemanticConceptUsage = components['schemas']['SemanticConceptUsage'];
 export type SemanticKeyUsageResponse = components['schemas']['SemanticKeyUsageResponse'];
 export type SetBenchmarkReferenceRequest = components['schemas']['SetBenchmarkReferenceRequest'];
@@ -26642,6 +27514,656 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_concepts_api_semantic_concepts_get: {
+        parameters: {
+            query?: {
+                concept_type?: string | null;
+                created_after?: string | null;
+                created_before?: string | null;
+                limit?: number;
+                min_ref_count?: number | null;
+                offset?: number;
+                search?: string | null;
+                sort_by?: string;
+                sort_order?: string;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SemanticConceptList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_concept_api_semantic_concepts_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConceptCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SemanticConceptDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_concept_api_semantic_concepts__concept_id__get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                concept_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SemanticConceptDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_concept_api_semantic_concepts__concept_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                concept_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConceptDeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_neighbors_api_semantic_concepts__concept_id__neighbors_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                concept_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConceptNeighborList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_concepts_api_semantic_concepts_delete_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConceptDeleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConceptDeleteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_delete_impact_api_semantic_concepts_delete_impact_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConceptDeleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConceptDeleteImpact"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_duplicates_api_semantic_concepts_duplicates_get: {
+        parameters: {
+            query?: {
+                band_width?: number;
+                concept_type?: string | null;
+                limit?: number;
+                threshold?: number;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DuplicatePairList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_concepts_api_semantic_concepts_export_get: {
+        parameters: {
+            query?: {
+                concept_type?: string | null;
+                min_ref_count?: number | null;
+                search?: string | null;
+                sort_by?: string;
+                sort_order?: string;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_concepts_api_semantic_concepts_import_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConceptImportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConceptImportResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    migration_cancel_api_semantic_concepts_migration_cancel_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MigrationStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    migration_preview_api_semantic_concepts_migration_preview_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MigrationStartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MigrationPreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    migration_start_api_semantic_concepts_migration_start_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MigrationStartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MigrationStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    migration_status_api_semantic_concepts_migration_status_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MigrationStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    probe_concept_api_semantic_concepts_probe_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConceptProbeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConceptProbeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_projection_api_semantic_concepts_projection_get: {
+        parameters: {
+            query: {
+                concept_type: string;
+                dims: number;
+                embedding_model: string;
+                limit?: number;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConceptProjection"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_concept_types_api_semantic_concepts_types_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SemanticConceptTypeInfo"][];
+                };
             };
             /** @description Validation Error */
             422: {
