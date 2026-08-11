@@ -178,7 +178,6 @@ export class EntityEnricherTrigger implements INodeType {
 				displayOptions: { show: { event: ['delta_available'] } },
 			},
 		],
-		usableAsTool: true,
 	};
 
 	methods = {
