@@ -7429,6 +7429,11 @@ export type components = {
                 [key: string]: unknown;
             } | null;
             /**
+             * Identity Merges
+             * @description Objects whose semantic ID resolved to a concept minted from DIFFERENT text — the near-duplicate collapse semantic IDs exist for, reported because the same mechanism is how two distinct entities come to share one row. A merge on the root entity (path '') means THIS enrichment wrote over the row of whatever was enriched before under that concept: verify it names the same thing, and if not, revise the schema's identity participants (semantic_source_keys) or its threshold
+             */
+            identity_merges?: components["schemas"]["SemanticIdentityMerge"][];
+            /**
              * Key Collisions
              * @description List items that resolved to an identity an earlier sibling already claimed; only the first was written (no silent last-write-wins row, no duplicate link rows)
              */
@@ -10004,6 +10009,12 @@ export type components = {
             display_name?: string | null;
             /** Embedding Dimensions */
             embedding_dimensions?: number | null;
+            /**
+             * Embedding Wired
+             * @description Computed: the backend has an embedding transport for this model's provider. supports_embeddings says the provider serves an embeddings API; this says the platform can call it — pickers for semantic-ID embedding models (org default, migration target, schema pin) must require both.
+             * @default false
+             */
+            embedding_wired: boolean;
             /** Id */
             id: number;
             /**
@@ -13824,7 +13835,7 @@ export type components = {
         SemanticConceptUsage: {
             /**
              * All Key Paths
-             * @description Every candidate is_key path of the object incl. 1-1 nested descendants
+             * @description Every candidate is_key path of the object incl. 1-1 nested descendants — the universe a selection may draw from, wider than what composes by default (a related entity's key is a candidate but does not participate unless explicitly selected)
              */
             all_key_paths: string[];
             /**
@@ -13834,9 +13845,45 @@ export type components = {
             concept_type: string;
             /**
              * Source Keys
-             * @description Effective semantic_source_keys subset (relative dotted paths); None = all keys
+             * @description The identity participants actually composing this concept's text, IN COMPOSITION ORDER (relative dotted paths) — the semantic_source_keys selection when set, else the schema's default composition. Two schemas mint the same ids only when their lists match position by position. None only when the object has no usable key at all
              */
             source_keys?: string[] | null;
+        };
+        /**
+         * SemanticIdentityMerge
+         * @description One object folded into an existing concept by embedding similarity.
+         *
+         *     Unlike a key collision — two rows of ONE enrichment claiming one identity — this
+         *     reaches across enrichments: the concept was minted by an earlier record, and the
+         *     entity-layer upsert converges on it. That is the point of semantic IDs when the two
+         *     texts name the same thing, and silent data loss when they do not (issue #85).
+         */
+        SemanticIdentityMerge: {
+            /**
+             * Concept Id
+             * Format: uuid
+             */
+            concept_id: string;
+            /**
+             * Json Path
+             * @description Path of the object inside the output; '' for the root entity
+             */
+            json_path: string;
+            /**
+             * Matched Text
+             * @description Canonical text of the concept it joined
+             */
+            matched_text: string;
+            /**
+             * Similarity
+             * @description Cosine similarity of the match
+             */
+            similarity: number;
+            /**
+             * Text
+             * @description Identity text this object composed
+             */
+            text: string;
         };
         /**
          * SemanticKeyUsageResponse
@@ -18928,6 +18975,7 @@ export type SemanticConceptRef = components['schemas']['SemanticConceptRef'];
 export type SemanticConceptSummary = components['schemas']['SemanticConceptSummary'];
 export type SemanticConceptTypeInfo = components['schemas']['SemanticConceptTypeInfo'];
 export type SemanticConceptUsage = components['schemas']['SemanticConceptUsage'];
+export type SemanticIdentityMerge = components['schemas']['SemanticIdentityMerge'];
 export type SemanticKeyUsageResponse = components['schemas']['SemanticKeyUsageResponse'];
 export type SetBenchmarkReferenceRequest = components['schemas']['SetBenchmarkReferenceRequest'];
 export type SharedEntityConflict = components['schemas']['SharedEntityConflict'];
