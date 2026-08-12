@@ -11243,7 +11243,7 @@ export type components = {
             ordered?: boolean | null;
             /**
              * Owned
-             * @description True = this relationship property (array of entities, or 1-1 $ref / promoted inline object) OWNS its target: the target is a weak entity whose identity is scoped by this containing object (docs/ENTITY_LAYER.md → owned entities). Owned targets project as a child table with owner FK columns instead of a junction; an owned type has exactly one owning site and is referenced nowhere else. Absent/false = shared entity (default).
+             * @description True = this relationship property (array of entities, or 1-1 $ref / identity-bearing inline object) OWNS its target — its data is per-parent (docs/ENTITY_LAYER.md → owned entities). An owned ARRAY's items are weak entities: a child table with owner FK columns instead of a junction, identity scoped by the owner. An owned 1-1 target FLATTENS into the parent's row (issue #93): no table of its own, members as prefixed columns, its semantic_id — which keeps resolving to an org-global concept — as a plain data column. An owned type has exactly one owning site and is referenced nowhere else. Absent/false = shared entity (default).
              */
             owned?: boolean | null;
             /**
@@ -11415,7 +11415,7 @@ export type components = {
             ordered?: boolean | null;
             /**
              * Owned
-             * @description True = this relationship property (array of entities, or 1-1 $ref / promoted inline object) OWNS its target: the target is a weak entity whose identity is scoped by this containing object (docs/ENTITY_LAYER.md → owned entities). Owned targets project as a child table with owner FK columns instead of a junction; an owned type has exactly one owning site and is referenced nowhere else. Absent/false = shared entity (default).
+             * @description True = this relationship property (array of entities, or 1-1 $ref / identity-bearing inline object) OWNS its target — its data is per-parent (docs/ENTITY_LAYER.md → owned entities). An owned ARRAY's items are weak entities: a child table with owner FK columns instead of a junction, identity scoped by the owner. An owned 1-1 target FLATTENS into the parent's row (issue #93): no table of its own, members as prefixed columns, its semantic_id — which keeps resolving to an org-global concept — as a plain data column. An owned type has exactly one owning site and is referenced nowhere else. Absent/false = shared entity (default).
              */
             owned?: boolean | null;
             /**
