@@ -4392,7 +4392,12 @@ export type paths = {
         };
         /**
          * Export Concepts
-         * @description Download the current filter as CSV (the table's "Export view" action).
+         * @description Download concepts as CSV — the table's filter, one concept type, or one schema.
+         *
+         *     `saved_schema_id` exports every concept space that schema resolves against, which is
+         *     usually several types; it takes precedence over `concept_type`. The embedding vector
+         *     is the last column by default — it is what makes the export usable for offline
+         *     analysis — and can be dropped for a small human-readable file.
          */
         get: operations["export_concepts_api_semantic_concepts_export_get"];
         put?: never;
@@ -7251,7 +7256,7 @@ export type components = {
             pattern_index_localized_keys: boolean;
             /**
              * Pk Strategy
-             * @description Physical PRIMARY KEY shape (docs/ENTITY_LAYER.md → pk_strategy). 'surrogate' (default) — every projected table gets a synthetic `_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY` (underscored so a schema property literally named `id` does not collide) and the schema's database key becomes a composite UNIQUE + NOT NULL. ORM-friendly (Django/Rails/Prisma model one PK column); children reference `_owner_id` / `_source_id` / `_target_id` BIGINT FKs onto the parent's `_id`; database-key changes stay migratable after publication (children reference the immutable `_id`). 'natural' — schema database keys are the PRIMARY KEY (today's shape, lean, one column less per table); database keys are FROZEN after first publication (re-keys would have to re-point every child, refused at publish). Decide at registration: locked once the replica shape has shipped — no DDL travels on the toggle. Mutable freely until first ship.
+             * @description Physical PRIMARY KEY shape (docs/ENTITY_LAYER.md → pk_strategy). 'surrogate' (default) — every projected table gets a synthetic `_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY` (underscored so a schema property literally named `id` does not collide) and the schema's database key becomes a composite UNIQUE + NOT NULL. ORM-friendly (Django/Rails/Prisma model one PK column); children reference `_(parent_table)_id` (junctions `_source_id` / `_target_id`) BIGINT FKs onto the parent's `_id`; database-key changes stay migratable after publication (children reference the immutable `_id`). 'natural' — schema database keys are the PRIMARY KEY (today's shape, lean, one column less per table); database keys are FROZEN after first publication (re-keys would have to re-point every child, refused at publish). Decide at registration: locked once the replica shape has shipped — no DDL travels on the toggle. Mutable freely until first ship.
              * @default surrogate
              * @enum {string}
              */
@@ -12908,7 +12913,7 @@ export type components = {
             links?: components["schemas"]["RelationalLinkTable"][];
             /**
              * Owned By
-             * @description Owning entity type when this table is a weak entity (owned relationship): rows carry _owner_* FK columns instead of a junction
+             * @description Owning entity type when this table is a weak entity (owned relationship): rows carry owner-copy FK columns named after the owner's table (`_(owner_table)_(key)`) instead of a junction
              */
             owned_by?: string | null;
             /**
@@ -12924,7 +12929,7 @@ export type components = {
             owned_via?: string | null;
             /**
              * Owner Keys
-             * @description The owner's key column names the _owner_* columns derive from
+             * @description The owner's key column names the owner-copy columns derive from
              */
             owner_keys?: string[];
             /** Refs */
@@ -27890,7 +27895,9 @@ export interface operations {
         parameters: {
             query?: {
                 concept_type?: string | null;
+                include_embeddings?: boolean;
                 min_ref_count?: number | null;
+                saved_schema_id?: string | null;
                 search?: string | null;
                 sort_by?: string;
                 sort_order?: string;
