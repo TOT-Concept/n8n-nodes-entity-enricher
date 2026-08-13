@@ -11953,7 +11953,7 @@ export type components = {
              * Kind
              * @enum {string}
              */
-            kind: "key_set" | "key_multilinguality" | "column_type" | "ownership" | "semantic_identity" | "rename";
+            kind: "key_set" | "key_multilinguality" | "column_type" | "ownership" | "semantic_identity" | "rename" | "item_order";
         };
         /**
          * QualityArrayScore
