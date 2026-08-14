@@ -7332,7 +7332,7 @@ export type components = {
             pk_strategy: "surrogate" | "natural";
             /**
              * Propagate Not Null
-             * @description Emit NOT NULL on columns the schema declares always-present. Forces require_complete on: the constraint and the admission gate are one feature — without the gate the replica rejects the delta, aborts the transaction and stalls its own feed. ON by default since entity merge became last-write-wins (issue #105): the latest payload IS the state, so a partial run erases what an earlier one filled instead of leaving it in place — the gate this flag forces on is what keeps that from reaching the replica, and the constraint states the same contract in the consumer's own database. Set it to false (with require_complete) for a database that wants partial rows. Decide it at registration: once the replica shape has shipped (first snapshot or DDL delta), the flag is locked — no DDL travels on a toggle, so a change would silently diverge from what the replica holds
+             * @description Emit NOT NULL on columns the schema declares always-present. Forces require_complete on: the constraint and the admission gate are one feature — without the gate the replica rejects the delta, aborts the transaction and stalls its own feed. ON by default since entity merge became last-write-wins (issue #105): the latest payload IS the state, so a partial run erases what an earlier one filled instead of leaving it in place — the gate this flag forces on is what keeps that from reaching the replica, and the constraint states the same contract in the consumer's own database. Set it to false (with require_complete) for a database that wants partial rows. Changeable after the replica shape has shipped (issue #101): the toggle queues a guarded per-table migration — SET NOT NULL validates the rows the replica already holds and quarantines that one statement on violations (fill the rows, then re-drive from the Quarantine tab) while the rest of the feed keeps flowing; turning it off drops the constraints unconditionally
              * @default true
              */
             propagate_not_null: boolean;
@@ -7387,7 +7387,7 @@ export type components = {
             database: components["schemas"]["DatabaseSync"];
             /**
              * Registration Notices
-             * @description The registration-time decisions that lock at first ship (propagate_not_null, pk_strategy), restated with this schema's own numbers — read them now: after the first snapshot or DDL delta these options can no longer be changed (issue #101)
+             * @description The weighty registration-time decisions (propagate_not_null, pk_strategy), restated with this schema's own numbers — read them now: after the first snapshot or DDL delta, pk_strategy can no longer be changed at all, and a propagate_not_null change costs a validating migration (issue #101)
              */
             registration_notices?: components["schemas"]["RegistrationNotice"][];
             /** Stamped Keys */
@@ -13071,13 +13071,14 @@ export type components = {
          * RegistrationNotice
          * @description One registration-time decision restated with the schema's own numbers.
          *
-         *     Issue #101: the options that lock at first ship used to be decided silently
-         *     by their defaults, before anyone could have an opinion — and the sequence a
-         *     normal user follows (register, publish, sync, look at the data) is exactly
-         *     the sequence in which the switch is no longer available. Each notice names
-         *     the option, the value this registration took (chosen or default), and its
-         *     concrete effect computed from the linked schema, so an API/MCP caller that
-         *     passed no options is still told what just became permanent-at-first-ship.
+         *     Issue #101: the weighty options used to be decided silently by their
+         *     defaults, before anyone could have an opinion — and the sequence a normal
+         *     user follows (register, publish, sync, look at the data) reaches one only
+         *     after the defaults have shipped. Each notice names the option, the value
+         *     this registration took (chosen or default), and its concrete effect
+         *     computed from the linked schema. `locked_after_ship` separates the option
+         *     that truly locks (pk_strategy) from one changeable later at migration cost
+         *     (propagate_not_null, option 3).
          */
         RegistrationNotice: {
             /**
@@ -14178,9 +14179,9 @@ export type components = {
             matched_text: string;
             /**
              * Similarity
-             * @description Cosine similarity of the match
+             * @description Cosine similarity of the match; null for a deterministic code/token-set reuse, where no embedding was consulted (issue #99)
              */
-            similarity: number;
+            similarity?: number | null;
             /**
              * Text
              * @description Identity text this object composed
