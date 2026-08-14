@@ -7910,6 +7910,11 @@ export type components = {
              * @description Medium/high findings only (deterministic props omitted)
              */
             findings?: components["schemas"]["NonDeterminismFinding"][];
+            /**
+             * Identity Scoping
+             * @description Mixed relationship sites only (issue #116): items whose fields mix the related entity's own facts with facts about the pairing. Clean sites are omitted here; they persist as clean markers on the schema (schema-analyze route).
+             */
+            identity_scoping?: components["schemas"]["IdentityScopingFinding"][];
             /** Record Id */
             record_id?: string | null;
             /** @description Updated schema (schema-analyze route only) */
@@ -9043,6 +9048,96 @@ export type components = {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * IdentityScopingFinding
+         * @description Scoping verdict for one relationship site (issue #116).
+         *
+         *     `mixed=False` is the clean marker (no chip) — the analog of level="low".
+         *     A mixed site's fields split into facts the related entity carries on its
+         *     own and facts about the pairing with the parent; the remedy is structural
+         *     (nest the entity fields into a subobject), so the finding survives
+         *     description edits and is invalidated only by a change to the item's field
+         *     set — which consumers detect by comparing against the recorded fields.
+         */
+        IdentityScopingFinding: {
+            /**
+             * Entity Fields
+             * @description Fields that are facts about the related entity itself
+             */
+            entity_fields?: string[];
+            /**
+             * Mixed
+             * @description True when the item mixes entity-intrinsic and pair-scoped fields
+             */
+            mixed: boolean;
+            /**
+             * Note
+             * @description Reason + remedy, in the requester's UI locale
+             * @default
+             */
+            note: string;
+            /**
+             * Pair Fields
+             * @description Fields that are facts about the pairing with the parent
+             */
+            pair_fields?: string[];
+            /**
+             * Path
+             * @description Dotted path of the analyzed relationship site
+             */
+            path: string;
+            /**
+             * Suggested Entity Name
+             * @description snake_case name proposed for the nested entity subobject
+             */
+            suggested_entity_name?: string | null;
+        };
+        /**
+         * IdentityScopingInfo
+         * @description Advisory flag: a relationship site whose items mix entity-intrinsic and
+         *     pair-scoped facts (issue #116).
+         *
+         *     Written by the schema analysis (the same pass as `non_determinism`), NEVER
+         *     by the generation/edit LLM (stripped from every prompt). Its lifecycle
+         *     deliberately DIVERGES from `non_determinism`: the remedy is structural
+         *     (nest the entity fields into a subobject and regenerate), so a description
+         *     edit does not clear it — only a change to the item's field set does. The
+         *     recorded `fields` are the self-invalidation fingerprint: every consumer
+         *     treats the flag as absent when they no longer match the item's fields.
+         *     `mixed=False` is a clean marker (no chip) driving incremental re-analysis.
+         */
+        IdentityScopingInfo: {
+            /**
+             * Entity Fields
+             * @description Fields that are facts about the related entity itself
+             */
+            entity_fields?: string[];
+            /**
+             * Fields
+             * @description The item field names this verdict was rendered on — compare to the current fields; a mismatch invalidates the flag
+             */
+            fields?: string[];
+            /**
+             * Mixed
+             * @description True when the item mixes facts about the related entity itself with facts about the pairing with the parent
+             */
+            mixed: boolean;
+            /**
+             * Note
+             * @description Human-readable reason + remedy, in the requester's UI locale. Omitted for clean markers.
+             */
+            note?: string | null;
+            /**
+             * Pair Fields
+             * @description Fields that are facts about the pairing with the parent
+             */
+            pair_fields?: string[];
+            /**
+             * Suggested Entity Name
+             * @description snake_case name proposed for the nested entity subobject
+             */
+            suggested_entity_name?: string | null;
         };
         /**
          * ImportBenchmarkResultsRequest
@@ -11311,6 +11406,8 @@ export type components = {
              * @description Machine-checkable shape of a string property's value (JSON Schema 'format'). An ENRICHMENT contract: the dynamic output model enforces the shape (date → datetime.date, uuid → UUID, email/uri/ipv4/ipv6 → StringConstraints regex), so a malformed value ('9:00', 'not@ok', '999.0.0.1') is a validation error the model retries on; date-family and uuid additionally re-serialize into the canonical rendering. Detected from the sample values at schema generation and bounded against them (every value must prove the format, else it is dropped); the URI shape requires 'scheme://' so bare domains like 'example.com' stay plain strings. Also defaults the column type at link time (date→DATE, time→TIME, date-time→TIMESTAMP, uuid→UUID) unless db_type says otherwise; email/uri/ipv4/ipv6 stay TEXT. Mutually exclusive with pattern and with multilingual.
              */
             format?: ("date" | "time" | "date-time" | "uuid" | "email" | "uri" | "ipv4" | "ipv6") | null;
+            /** @description Advisory, relationship sites only: the item mixes the related entity's own facts with facts about the pairing (issue #116). Written by the schema analysis; stripped from every LLM prompt; survives description edits and self-invalidates when the item's field set changes. Absent = never analyzed. */
+            identity_scoping?: components["schemas"]["IdentityScopingInfo"] | null;
             /**
              * Indexed
              * @description True = a consumer app filters, sorts or facets its LIST screens by this property, so its column gets a secondary index in every database whose index_scalars policy admits explicit flags (docs/ENTITY_LAYER.md → indexing). Redundant on identity properties (is_key/database_key are indexed by identity) and on closed sets (enum refs, booleans, dates are indexed by type) — those keep their own class. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the flags step at schema generation (bounded per entity) and editable in the Schema editor. Stripped from every LLM prompt.
@@ -11478,6 +11575,8 @@ export type components = {
              * @description Machine-checkable shape of a string property's value (JSON Schema 'format'). An ENRICHMENT contract: the dynamic output model enforces the shape (date → datetime.date, uuid → UUID, email/uri/ipv4/ipv6 → StringConstraints regex), so a malformed value ('9:00', 'not@ok', '999.0.0.1') is a validation error the model retries on; date-family and uuid additionally re-serialize into the canonical rendering. Detected from the sample values at schema generation and bounded against them (every value must prove the format, else it is dropped); the URI shape requires 'scheme://' so bare domains like 'example.com' stay plain strings. Also defaults the column type at link time (date→DATE, time→TIME, date-time→TIMESTAMP, uuid→UUID) unless db_type says otherwise; email/uri/ipv4/ipv6 stay TEXT. Mutually exclusive with pattern and with multilingual.
              */
             format?: ("date" | "time" | "date-time" | "uuid" | "email" | "uri" | "ipv4" | "ipv6") | null;
+            /** @description Advisory, relationship sites only: the item mixes the related entity's own facts with facts about the pairing (issue #116). Written by the schema analysis; stripped from every LLM prompt; survives description edits and self-invalidates when the item's field set changes. Absent = never analyzed. */
+            identity_scoping?: components["schemas"]["IdentityScopingInfo"] | null;
             /**
              * Indexed
              * @description True = a consumer app filters, sorts or facets its LIST screens by this property, so its column gets a secondary index in every database whose index_scalars policy admits explicit flags (docs/ENTITY_LAYER.md → indexing). Redundant on identity properties (is_key/database_key are indexed by identity) and on closed sets (enum refs, booleans, dates are indexed by type) — those keep their own class. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the flags step at schema generation (bounded per entity) and editable in the Schema editor. Stripped from every LLM prompt.
@@ -19137,6 +19236,8 @@ export type GenerateSchemaResponse = components['schemas']['GenerateSchemaRespon
 export type HostClaimRequest = components['schemas']['HostClaimRequest'];
 export type HostClaimResponse = components['schemas']['HostClaimResponse'];
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
+export type IdentityScopingFinding = components['schemas']['IdentityScopingFinding'];
+export type IdentityScopingInfo = components['schemas']['IdentityScopingInfo'];
 export type ImportBenchmarkResultsRequest = components['schemas']['ImportBenchmarkResultsRequest'];
 export type ImportBenchmarkResultsResponse = components['schemas']['ImportBenchmarkResultsResponse'];
 export type ImportedBenchmarkResult = components['schemas']['ImportedBenchmarkResult'];
