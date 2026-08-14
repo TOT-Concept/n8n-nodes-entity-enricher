@@ -1907,11 +1907,13 @@ export type paths = {
         };
         /**
          * List Quarantine
-         * @description Quarantined deltas grouped by entity (docs/ENTITY_LAYER.md → Quarantine).
+         * @description Quarantined deltas (docs/ENTITY_LAYER.md → Quarantine).
          *
-         *     Entity-shaped rather than delta-shaped because that is the unit the actions
-         *     take: a reinjection re-projects an entity's current state, it never replays
-         *     these rows.
+         *     Two lists because there are two units. Entity rows are entity-shaped —
+         *     reinjection re-projects an entity's current state and never replays them.
+         *     Migration rows are delta-shaped: refused DDL has no entity to group on, and
+         *     re-driving replays the stored statement verbatim, which is sound exactly
+         *     because DDL is idempotent and order-independent.
          */
         get: operations["list_quarantine_api_databases__database_id__quarantine_get"];
         put?: never;
@@ -1937,8 +1939,42 @@ export type paths = {
          *
          *     For work the consumer no longer wants: the entity keeps its server-side
          *     state, so a later enrichment (or a reinjection) can still ship it.
+         *
+         *     Migrations must be named in `delta_ids` — omitting everything sweeps
+         *     entities only, so a refused constraint is never discarded by a click aimed
+         *     at something else.
          */
         post: operations["delete_quarantined_api_databases__database_id__quarantine_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/databases/{database_id}/quarantine/redrive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Redrive Quarantined Migrations
+         * @description Re-queue refused DDL at the tail of the feed, then drop the originals.
+         *
+         *     A replay, unlike the entity reinjection above: the statement the replica
+         *     refused is the statement it still needs, and DDL is idempotent and
+         *     order-independent. Re-rendering it from today's specs would ship something
+         *     other than what the user is looking at in the tab.
+         *
+         *     Meant to be called once the condition that refused it is gone — the rows a
+         *     guarded `CREATE UNIQUE INDEX` named have been deduplicated, say. Re-driving
+         *     too early costs nothing: the statement is quarantined again with the fresh
+         *     error, and the feed never stops either way.
+         */
+        post: operations["redrive_quarantined_migrations_api_databases__database_id__quarantine_redrive_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3929,6 +3965,31 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/schema/saved/{schema_id}/db-model-scope": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Db Model Scope
+         * @description What the next database-model classification pass would (re)ask.
+         *
+         *     Non-empty lists mean parts of the database model are defaults, not
+         *     decisions — new/changed properties, and paths a degraded classification
+         *     batch never answered (issue #102: those leave the ledger precisely so they
+         *     are asked again). The Model tab shows this as its "unclassified" warning.
+         */
+        get: operations["get_db_model_scope_api_schema_saved__schema_id__db_model_scope_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schema/saved/{schema_id}/duplicate": {
         parameters: {
             query?: never;
@@ -4168,6 +4229,10 @@ export type paths = {
         /**
          * Validate Schema For Database
          * @description Dry-run of linking a database: errors + the database-key stamping preview.
+         *
+         *     Also carries the advisory NOT NULL scope numbers, so the registration form
+         *     can state what the locking options will do to THIS schema before the user
+         *     creates anything (issue #101).
          */
         post: operations["validate_schema_for_database_api_schemas__schema_id__databases_validate_post"];
         delete?: never;
@@ -4251,6 +4316,9 @@ export type paths = {
         /**
          * List Concepts
          * @description Filtered, sorted page of the organization's semantic concepts.
+         *
+         *     `concept_types` is repeatable: the page's type filter selects several slices at
+         *     once, and every browse surface (list, export, duplicates) reads the same filter.
          */
         get: operations["list_concepts_api_semantic_concepts_get"];
         put?: never;
@@ -4330,8 +4398,10 @@ export type paths = {
          * Delete Concepts
          * @description Delete concepts. Record links drop; future enrichments mint fresh ids.
          *
-         *     Clearing a whole concept type (no explicit ids) is owner+: it is the maintenance
-         *     action for a changed identity basis and rewrites the vocabulary wholesale.
+         *     Clearing whole concept types (no explicit ids) is owner+: it is the maintenance
+         *     action for a changed identity basis and rewrites the vocabulary wholesale. Each
+         *     cleared type disappears from the vocabulary with its last concept — the type list
+         *     is a facet over these rows, not a table of its own.
          */
         post: operations["delete_concepts_api_semantic_concepts_delete_post"];
         delete?: never;
@@ -4392,10 +4462,10 @@ export type paths = {
         };
         /**
          * Export Concepts
-         * @description Download concepts as CSV — the table's filter, one concept type, or one schema.
+         * @description Download concepts as CSV — the table's filter, chosen concept types, or a schema.
          *
          *     `saved_schema_id` exports every concept space that schema resolves against, which is
-         *     usually several types; it takes precedence over `concept_type`. The embedding vector
+         *     usually several types; it takes precedence over `concept_types`. The embedding vector
          *     is the last column by default — it is what makes the export usable for offline
          *     analysis — and can be dropped for a small human-readable file.
          */
@@ -4484,8 +4554,8 @@ export type paths = {
         put?: never;
         /**
          * Migration Start
-         * @description Re-embed the source space's concepts (optionally one concept type) with the
-         *     target model.
+         * @description Re-embed the source space's concepts (optionally scoped to concept types)
+         *     with the target model.
          *
          *     Returns immediately; the backfill runs in the background and enrichments keep
          *     resolving against the current model throughout. Resolution follows each type's
@@ -6298,10 +6368,14 @@ export type components = {
         /**
          * ConceptDeleteRequest
          * @description Bulk delete by explicit ids, or every unused concept of a scope.
+         *
+         *     `concept_types` is the page's type filter, so clearing several types is one
+         *     gesture — the types themselves are a facet over the surviving rows, so each one
+         *     disappears from the vocabulary as soon as its last concept goes.
          */
         ConceptDeleteRequest: {
-            /** Concept Type */
-            concept_type?: string | null;
+            /** Concept Types */
+            concept_types?: string[];
             /** Ids */
             ids?: string[];
             /**
@@ -7149,11 +7223,6 @@ export type components = {
              * @default false
              */
             propagate_not_null: boolean;
-            /**
-             * Propagate Unique
-             * @default false
-             */
-            propagate_unique: boolean;
             /** Purge Entity State */
             purge_entity_state: boolean;
             /** Purge On Ack */
@@ -7263,19 +7332,13 @@ export type components = {
             pk_strategy: "surrogate" | "natural";
             /**
              * Propagate Not Null
-             * @description Emit NOT NULL on columns the schema declares always-present. Forces require_complete on: the constraint and the admission gate are one feature — without the gate the replica rejects the delta, aborts the transaction and stalls its own feed. Decide it at registration: once the replica shape has shipped (first snapshot or DDL delta), the flag is locked — no DDL travels on a toggle, so a change would silently diverge from what the replica holds
-             * @default false
+             * @description Emit NOT NULL on columns the schema declares always-present. Forces require_complete on: the constraint and the admission gate are one feature — without the gate the replica rejects the delta, aborts the transaction and stalls its own feed. ON by default since entity merge became last-write-wins (issue #105): the latest payload IS the state, so a partial run erases what an earlier one filled instead of leaving it in place — the gate this flag forces on is what keeps that from reaching the replica, and the constraint states the same contract in the consumer's own database. Set it to false (with require_complete) for a database that wants partial rows. Decide it at registration: once the replica shape has shipped (first snapshot or DDL delta), the flag is locked — no DDL travels on a toggle, so a change would silently diverge from what the replica holds
+             * @default true
              */
             propagate_not_null: boolean;
             /**
-             * Propagate Unique
-             * @description Emit a UNIQUE index for every `unique_group` the schema declares (docs/ENTITY_LAYER.md → unique groups). Off by default because a unique constraint can refuse a row the entity layer considers valid, and a refused delta stalls this database's whole feed: opting in also arms the server-side duplicate check, so conflicts are refused at enrichment time instead of reaching your replica. Enabling it on a database that already holds duplicates is a migration that aborts by name with a count; turning it back off drops the constraint and resumes the feed. Mutually exclusive with purge_entity_state: the pre-check and the write-time probe both read the retained entity state, and a purged row is invisible to them — a colliding write would reach the replica's UNIQUE index and stall the feed
-             * @default false
-             */
-            propagate_unique: boolean;
-            /**
              * Purge Entity State
-             * @description Also delete entity rows once every database of the schema acknowledged their latest revision (data minimization — not GDPR erasure; records remain). The server stops being a source of truth: snapshots become partial, the convergence checksum goes blind, re-enrichments lose their merge base, and a paused link cannot backfill. Mutually exclusive with propagate_unique, whose duplicate checks read the state this deletes
+             * @description Also delete entity rows once every database of the schema acknowledged their latest revision (data minimization — not GDPR erasure; records remain). The server stops being a source of truth: snapshots become partial, the convergence checksum goes blind, re-enrichments lose their merge base, and a paused link cannot backfill. It also blinds the server-side duplicate probe that guards the schema's declared unique groups: purged rows are invisible to it, so a collision is caught by the replica's own UNIQUE index instead — that write quarantines and is listed in the Quarantine tab rather than being refused at enrichment time
              * @default false
              */
             purge_entity_state: boolean;
@@ -7322,6 +7385,11 @@ export type components = {
              */
             custody_warning?: string | null;
             database: components["schemas"]["DatabaseSync"];
+            /**
+             * Registration Notices
+             * @description The registration-time decisions that lock at first ship (propagate_not_null, pk_strategy), restated with this schema's own numbers — read them now: after the first snapshot or DDL delta these options can no longer be changed (issue #101)
+             */
+            registration_notices?: components["schemas"]["RegistrationNotice"][];
             /** Stamped Keys */
             stamped_keys?: components["schemas"]["EntityTypeKeys"][];
             /**
@@ -7508,8 +7576,6 @@ export type components = {
             pk_strategy?: ("surrogate" | "natural") | null;
             /** Propagate Not Null */
             propagate_not_null?: boolean | null;
-            /** Propagate Unique */
-            propagate_unique?: boolean | null;
             /** Purge Entity State */
             purge_entity_state?: boolean | null;
             /** Purge On Ack */
@@ -7533,12 +7599,45 @@ export type components = {
              * @default false
              */
             already_stamped: boolean;
+            /**
+             * Always Present Columns
+             * @description Columns propagate_not_null=true would ship NOT NULL: always-present scalars across the schema's entity and child tables
+             * @default 0
+             */
+            always_present_columns: number;
+            /**
+             * Entity Tables
+             * @description Entity tables this schema projects
+             * @default 0
+             */
+            entity_tables: number;
             /** Errors */
             errors?: string[];
             /** Stamped Keys */
             stamped_keys?: components["schemas"]["EntityTypeKeys"][];
             /** Valid */
             valid: boolean;
+        };
+        /**
+         * DbModelScopeResponse
+         * @description What the next database-model classification pass would (re)ask.
+         *
+         *     Computed from the per-schema ledger: properties/relationship sites the last
+         *     pass never saw or never got an answer for (a degraded batch's paths leave
+         *     the ledger — issue #102), plus properties whose JSON type or `multilingual`
+         *     flag changed since. Empty lists = the database model is fully classified.
+         */
+        DbModelScopeResponse: {
+            /**
+             * Properties
+             * @description Dotted property paths awaiting classification
+             */
+            properties: string[];
+            /**
+             * Relationships
+             * @description Relationship site ids ('<Type>.<property>') awaiting classification
+             */
+            relationships: string[];
         };
         /**
          * DeclaredUnknown
@@ -9355,8 +9454,8 @@ export type components = {
             collisions_sampled: number;
             /** Concept Count */
             concept_count: number;
-            /** Concept Type */
-            concept_type?: string | null;
+            /** Concept Types */
+            concept_types?: string[];
             /** Estimated Cost Usd */
             estimated_cost_usd: number;
             /** Estimated Tokens */
@@ -9372,8 +9471,8 @@ export type components = {
         };
         /** MigrationStartRequest */
         MigrationStartRequest: {
-            /** Concept Type */
-            concept_type?: string | null;
+            /** Concept Types */
+            concept_types?: string[];
             /** Source Model */
             source_model?: string | null;
             /** Target Model */
@@ -9386,8 +9485,8 @@ export type components = {
         MigrationStatusResponse: {
             /** Completed At */
             completed_at?: string | null;
-            /** Concept Type */
-            concept_type?: string | null;
+            /** Concept Types */
+            concept_types?: string[];
             /**
              * Embedded Count
              * @default 0
@@ -11247,16 +11346,6 @@ export type components = {
              */
             ordered?: boolean | null;
             /**
-             * Owned
-             * @description True = this relationship property (array of entities, or 1-1 $ref / identity-bearing inline object) OWNS its target — its data is per-parent (docs/ENTITY_LAYER.md → owned entities). An owned ARRAY's items are weak entities: a child table with owner FK columns instead of a junction, identity scoped by the owner. An owned 1-1 target FLATTENS into the parent's row (issue #93): no table of its own, members as prefixed columns, its semantic_id — which keeps resolving to an org-global concept — as a plain data column. An owned type has exactly one owning site and is referenced nowhere else. Absent/false = shared entity (default).
-             */
-            owned?: boolean | null;
-            /**
-             * Owned Reason
-             * @description Why this relationship's target is owned by this parent — or why it is SHARED — in the schema's own prose language. Same provenance contract as `database_key_reason`, but unlike the other two it is written on BOTH answers: `owned` decides whether rows converge across parents, so the reviewer needs the argument whichever way it went, and a `owned` site reached by the deterministic default is exactly the one whose reasoning is otherwise invisible. Every automatic path writes it — the classification call, the multi-site rule, the ownership repair — so a relationship carrying none was decided by hand.
-             */
-            owned_reason?: string | null;
-            /**
              * Pattern
              * @description Regex the value of a string property must match (JSON Schema 'pattern'), for machine-formatted strings no named format covers — emails, codes, identifiers. Enforced by the dynamic output model (StringConstraints), so a non-matching value is a validation error the model retries on. Proposed by the flags step at schema generation and dropped unless every observed sample value matches it. Never for natural-language text. Mutually exclusive with format and with multilingual.
              */
@@ -11305,9 +11394,14 @@ export type components = {
             semantic_threshold?: number | null;
             /**
              * Shared
-             * @description The link-time classification's ownership VERDICT for this relationship site, recorded verbatim and in both directions: true = one target row serves every parent, false = the target belongs to the parent it was enriched under. Set on every relationship a classification pass touches, so a later pass starts from the answer already on record instead of resetting to the default — which used to discard a hand-curated site on any full re-run. `owned` remains the EFFECTIVE flag the projection and write path read (it is what the deterministic rules and the repair pass conclude); this is what was decided, paired with `owned_reason` saying why. Both are cleared together when a human changes the flag, so the pair never contradicts `owned`. null = no pass has judged this site.
+             * @description Whether one row of this relationship's target serves EVERY parent that points at it. **true** = shared: one converged row, a junction table (array) or a plain FK (1-1). **false** = owned: the target's data is per-parent (docs/ENTITY_LAYER.md - owned entities) - an owned ARRAY's items are weak entities in a child table with owner FK columns instead of a junction, identity scoped by the owner, while an owned 1-1 target FLATTENS into the parent's row (issue #93): no table of its own, members as prefixed columns, its semantic_id - which keeps resolving to an org-global concept - as a plain data column. An owned type has exactly one owning site and is referenced nowhere else. **null** = no pass has judged this site; it behaves as shared, and a classification pass may still decide it. This is BOTH the recorded verdict and the effective flag the projection and write path read. It used to be two fields - a public `owned` and a verdict-only `shared` - which could disagree: the 'already judged' test read `shared`, a flag no API caller ever set, so an explicit `owned: false` was silently overturned on the next pass (issue #97). One field cannot drift from itself.
              */
             shared?: boolean | null;
+            /**
+             * Shared Reason
+             * @description Why this relationship's target is shared - or why it is OWNED - in the schema's own prose language. Same provenance contract as `database_key_reason`, but unlike the other two it is written on BOTH answers: `shared` decides whether rows converge across parents, so the reviewer needs the argument whichever way it went, and a site reached by the deterministic default is exactly the one whose reasoning is otherwise invisible. Every automatic path writes it - the classification call, the multi-site rule, the ownership repair - so a relationship carrying none was decided by hand.
+             */
+            shared_reason?: string | null;
             /**
              * Type
              * @description JSON Schema type: string, number, integer, boolean, array, object
@@ -11315,7 +11409,7 @@ export type components = {
             type?: string | null;
             /**
              * Unique Group
-             * @description Label declaring that this property's value identifies AT MOST ONE object of its type. Properties of one object sharing a label form a single UNIQUE constraint over their columns together (first_name + last_name identify jointly); a label used once is a one-column unique. An object may carry several independent labels — three registry identifiers are three constraints, not one composite. This is why the flag is a label and not a boolean, and why `is_key` cannot stand in for it: the default-key ladder already reads N is_key properties as ONE composite key (schema_validation._pick_default_keys). Only materialized on databases that opted into propagate_unique — the consumer owns whether a constraint may stall their feed. Every member must be a non-nullable scalar (NULLs are distinct in SQL, so a nullable member silently disables the constraint). Stripped from every LLM prompt; curated in the Database Sync page's Model tab.
+             * @description Label declaring that this property's value identifies AT MOST ONE object of its type. Properties of one object sharing a label form a single UNIQUE constraint over their columns together (first_name + last_name identify jointly); a label used once is a one-column unique. An object may carry several independent labels — three registry identifiers are three constraints, not one composite. This is why the flag is a label and not a boolean, and why `is_key` cannot stand in for it: the default-key ladder already reads N is_key properties as ONE composite key (schema_validation._pick_default_keys). Materialized on EVERY database the schema is linked to: a constraint the schema declares is not a read/write trade a registration gets to decline, so declaring the label is the whole decision. Every member must be a non-nullable scalar (NULLs are distinct in SQL, so a nullable member silently disables the constraint). Stripped from every LLM prompt; curated in the Database Sync page's Model tab.
              */
             unique_group?: string | null;
             /**
@@ -11419,16 +11513,6 @@ export type components = {
              */
             ordered?: boolean | null;
             /**
-             * Owned
-             * @description True = this relationship property (array of entities, or 1-1 $ref / identity-bearing inline object) OWNS its target — its data is per-parent (docs/ENTITY_LAYER.md → owned entities). An owned ARRAY's items are weak entities: a child table with owner FK columns instead of a junction, identity scoped by the owner. An owned 1-1 target FLATTENS into the parent's row (issue #93): no table of its own, members as prefixed columns, its semantic_id — which keeps resolving to an org-global concept — as a plain data column. An owned type has exactly one owning site and is referenced nowhere else. Absent/false = shared entity (default).
-             */
-            owned?: boolean | null;
-            /**
-             * Owned Reason
-             * @description Why this relationship's target is owned by this parent — or why it is SHARED — in the schema's own prose language. Same provenance contract as `database_key_reason`, but unlike the other two it is written on BOTH answers: `owned` decides whether rows converge across parents, so the reviewer needs the argument whichever way it went, and a `owned` site reached by the deterministic default is exactly the one whose reasoning is otherwise invisible. Every automatic path writes it — the classification call, the multi-site rule, the ownership repair — so a relationship carrying none was decided by hand.
-             */
-            owned_reason?: string | null;
-            /**
              * Pattern
              * @description Regex the value of a string property must match (JSON Schema 'pattern'), for machine-formatted strings no named format covers — emails, codes, identifiers. Enforced by the dynamic output model (StringConstraints), so a non-matching value is a validation error the model retries on. Proposed by the flags step at schema generation and dropped unless every observed sample value matches it. Never for natural-language text. Mutually exclusive with format and with multilingual.
              */
@@ -11477,9 +11561,14 @@ export type components = {
             semantic_threshold?: number | null;
             /**
              * Shared
-             * @description The link-time classification's ownership VERDICT for this relationship site, recorded verbatim and in both directions: true = one target row serves every parent, false = the target belongs to the parent it was enriched under. Set on every relationship a classification pass touches, so a later pass starts from the answer already on record instead of resetting to the default — which used to discard a hand-curated site on any full re-run. `owned` remains the EFFECTIVE flag the projection and write path read (it is what the deterministic rules and the repair pass conclude); this is what was decided, paired with `owned_reason` saying why. Both are cleared together when a human changes the flag, so the pair never contradicts `owned`. null = no pass has judged this site.
+             * @description Whether one row of this relationship's target serves EVERY parent that points at it. **true** = shared: one converged row, a junction table (array) or a plain FK (1-1). **false** = owned: the target's data is per-parent (docs/ENTITY_LAYER.md - owned entities) - an owned ARRAY's items are weak entities in a child table with owner FK columns instead of a junction, identity scoped by the owner, while an owned 1-1 target FLATTENS into the parent's row (issue #93): no table of its own, members as prefixed columns, its semantic_id - which keeps resolving to an org-global concept - as a plain data column. An owned type has exactly one owning site and is referenced nowhere else. **null** = no pass has judged this site; it behaves as shared, and a classification pass may still decide it. This is BOTH the recorded verdict and the effective flag the projection and write path read. It used to be two fields - a public `owned` and a verdict-only `shared` - which could disagree: the 'already judged' test read `shared`, a flag no API caller ever set, so an explicit `owned: false` was silently overturned on the next pass (issue #97). One field cannot drift from itself.
              */
             shared?: boolean | null;
+            /**
+             * Shared Reason
+             * @description Why this relationship's target is shared - or why it is OWNED - in the schema's own prose language. Same provenance contract as `database_key_reason`, but unlike the other two it is written on BOTH answers: `shared` decides whether rows converge across parents, so the reviewer needs the argument whichever way it went, and a site reached by the deterministic default is exactly the one whose reasoning is otherwise invisible. Every automatic path writes it - the classification call, the multi-site rule, the ownership repair - so a relationship carrying none was decided by hand.
+             */
+            shared_reason?: string | null;
             /**
              * Type
              * @description JSON Schema type: string, number, integer, boolean, array, object
@@ -11487,7 +11576,7 @@ export type components = {
             type?: string | null;
             /**
              * Unique Group
-             * @description Label declaring that this property's value identifies AT MOST ONE object of its type. Properties of one object sharing a label form a single UNIQUE constraint over their columns together (first_name + last_name identify jointly); a label used once is a one-column unique. An object may carry several independent labels — three registry identifiers are three constraints, not one composite. This is why the flag is a label and not a boolean, and why `is_key` cannot stand in for it: the default-key ladder already reads N is_key properties as ONE composite key (schema_validation._pick_default_keys). Only materialized on databases that opted into propagate_unique — the consumer owns whether a constraint may stall their feed. Every member must be a non-nullable scalar (NULLs are distinct in SQL, so a nullable member silently disables the constraint). Stripped from every LLM prompt; curated in the Database Sync page's Model tab.
+             * @description Label declaring that this property's value identifies AT MOST ONE object of its type. Properties of one object sharing a label form a single UNIQUE constraint over their columns together (first_name + last_name identify jointly); a label used once is a one-column unique. An object may carry several independent labels — three registry identifiers are three constraints, not one composite. This is why the flag is a label and not a boolean, and why `is_key` cannot stand in for it: the default-key ladder already reads N is_key properties as ONE composite key (schema_validation._pick_default_keys). Materialized on EVERY database the schema is linked to: a constraint the schema declares is not a read/write trade a registration gets to decline, so declaring the label is the whole decision. Every member must be a non-nullable scalar (NULLs are distinct in SQL, so a nullable member silently disables the constraint). Stripped from every LLM prompt; curated in the Database Sync page's Model tab.
              */
             unique_group?: string | null;
             /**
@@ -12029,9 +12118,14 @@ export type components = {
         };
         /**
          * QuarantineActionRequest
-         * @description Which quarantined entities to act on — omit to mean all of them.
+         * @description Which quarantined rows to act on — omit both to mean every entity.
          */
         QuarantineActionRequest: {
+            /**
+             * Delta Ids
+             * @description Quarantined MIGRATION deltas to discard (delete only). Migrations are never swept by the omit-everything call: dropping one says the replica will live without a constraint the schema declares, so it has to be named. Use quarantine/redrive to replay one instead
+             */
+            delta_ids?: number[] | null;
             /**
              * Entity Ids
              * @description Entities to reinject or delete. Omit for every quarantined entity of the database. Reinjecting entities that reference each other in ONE call lets the deferred foreign keys settle at COMMIT
@@ -12074,15 +12168,79 @@ export type components = {
             /** Saved Schema Id */
             saved_schema_id?: string | null;
         };
+        /**
+         * QuarantinedMigration
+         * @description One refused `kind='schema'` delta — the Quarantine tab's DDL row.
+         *
+         *     Delta-shaped where QuarantinedEntity is entity-shaped, because a migration
+         *     has no `entity_id` to group on and its action is the opposite one: DDL is
+         *     idempotent and order-independent, so re-driving REPLAYS the stored
+         *     statement, where an entity is re-projected from current state.
+         *
+         *     The common case is a guarded `CREATE UNIQUE INDEX` meeting duplicates the
+         *     replica already held (`EE-MIGRATE: N duplicate value group(s) …`). Its feed
+         *     keeps flowing — that is what quarantine buys — so without this row the
+         *     consumer's only symptom would be a declared constraint that silently is not
+         *     there.
+         */
+        QuarantinedMigration: {
+            /**
+             * Apply Error
+             * @description The replica's error (an EE-MIGRATE message names the offending rows and the remedy)
+             */
+            apply_error?: string | null;
+            /** Batch Id */
+            batch_id?: string | null;
+            /** Delta Id */
+            delta_id: number;
+            /** Quarantined At */
+            quarantined_at?: string | null;
+            /** Saved Schema Id */
+            saved_schema_id?: string | null;
+            /**
+             * Sql
+             * @description The DDL the replica refused, replayed verbatim on re-drive
+             */
+            sql: string;
+        };
         /** QuarantineListResponse */
         QuarantineListResponse: {
             /** Entities */
             entities: components["schemas"]["QuarantinedEntity"][];
             /**
+             * Migrations
+             * @description Refused DDL, listed apart from entities: it carries no entity_id, and it is replayed rather than re-projected
+             */
+            migrations?: components["schemas"]["QuarantinedMigration"][];
+            /**
              * Total Deltas
              * @default 0
              */
             total_deltas: number;
+        };
+        /**
+         * QuarantineRedriveRequest
+         * @description Which quarantined migrations to replay — omit to mean all of them.
+         */
+        QuarantineRedriveRequest: {
+            /**
+             * Delta Ids
+             * @description Quarantined `kind='schema'` delta ids to re-queue at the tail. Omit for every one of the database. Re-drive only once the condition that refused it is gone (duplicate rows deduplicated, say) — a statement that fails again is simply quarantined again
+             */
+            delta_ids?: number[] | null;
+        };
+        /** QuarantineRedriveResponse */
+        QuarantineRedriveResponse: {
+            /**
+             * Queued
+             * @description Migrations re-queued at the tail of the feed
+             */
+            queued: number;
+            /**
+             * Removed
+             * @description Quarantined rows dropped in their place
+             */
+            removed: number;
         };
         /** QuarantineReinjectResponse */
         QuarantineReinjectResponse: {
@@ -12724,6 +12882,11 @@ export type components = {
              */
             gate_error?: string | null;
             /**
+             * Gate Missing Fields
+             * @description The property paths `gate_error` blames: the non-nullable fields the run left unfilled, or the database-key values that could not be resolved. Empty on a whole save and on records that predate the capture. Cross-reference with the record's `declared_unknown_fields` to tell a field the model declined from one it left silently null
+             */
+            gate_missing_fields?: string[];
+            /**
              * Gate State
              * @description The stored admission-gate outcome: 'saved', 'partial' or 'rejected'
              */
@@ -12804,6 +12967,41 @@ export type components = {
             organization_name?: string | null;
             /** Organization Slug */
             organization_slug?: string | null;
+        };
+        /**
+         * RegistrationNotice
+         * @description One registration-time decision restated with the schema's own numbers.
+         *
+         *     Issue #101: the options that lock at first ship used to be decided silently
+         *     by their defaults, before anyone could have an opinion — and the sequence a
+         *     normal user follows (register, publish, sync, look at the data) is exactly
+         *     the sequence in which the switch is no longer available. Each notice names
+         *     the option, the value this registration took (chosen or default), and its
+         *     concrete effect computed from the linked schema, so an API/MCP caller that
+         *     passed no options is still told what just became permanent-at-first-ship.
+         */
+        RegistrationNotice: {
+            /**
+             * Effect
+             * @description What that value does to this schema's replica, with the schema's own numbers
+             */
+            effect: string;
+            /**
+             * Locked After Ship
+             * @description True when the option can no longer be changed once the replica shape has shipped (first snapshot or DDL delta)
+             * @default true
+             */
+            locked_after_ship: boolean;
+            /**
+             * Option
+             * @description The registration option the notice is about
+             */
+            option: string;
+            /**
+             * Value
+             * @description The value this registration took (chosen or default)
+             */
+            value: string;
         };
         /**
          * RelationalChildTable
@@ -13845,7 +14043,7 @@ export type components = {
             all_key_paths: string[];
             /**
              * Concept Type
-             * @description Effective concept type (semantic_concept_type override, or the $def/entity name / JSON path)
+             * @description Effective concept type (semantic_concept_type override, or the humanized $def/entity/property name)
              */
             concept_type: string;
             /**
@@ -14313,7 +14511,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -14402,7 +14603,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -14493,7 +14697,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -14607,7 +14814,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -14696,7 +14906,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -14786,7 +14999,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -14875,7 +15091,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -14963,7 +15182,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -15053,7 +15275,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -15144,7 +15369,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -15241,7 +15469,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -15333,7 +15564,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -15442,7 +15676,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -15527,7 +15764,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -15610,7 +15850,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -15715,7 +15958,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -15827,7 +16073,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -15932,7 +16181,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -16018,7 +16270,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -16105,7 +16360,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -16195,7 +16453,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -16287,7 +16548,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -16421,7 +16685,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -16537,7 +16804,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -16633,7 +16903,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -16737,7 +17010,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -16840,7 +17116,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -16983,7 +17262,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -17075,7 +17357,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -17164,7 +17449,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -17254,7 +17542,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -17364,7 +17655,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -17450,7 +17744,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -17540,7 +17837,10 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /** Last Error Summary */
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
             last_error_summary?: string | null;
             /**
              * Max Attempts
@@ -18786,6 +19086,7 @@ export type DatabaseSyncOutcome = components['schemas']['DatabaseSyncOutcome'];
 export type DatabaseSyncRelationalMapResponse = components['schemas']['DatabaseSyncRelationalMapResponse'];
 export type DatabaseSyncUpdateRequest = components['schemas']['DatabaseSyncUpdateRequest'];
 export type DatabaseSyncValidationResult = components['schemas']['DatabaseSyncValidationResult'];
+export type DbModelScopeResponse = components['schemas']['DbModelScopeResponse'];
 export type DeclaredUnknown = components['schemas']['DeclaredUnknown'];
 export type DefaultModelSelection = components['schemas']['DefaultModelSelection'];
 export type DeleteBenchmarkResultsRequest = components['schemas']['DeleteBenchmarkResultsRequest'];
@@ -18917,7 +19218,10 @@ export type QualityDetail = components['schemas']['QualityDetail'];
 export type QualityFieldScore = components['schemas']['QualityFieldScore'];
 export type QuarantineActionRequest = components['schemas']['QuarantineActionRequest'];
 export type QuarantinedEntity = components['schemas']['QuarantinedEntity'];
+export type QuarantinedMigration = components['schemas']['QuarantinedMigration'];
 export type QuarantineListResponse = components['schemas']['QuarantineListResponse'];
+export type QuarantineRedriveRequest = components['schemas']['QuarantineRedriveRequest'];
+export type QuarantineRedriveResponse = components['schemas']['QuarantineRedriveResponse'];
 export type QuarantineReinjectResponse = components['schemas']['QuarantineReinjectResponse'];
 export type QuestionAnswer = components['schemas']['QuestionAnswer'];
 export type RecordDetail = components['schemas']['RecordDetail'];
@@ -18935,6 +19239,7 @@ export type RecordSyncStatesResponse = components['schemas']['RecordSyncStatesRe
 export type RefreshTokenRequest = components['schemas']['RefreshTokenRequest'];
 export type RefreshTokenResponse = components['schemas']['RefreshTokenResponse'];
 export type RegisterRequest = components['schemas']['RegisterRequest'];
+export type RegistrationNotice = components['schemas']['RegistrationNotice'];
 export type RelationalChildTable = components['schemas']['RelationalChildTable'];
 export type RelationalColumn = components['schemas']['RelationalColumn'];
 export type RelationalLinkTable = components['schemas']['RelationalLinkTable'];
@@ -23021,6 +23326,47 @@ export interface operations {
             };
         };
     };
+    redrive_quarantined_migrations_api_databases__database_id__quarantine_redrive_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuarantineRedriveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuarantineRedriveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     reinject_quarantined_api_databases__database_id__quarantine_reinject_post: {
         parameters: {
             query?: {
@@ -26925,6 +27271,43 @@ export interface operations {
             };
         };
     };
+    get_db_model_scope_api_schema_saved__schema_id__db_model_scope_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DbModelScopeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     duplicate_saved_schema_api_schema_saved__schema_id__duplicate_post: {
         parameters: {
             query?: {
@@ -27582,7 +27965,7 @@ export interface operations {
     list_concepts_api_semantic_concepts_get: {
         parameters: {
             query?: {
-                concept_type?: string | null;
+                concept_types?: string[] | null;
                 created_after?: string | null;
                 created_before?: string | null;
                 limit?: number;
@@ -27856,7 +28239,7 @@ export interface operations {
         parameters: {
             query?: {
                 band_width?: number;
-                concept_type?: string | null;
+                concept_types?: string[] | null;
                 limit?: number;
                 threshold?: number;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
@@ -27894,7 +28277,7 @@ export interface operations {
     export_concepts_api_semantic_concepts_export_get: {
         parameters: {
             query?: {
-                concept_type?: string | null;
+                concept_types?: string[] | null;
                 include_embeddings?: boolean;
                 min_ref_count?: number | null;
                 saved_schema_id?: string | null;
