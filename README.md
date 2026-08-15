@@ -99,6 +99,7 @@ The flow is OAuth 2.1 authorization code + PKCE with rotating refresh tokens. On
 | **Schema** | Generate Schema | Generate and auto-save a JSON schema from the input items — every item is one sample of the same entity type |
 | **Record** | List Records | Query enrichment records with pagination and filters |
 | **Record** | Get Record | Retrieve a specific enrichment result by ID |
+| **Record** | Sync Records to Database | Send a stored (or transformed) enrichment output to its schema's database sync — re-validated against the published contract, then the admission gate |
 | **Fusion** | Merge Results | Merge multiple model results with optional LLM arbitration |
 | **Attachment** | Add Attachment | Upload one or more binary properties from the input item (single multipart request) and return one item per attachment ID |
 | **Attachment** | Delete Attachment | Delete an attachment by ID — a handy post-enrichment cleanup step |
