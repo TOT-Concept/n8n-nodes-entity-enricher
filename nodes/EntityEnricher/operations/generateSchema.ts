@@ -48,9 +48,6 @@ export async function execute(
 	const commonalityThreshold = context.getNodeParameter(
 		'schemaGenCommonalityThreshold', 0, 0.5,
 	) as number;
-	const extraInstructions = context.getNodeParameter(
-		'schemaGenExtraInstructions', 0, '',
-	) as string;
 	const language = context.getNodeParameter('schemaGenLanguage', 0, '') as string;
 	const timeoutSeconds = context.getNodeParameter('schemaGenTimeout', 0, 300) as number;
 
@@ -61,7 +58,6 @@ export async function execute(
 		sample_commonality_threshold: commonalityThreshold,
 		timeout_seconds: timeoutSeconds,
 	};
-	if (extraInstructions) body.extra_instructions = extraInstructions;
 	if (language) body.language = language;
 
 	const response = await apiRequest(context, '/api/schema/generate/sync', {

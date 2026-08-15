@@ -631,15 +631,6 @@ export class EntityEnricher implements INodeType {
 				displayOptions: { show: { resource: ['schema'], operation: ['generateSchema'] } },
 			},
 			{
-				displayName: 'Extra Instructions',
-				name: 'schemaGenExtraInstructions',
-				type: 'string',
-				typeOptions: { rows: 3 },
-				default: '',
-				description: 'Free-form guidance appended to the prompt',
-				displayOptions: { show: { resource: ['schema'], operation: ['generateSchema'] } },
-			},
-			{
 				displayName: 'Language',
 				name: 'schemaGenLanguage',
 				type: 'string',

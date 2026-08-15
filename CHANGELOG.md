@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Removed — Generate Schema: **Extra Instructions**
+
+The API no longer accepts `extra_instructions` on schema generation, so the field is gone from Generate Schema. The schema's structure is derived deterministically from the input samples, and per-property flags come from dedicated classification calls — free-form guidance had nothing left to steer and could only fight those rules. To shape the schema's *content*, put the guidance on **Generate Sample** (its Extra Instructions field stays); to localize specific properties, set `multilingual` on them after generation in the schema editor. A workflow that had filled the field keeps running — the value is simply no longer sent.
+
 ### Added — the fusion summary says which model arbitrated
 
 The `fusion` block on Enrich Entity and Batch Enrichment output carried only counts, so a workflow that passed an **Arbitration Model** could not tell whether that model actually decided the conflicts. It now also carries `method` (`llm` | `rule_based`) and `arbitration_model` (whose decisions were applied). `method: "rule_based"` on a run that requested an arbiter means that call failed and the deterministic rules stood — branch on it instead of assuming.

@@ -11,25 +11,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Serve Index */
-        get: operations["serve_index__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/{path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve Spa */
-        get: operations["serve_spa__path__get"];
+        /** No Frontend */
+        get: operations["no_frontend__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4053,6 +4036,28 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/schema/saved/{schema_id}/part": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Schema Part
+         * @description Read a part of a schema without fetching the whole document: no path →
+         *     named-type index; '$defs.X'/'$enums.X' → that definition; an object path →
+         *     its subtree; a leaf path → the property card with its relations.
+         */
+        get: operations["get_schema_part_api_schema_saved__schema_id__part_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schema/saved/{schema_id}/permanent": {
         parameters: {
             query?: never;
@@ -4125,6 +4130,32 @@ export type paths = {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/schema/saved/{schema_id}/property": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Schema Property
+         * @description Add a property (scalar, inline object, or $ref to an existing named
+         *     type) under an object of the working copy.
+         */
+        post: operations["add_schema_property_api_schema_saved__schema_id__property_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Schema Property
+         * @description Edit ONE property of the working copy: rename, retype, re-ref, describe,
+         *     set examples, update flags, or remove — without sending schema_content.
+         */
+        patch: operations["update_schema_property_api_schema_saved__schema_id__property_patch"];
         trace?: never;
     };
     "/api/schema/saved/{schema_id}/publish": {
@@ -13915,8 +13946,6 @@ export type components = {
          * @description Fixed schema-generation options (the input sample JSON lives in entity_data).
          */
         SchemaGenTaskParams: {
-            /** Extra Instructions */
-            extra_instructions?: string | null;
             /**
              * Generate Semantic Ids
              * @default false
@@ -13972,6 +14001,64 @@ export type components = {
             model: string;
             /** Prompt */
             prompt: string;
+        };
+        /** SchemaPropertyAddRequest */
+        SchemaPropertyAddRequest: {
+            /**
+             * Definition
+             * @description {type|ref, description?, examples?, nullable?, flags?, properties?} — 'properties' nests the same shape for an inline object
+             */
+            definition: {
+                [key: string]: unknown;
+            };
+            /** Name */
+            name: string;
+            /**
+             * Parent Path
+             * @description '' = root, or an object path / '$defs.X'
+             * @default
+             */
+            parent_path: string;
+        };
+        /**
+         * SchemaPropertyUpdateRequest
+         * @description One property edit. Only the fields passed are changed; `flags` values of
+         *     null CLEAR the flag. `remove: true` deletes the property instead.
+         */
+        SchemaPropertyUpdateRequest: {
+            /** Description */
+            description?: string | null;
+            /** Examples */
+            examples?: (string | number | boolean)[] | null;
+            /**
+             * Flags
+             * @description Flag updates; editable: database_key, db_name, db_name_absolute, db_type, db_type_length, expertise, format, indexed, is_key, language_discriminator, multilingual, nullable, ordered, pattern, preserve, semantic_concept_type, semantic_embedding_model, semantic_id, semantic_threshold, shared, unique_group
+             */
+            flags?: {
+                [key: string]: unknown;
+            } | null;
+            /** New Name */
+            new_name?: string | null;
+            /**
+             * Path
+             * @description Property path, e.g. 'ceremonies[].ceremony_type'
+             */
+            path: string;
+            /**
+             * Ref
+             * @description '#/$defs/X' or '#/$enums/X' (clears type)
+             */
+            ref?: string | null;
+            /**
+             * Remove
+             * @default false
+             */
+            remove: boolean;
+            /**
+             * Type
+             * @description New JSON type (clears $ref)
+             */
+            type?: string | null;
         };
         /**
          * SchemaPropMatch
@@ -18231,11 +18318,6 @@ export type components = {
                 [key: string]: unknown;
             }[];
             /**
-             * Extra Instructions
-             * @description Optional free-form user instructions appended to the system prompt.
-             */
-            extra_instructions?: string | null;
-            /**
              * Generate Semantic Ids
              * @description If true, add a semantic_id string property to every object that has a key source — the root entity, 1-1 nested objects, and array items alike (enables embedding-based entity resolution).
              * @default false
@@ -18661,11 +18743,6 @@ export type components = {
             entity_samples: {
                 [key: string]: unknown;
             }[];
-            /**
-             * Extra Instructions
-             * @description Optional free-form user instructions appended to the system prompt.
-             */
-            extra_instructions?: string | null;
             /**
              * Generate Semantic Ids
              * @description If true, add a semantic_id string property to every object that has a key source — the root entity, 1-1 nested objects, and array items alike (enables embedding-based entity resolution).
@@ -19501,6 +19578,8 @@ export type SchemaGenTaskParams = components['schemas']['SchemaGenTaskParams'];
 export type SchemaPromptRequest = components['schemas']['SchemaPromptRequest'];
 export type SchemaPromptResponse = components['schemas']['SchemaPromptResponse'];
 export type SchemaPromptStreamRequest = components['schemas']['SchemaPromptStreamRequest'];
+export type SchemaPropertyAddRequest = components['schemas']['SchemaPropertyAddRequest'];
+export type SchemaPropertyUpdateRequest = components['schemas']['SchemaPropertyUpdateRequest'];
 export type SchemaPropMatch = components['schemas']['SchemaPropMatch'];
 export type SchemaPublishDiff = components['schemas']['SchemaPublishDiff'];
 export type SchemaPublishPreviewResponse = components['schemas']['SchemaPublishPreviewResponse'];
@@ -19600,7 +19679,7 @@ export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutRespon
 export type WebhookSecretResponse = components['schemas']['WebhookSecretResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
-    serve_index__get: {
+    no_frontend__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -19616,37 +19695,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    serve_spa__path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -27644,6 +27692,46 @@ export interface operations {
             };
         };
     };
+    get_schema_part_api_schema_saved__schema_id__part_get: {
+        parameters: {
+            query?: {
+                path?: string | null;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     permanently_delete_schema_api_schema_saved__schema_id__permanent_delete: {
         parameters: {
             query?: {
@@ -27752,6 +27840,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StreamGenerateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_schema_property_api_schema_saved__schema_id__property_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchemaPropertyAddRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_schema_property_api_schema_saved__schema_id__property_patch: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchemaPropertyUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
