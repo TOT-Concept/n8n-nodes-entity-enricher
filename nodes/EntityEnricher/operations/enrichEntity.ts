@@ -9,7 +9,7 @@ import type {
 	SseModelCompleted,
 	SseFusionCompleted,
 } from '../helpers/types';
-import { isModelCompleted, isFusionCompleted } from '../helpers/types';
+import { arbitrationAudit, isModelCompleted, isFusionCompleted } from '../helpers/types';
 import { validateEntitySearchKeys } from '../helpers/validation';
 import {
 	deleteAttachmentsQuietly,
@@ -249,7 +249,7 @@ function buildOutputItems(
 		outputItems.push({
 			json: includeEnrichmentMetadata
 				? {
-					result: fusionResult.merged_result as IDataObject,
+					result: resultData,
 					record_id: fusionResult.record_id,
 					success: true,
 					is_fused: true,
@@ -261,6 +261,7 @@ function buildOutputItems(
 							agreed_fields: fusionResult.conflict_report.agreed_fields,
 							conflicted_fields: fusionResult.conflict_report.conflicted_fields,
 							total_fields: fusionResult.conflict_report.total_fields,
+							...arbitrationAudit(fusionResult.merged_result),
 						}
 						: null,
 					source_models: modelResults.map((r) => r.model),

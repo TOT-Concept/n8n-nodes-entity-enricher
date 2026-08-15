@@ -126,3 +126,26 @@ export function isEntityCompleted(e: SSEEvent): e is SseEntityCompleted {
 export function isBatchCompleted(e: SSEEvent): e is SseBatchCompleted {
 	return e.event === 'batch_completed';
 }
+
+// ---------------------------------------------------------------------------
+// Fusion summary
+// ---------------------------------------------------------------------------
+
+/**
+ * How the merge actually resolved, read off the merged result's internal
+ * `_arbitration_metadata` block. `method: 'rule_based'` while an arbitration
+ * model was requested means that call failed and the deterministic rules
+ * stood — the caller must be able to answer "did my arbiter run?" from the
+ * node output alone, as the /enrich/sync `fusion` block now does.
+ */
+export function arbitrationAudit(mergedResult: unknown): {
+	method: string | null;
+	arbitration_model: string | null;
+} {
+	const meta = (mergedResult as { _arbitration_metadata?: Record<string, unknown> } | null)
+		?._arbitration_metadata;
+	return {
+		method: (meta?.method as string | undefined) ?? null,
+		arbitration_model: (meta?.arbitration_model as string | undefined) ?? null,
+	};
+}

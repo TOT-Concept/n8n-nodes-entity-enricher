@@ -4604,7 +4604,8 @@ export type paths = {
          * @description Dry-run the resolution ladder for a text — nothing is created or bumped.
          *
          *     Costs one embedding call unless the exact text is already known, billed into the
-         *     day's grouped interactive-embedding entry.
+         *     day's grouped interactive-embedding entry. `embedding_model` seeds a NEW concept
+         *     type's slice; against an existing vocabulary it is refused with 400.
          */
         post: operations["probe_concept_api_semantic_concepts_probe_post"];
         delete?: never;
@@ -6343,6 +6344,11 @@ export type components = {
         ConceptCreateRequest: {
             /** Concept Type */
             concept_type: string;
+            /**
+             * Embedding Model
+             * @description Composite key (provider::model) to embed a NEW concept type under. Refused when the type's vocabulary already lives in another model.
+             */
+            embedding_model?: string | null;
             /** Text */
             text: string;
             /**
@@ -6505,6 +6511,11 @@ export type components = {
         ConceptProbeRequest: {
             /** Concept Type */
             concept_type: string;
+            /**
+             * Embedding Model
+             * @description Composite key (provider::model) to embed a NEW concept type under. Refused when the type's vocabulary already lives in another model.
+             */
+            embedding_model?: string | null;
             /**
              * Neighbors
              * @default 10
@@ -7306,7 +7317,7 @@ export type components = {
             notify_debounce_s: number;
             /**
              * On Incomplete Child
-             * @description With require_complete: 'skip_row' (default) drops only the array items whose own fields are unfilled and admits the rest (root-level gaps still reject); 'reject_entity' refuses the whole enrichment when any non-nullable field is unfilled
+             * @description With require_complete: 'skip_row' (default) prunes only the children whose own fields are unfilled and admits the rest — an array item is dropped, a shared 1-1 reference is detached (child not written, parent's foreign key NULL); gaps with no such child above them still reject. 'reject_entity' refuses the whole enrichment when any non-nullable field is unfilled
              * @default skip_row
              * @enum {string}
              */
@@ -7490,6 +7501,11 @@ export type components = {
              */
             delta_count: number;
             /**
+             * Detached References
+             * @description Shared 1-1 references detached by databases in on_incomplete_child='skip_row' mode (the referenced entity had an unfilled non-nullable field of its own): the child was not written or updated and the parent's foreign key is NULL, instead of the whole entity being refused over it. Distinct from skipped_items — no row was dropped, a link was cut
+             */
+            detached_references?: string[];
+            /**
              * Entity Count
              * @default 0
              */
@@ -7507,13 +7523,18 @@ export type components = {
              */
             identity_merges?: components["schemas"]["SemanticIdentityMerge"][];
             /**
+             * Identity Underidentifies
+             * @description Shared-row overwrites in which EVERY compared non-key value disagreed with the stored state: a different real-world object wearing the same identity text, not an update. The write went through (last write wins), but the schema's identity under-identifies — compose a disambiguating property into the identity (semantic_source_keys) or curate the concept
+             */
+            identity_underidentifies?: components["schemas"]["IdentityUnderidentifiesWarning"][];
+            /**
              * Key Collisions
              * @description List items that resolved to an identity an earlier sibling already claimed; only the first was written (no silent last-write-wins row, no duplicate link rows)
              */
             key_collisions?: components["schemas"]["EntityKeyCollision"][];
             /**
              * Missing Fields
-             * @description Non-nullable property paths the run left unfilled — the cause of the rejection when saved=false, and the cause of every skipped_items drop when status='partial'
+             * @description Non-nullable property paths the run left unfilled — the cause of the rejection when saved=false, and the cause of every skipped_items drop and detached_references cut when status='partial'
              */
             missing_fields?: string[];
             /**
@@ -7535,7 +7556,7 @@ export type components = {
             skipped_items?: string[];
             /**
              * Status
-             * @description Three-state view of `saved`: 'rejected' (nothing was written), 'saved' (everything the run produced was written), or 'partial' — the entity landed but some of its rows did NOT and nothing re-sends them (skipped_items dropped by a skip_row database, key_collisions dropped as duplicate identities). A partial write is silent data loss until the schema is fixed and the entity re-enriched, so treat it as a warning, not a success
+             * @description Three-state view of `saved`: 'rejected' (nothing was written), 'saved' (everything the run produced was written), or 'partial' — the entity landed but some of what it produced did NOT and nothing re-sends it (skipped_items dropped by a skip_row database, detached_references cut by one, key_collisions dropped as duplicate identities). A partial write is silent data loss until the schema is fixed and the entity re-enriched, so treat it as a warning, not a success
              * @enum {string}
              */
             readonly status: "saved" | "partial" | "rejected";
@@ -8816,8 +8837,18 @@ export type components = {
         FusionSummary: {
             /** Agreed Fields */
             agreed_fields: number;
+            /**
+             * Arbitration Model
+             * @description Composite key of the model whose decisions were applied. Null on a purely rule-based merge; set on a rule-based merge that escalated outlier numeric conflicts to the auto-resolved arbiter. Mirrors the fused record's `fusion_arbitration_model`.
+             */
+            arbitration_model?: string | null;
             /** Conflicted Fields */
             conflicted_fields: number;
+            /**
+             * Method
+             * @description How the conflicts were actually resolved. 'rule_based' while an arbitration_model was requested means the arbitration call failed and the deterministic rules stood — the caller asked 'did my arbiter run?' and this is the answer, without a follow-up record read.
+             */
+            method?: ("llm" | "rule_based") | null;
             /** Total Fields */
             total_fields: number;
         };
@@ -9138,6 +9169,49 @@ export type components = {
              * @description snake_case name proposed for the nested entity subobject
              */
             suggested_entity_name?: string | null;
+        };
+        /**
+         * IdentityUnderidentifiesWarning
+         * @description A shared-row overwrite in which EVERY compared non-key value disagreed.
+         *
+         *     An update touches some fields; a write that agrees with the stored state on
+         *     nothing but the identity text itself is a different real-world object
+         *     wearing the same name (issue #118 — five stadiums named 'Olympic Stadium'
+         *     collapsing onto one row). The write still went through — last write wins is
+         *     the contract, and blocking would be just as wrong for a genuine correction —
+         *     but the pattern is promoted from a routine conflict entry to this explicit
+         *     verdict: the schema's identity under-identifies. The fix is identity, not
+         *     data: compose a disambiguating property into the identity
+         *     (semantic_source_keys — e.g. the location for places, the parent for parts),
+         *     or curate the concept on the Semantic IDs page. The sibling
+         *     shared_entity_conflicts entry at the same path carries the field-level
+         *     evidence.
+         */
+        IdentityUnderidentifiesWarning: {
+            /**
+             * Compared Fields
+             * @description Non-key fields both payloads answered — every one of them disagreed
+             */
+            compared_fields: number;
+            /** Entity Type */
+            entity_type: string;
+            /**
+             * Keys
+             * @description The identity values both objects share — the text that failed to tell them apart
+             */
+            keys?: {
+                [key: string]: string;
+            };
+            /**
+             * Path
+             * @description Schema path of the shared child, e.g. 'main_stadium'
+             */
+            path: string;
+            /**
+             * Semantic Id
+             * @description Concept now holding both objects' state; null for a database-key identity
+             */
+            semantic_id?: string | null;
         };
         /**
          * ImportBenchmarkResultsRequest
@@ -19239,6 +19313,7 @@ export type HostClaimResponse = components['schemas']['HostClaimResponse'];
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
 export type IdentityScopingFinding = components['schemas']['IdentityScopingFinding'];
 export type IdentityScopingInfo = components['schemas']['IdentityScopingInfo'];
+export type IdentityUnderidentifiesWarning = components['schemas']['IdentityUnderidentifiesWarning'];
 export type ImportBenchmarkResultsRequest = components['schemas']['ImportBenchmarkResultsRequest'];
 export type ImportBenchmarkResultsResponse = components['schemas']['ImportBenchmarkResultsResponse'];
 export type ImportedBenchmarkResult = components['schemas']['ImportedBenchmarkResult'];

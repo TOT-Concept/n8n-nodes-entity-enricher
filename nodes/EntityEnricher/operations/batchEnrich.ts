@@ -9,7 +9,7 @@ import type {
 	SseEntityCompleted,
 	SseFusionCompleted,
 } from '../helpers/types';
-import { isEntityCompleted, isFusionCompleted } from '../helpers/types';
+import { arbitrationAudit, isEntityCompleted, isFusionCompleted } from '../helpers/types';
 import { validateEntitySearchKeys } from '../helpers/validation';
 import {
 	deleteAttachmentsQuietly,
@@ -293,6 +293,7 @@ function buildBatchOutputItems(
 							? {
 								agreed_fields: fusionResult.conflict_report.agreed_fields,
 								conflicted_fields: fusionResult.conflict_report.conflicted_fields,
+								...arbitrationAudit(fusionResult.merged_result),
 							}
 							: null,
 						...(fusionResult && !fusionResult.success ? {

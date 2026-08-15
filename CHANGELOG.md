@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added — the fusion summary says which model arbitrated
+
+The `fusion` block on Enrich Entity and Batch Enrichment output carried only counts, so a workflow that passed an **Arbitration Model** could not tell whether that model actually decided the conflicts. It now also carries `method` (`llm` | `rule_based`) and `arbitration_model` (whose decisions were applied). `method: "rule_based"` on a run that requested an arbiter means that call failed and the deterministic rules stood — branch on it instead of assuming.
+
+### Fixed — Enrich Entity no longer leaks `_arbitration_metadata` into `result`
+
+With **Include enrichment metadata** on, the fused `result` still contained the internal `_arbitration_metadata` audit block (it was stripped only on the plain-result path). It is now stripped on both, matching `/api/single/enrich/sync`. Its two useful fields are the `fusion.method` / `fusion.arbitration_model` above.
+
 ### Changed — Generate Sample: **Language** defaults to `auto`
 
 The **Language** field of Generate Sample was `en`, so every generated sample came back in English whatever language the workflow was written in. It now defaults to `auto`: the field is omitted from the request, and the API infers the language from the **Entity Type** and **Typical Objects** you wrote (else the attached document's, else English) — field names and values alike. The schema built from that sample then follows the sample's own property names. An explicit code (`en`, `fr`, …) still forces one language as before.
