@@ -11,8 +11,25 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** No Frontend */
-        get: operations["no_frontend__get"];
+        /** Serve Index */
+        get: operations["serve_index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve Spa */
+        get: operations["serve_spa__path__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4232,7 +4249,10 @@ export type paths = {
          *
          *     Also carries the advisory NOT NULL scope numbers, so the registration form
          *     can state what the locking options will do to THIS schema before the user
-         *     creates anything (issue #101).
+         *     creates anything (issue #101), and whether this registration has to pick a
+         *     key language — read on the STAMPED content, since the default ladder is
+         *     what turns a multilingual property into a database key on a schema the user
+         *     never keyed by hand.
          */
         post: operations["validate_schema_for_database_api_schemas__schema_id__databases_validate_post"];
         delete?: never;
@@ -7192,6 +7212,11 @@ export type components = {
              * @default filterable
              */
             index_scalars: string;
+            /**
+             * Key Language
+             * @description Language every multilingual database key of THIS database is keyed in (docs/ENTITY_LAYER.md → multilingual database keys). Chosen at registration, adopted by every schema linked afterwards; NULL while nothing language-locked ships
+             */
+            key_language?: string | null;
             /** Max Threshold Timeout S */
             max_threshold_timeout_s: number;
             /** Name */
@@ -7276,6 +7301,13 @@ export type components = {
         DatabaseSyncChecksumResponse: {
             /** As Of Delta Id */
             as_of_delta_id?: number | null;
+            /**
+             * Row Counts
+             * @description Entities per table as the server holds them. The hash above is a server-side digest over identity tokens and revisions — a replica cannot recompute it (a surrogate _id is replica-local, and an unchanged re-write keeps the old _sync_revision), so this count is what a consumer actually compares its own SELECT count(*) against
+             */
+            row_counts?: {
+                [key: string]: number;
+            };
             /** Tables */
             tables: {
                 [key: string]: string;
@@ -7437,7 +7469,7 @@ export type components = {
         DatabaseSyncLinkValidationResult: {
             /**
              * Adopted Key Language
-             * @description Key language the candidate schema will adopt from the database's already-linked schemas on link (multilingual database keys only; None when nothing is adopted)
+             * @description Key language the candidate schema will adopt from the DATABASE's lock on link (multilingual database keys only; None when nothing is adopted)
              */
             adopted_key_language?: string | null;
             /**
@@ -7450,6 +7482,11 @@ export type components = {
              * @description Entity types merged with the database's existing tables
              */
             common_types?: components["schemas"]["CommonTypeCompare"][];
+            /**
+             * Defines Key Language
+             * @description Set when this link is what LOCKS the database's key language — the database has none and this schema needs one, so its own language becomes the one every schema of the database keys in
+             */
+            defines_key_language?: string | null;
             /** Errors */
             errors?: string[];
             /**
@@ -7634,8 +7671,19 @@ export type components = {
             entity_tables: number;
             /** Errors */
             errors?: string[];
+            /**
+             * Requires Key Language
+             * @description This schema projects something language-locked (a multilingual database key, or a multilingual unordered value array whose '{value}_key' companion is derived): the registration must pick the language its identity tokens are written in
+             * @default false
+             */
+            requires_key_language: boolean;
             /** Stamped Keys */
             stamped_keys?: components["schemas"]["EntityTypeKeys"][];
+            /**
+             * Suggested Key Language
+             * @description Default for key_language: the schema's own lock if it has one, else the language the schema is written in. None when unknown
+             */
+            suggested_key_language?: string | null;
             /** Valid */
             valid: boolean;
         };
@@ -13986,6 +14034,11 @@ export type components = {
          */
         SchemaPublishPreviewResponse: {
             /**
+             * Adopted Key Language
+             * @description Key language this publish copies onto the schema from the database it feeds (the lock lives on the database — docs/ENTITY_LAYER.md). Not a question: the answer already exists
+             */
+            adopted_key_language?: string | null;
+            /**
              * Can Publish
              * @default false
              */
@@ -14014,7 +14067,7 @@ export type components = {
             requires_confirm: boolean;
             /**
              * Requires Key Language
-             * @description The schema's database key is multilingual and no key language is locked yet — publish must be called with key_language. Decided here rather than at link because the classification pass is what makes a multilingual property a database key
+             * @description The schema's database key is multilingual and NEITHER the schema nor any of its databases locks a key language yet — publish must be called with key_language. Normally answered at registration; this is the backstop for the case only the post-link classification pass can reveal
              * @default false
              */
             requires_key_language: boolean;
@@ -19547,7 +19600,7 @@ export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutRespon
 export type WebhookSecretResponse = components['schemas']['WebhookSecretResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
-    no_frontend__get: {
+    serve_index__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -19563,6 +19616,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    serve_spa__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
