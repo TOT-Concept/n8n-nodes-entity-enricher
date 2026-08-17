@@ -4036,6 +4036,32 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/schema/saved/{schema_id}/index-suggestions/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dismiss Index Suggestion
+         * @description Dismiss one pending query-shaped index merge suggestion.
+         *
+         *     Records the suggestion's fingerprint on the classification ledger so no
+         *     later pass re-raises it — until the entity's declared member set changes,
+         *     which mints a different fingerprint and reopens the question. Accepting a
+         *     suggestion needs no endpoint: it is an ordinary schema edit (replace the
+         *     named declarations), which retires the suggestion by itself.
+         */
+        post: operations["dismiss_index_suggestion_api_schema_saved__schema_id__index_suggestions_dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schema/saved/{schema_id}/part": {
         parameters: {
             query?: never;
@@ -7948,6 +7974,16 @@ export type components = {
          */
         DbModelScopeResponse: {
             /**
+             * Entities
+             * @description Entity types whose query-shaped index judgment is open — never seen by a pass, or their member set changed since
+             */
+            entities?: string[];
+            /**
+             * Index Suggestions
+             * @description Pending query-shaped index MERGE suggestions from classification re-runs — each proposes one shape replacing named existing declarations; applied only when the user accepts it in the Model tab (an ordinary schema edit), dismissed for good via POST /saved/{schema_id}/index-suggestions/dismiss
+             */
+            index_suggestions?: components["schemas"]["IndexMergeSuggestion"][];
+            /**
              * Properties
              * @description Dotted property paths awaiting classification
              */
@@ -8697,6 +8733,11 @@ export type components = {
              */
             description: string;
             /**
+             * Indexes
+             * @description Query-shaped composite indexes on this entity's table, several allowed. Declared here (not per property) because a plain btree's value lies in its ordered column list — the shape of the query it serves. Proposed by the link-time classification pass, curated in the Database Sync page's Model tab, stripped from every enrichment prompt.
+             */
+            indexes?: components["schemas"]["EntityIndexSpec"][] | null;
+            /**
              * Name
              * @description Display name for this entity type
              */
@@ -8732,6 +8773,11 @@ export type components = {
              */
             description: string;
             /**
+             * Indexes
+             * @description Query-shaped composite indexes on this entity's table, several allowed. Declared here (not per property) because a plain btree's value lies in its ordered column list — the shape of the query it serves. Proposed by the link-time classification pass, curated in the Database Sync page's Model tab, stripped from every enrichment prompt.
+             */
+            indexes?: components["schemas"]["EntityIndexSpec"][] | null;
+            /**
              * Name
              * @description Display name for this entity type
              */
@@ -8755,6 +8801,38 @@ export type components = {
              * @constant
              */
             type: "object";
+        };
+        /**
+         * EntityIndexSpec
+         * @description One query-shaped (composite) index declared on an entity type.
+         *
+         *     `properties` is the ordered column list of one multi-column btree on the
+         *     entity's table — ordered like the query it serves (equality/facet columns
+         *     first, the range-or-sort column last; PostgreSQL 18 skip scan lets a
+         *     well-ordered composite also serve trailing-column queries). Members are
+         *     dot paths relative to the entity: a direct property (`status`) or a path
+         *     into an owned flattened 1-1 object (`engine.thrust_kn`) — anything that
+         *     lands on the entity's own physical row. Order is part of the index
+         *     identity: reordering ships as DROP + CREATE. Ships under index class
+         *     'explicit' (each registration's index_scalars policy decides), never
+         *     migration-grade.
+         */
+        EntityIndexSpec: {
+            /**
+             * Name
+             * @description Optional display label shown in the Model tab's Indexes panel. Never part of the physical index name — that derives from the member columns (rename-free, and two same-column declarations collide instead of shipping twice).
+             */
+            name?: string | null;
+            /**
+             * Properties
+             * @description Ordered member property paths, relative to the entity. Order is significant (leftmost-prefix rule) and part of the index identity.
+             */
+            properties: string[];
+            /**
+             * Reason
+             * @description Why this index was proposed, in the schema's own prose language — written by the link-time classification pass. Same provenance contract as database_key_reason: cleared when a human edits the member list by hand, so an index with no reason is a person's.
+             */
+            reason?: string | null;
         };
         /**
          * EntityKeyCollision
@@ -9641,6 +9719,45 @@ export type components = {
              * @default 0
              */
             specs_imported: number;
+        };
+        /**
+         * IndexMergeSuggestion
+         * @description One pending merge of overlapping query-shaped indexes (issue #141).
+         */
+        IndexMergeSuggestion: {
+            /**
+             * Entity
+             * @description Entity type the suggestion targets
+             */
+            entity: string;
+            /**
+             * Properties
+             * @description Ordered member paths of the proposed merged index
+             */
+            properties: string[];
+            /**
+             * Reason
+             * @description Why the merged shape serves the declared ones' queries
+             */
+            reason: string;
+            /**
+             * Replaces
+             * @description Member lists of the existing declarations it would replace
+             */
+            replaces: string[][];
+        };
+        /**
+         * IndexSuggestionDismissRequest
+         * @description Dismiss one pending index merge suggestion (never re-raised until the
+         *     entity's declared member set changes).
+         */
+        IndexSuggestionDismissRequest: {
+            /** Entity */
+            entity: string;
+            /** Properties */
+            properties: string[];
+            /** Replaces */
+            replaces: string[][];
         };
         /**
          * JobsListResponse
@@ -11786,9 +11903,9 @@ export type components = {
             identity_scoping?: components["schemas"]["IdentityScopingInfo"] | null;
             /**
              * Index
-             * @description Why this property's column should be indexed in consumer databases, stated as intent — never as a physical index type (btree/GiST is the renderer's per-dialect call; docs/ENTITY_LAYER.md → indexing). 'filter': a consumer app filters, sorts or facets its LIST screens by this column — plain secondary index, in every database whose index_scalars policy admits explicit flags. 'search': a consumer app substring-searches this text column (%text% in a search box) — string properties only; projects as a pg_trgm trigram index on PostgreSQL (per language on localized columns, uncapped), nothing on other dialects; same policy tier as 'filter'. 'lat'/'lon' (+ optional 'alt'): one role of a geographic position — a complete pair under one parent object projects as one spatial index; a lone role emits nothing. 'range_start'/'range_end': one bound of an interval (validity period, band) — a complete pair projects as one overlap-queryable range index. None = no explicit request; identity properties (is_key/database_key are indexed by identity) and date-ish columns (indexed by type) keep their own derived classes. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the link-time classification pass — roles seeded from obvious names, bounded against the samples (coordinates in range, start <= end) — and curated in the Database Sync page's Model tab. Stripped from every enrichment prompt.
+             * @description Why this property's column should be indexed in consumer databases, stated as intent — never as a physical index type (btree/GiST is the renderer's per-dialect call; docs/ENTITY_LAYER.md → indexing). 'search': a consumer app substring-searches this text column (%text% in a search box) — string properties only; projects as a pg_trgm trigram index on PostgreSQL (per language on localized columns, uncapped), nothing on other dialects; policy tier 'explicit'. Plain filter/sort btrees are NOT a per-property role: they are declared as entity-level query-shaped indexes (EntityDefinition.indexes), ordered like the query they serve. 'lat'/'lon' (+ optional 'alt'): one role of a geographic position — a complete pair under one parent object projects as one spatial index; a lone role emits nothing. 'range_start'/'range_end': one bound of an interval (validity period, band) — a complete pair projects as one overlap-queryable range index. None = no explicit request; identity properties (is_key/database_key are indexed by identity) and date-ish columns (indexed by type) keep their own derived classes. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the link-time classification pass — roles seeded from obvious names, bounded against the samples (coordinates in range, start <= end) — and curated in the Database Sync page's Model tab. Stripped from every enrichment prompt.
              */
-            index?: ("filter" | "search" | "lat" | "lon" | "alt" | "range_start" | "range_end") | null;
+            index?: ("search" | "lat" | "lon" | "alt" | "range_start" | "range_end") | null;
             /**
              * Is Key
              * @description True = identifier field for entity lookup and array item deduplication, null = output-only field
@@ -11955,9 +12072,9 @@ export type components = {
             identity_scoping?: components["schemas"]["IdentityScopingInfo"] | null;
             /**
              * Index
-             * @description Why this property's column should be indexed in consumer databases, stated as intent — never as a physical index type (btree/GiST is the renderer's per-dialect call; docs/ENTITY_LAYER.md → indexing). 'filter': a consumer app filters, sorts or facets its LIST screens by this column — plain secondary index, in every database whose index_scalars policy admits explicit flags. 'search': a consumer app substring-searches this text column (%text% in a search box) — string properties only; projects as a pg_trgm trigram index on PostgreSQL (per language on localized columns, uncapped), nothing on other dialects; same policy tier as 'filter'. 'lat'/'lon' (+ optional 'alt'): one role of a geographic position — a complete pair under one parent object projects as one spatial index; a lone role emits nothing. 'range_start'/'range_end': one bound of an interval (validity period, band) — a complete pair projects as one overlap-queryable range index. None = no explicit request; identity properties (is_key/database_key are indexed by identity) and date-ish columns (indexed by type) keep their own derived classes. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the link-time classification pass — roles seeded from obvious names, bounded against the samples (coordinates in range, start <= end) — and curated in the Database Sync page's Model tab. Stripped from every enrichment prompt.
+             * @description Why this property's column should be indexed in consumer databases, stated as intent — never as a physical index type (btree/GiST is the renderer's per-dialect call; docs/ENTITY_LAYER.md → indexing). 'search': a consumer app substring-searches this text column (%text% in a search box) — string properties only; projects as a pg_trgm trigram index on PostgreSQL (per language on localized columns, uncapped), nothing on other dialects; policy tier 'explicit'. Plain filter/sort btrees are NOT a per-property role: they are declared as entity-level query-shaped indexes (EntityDefinition.indexes), ordered like the query they serve. 'lat'/'lon' (+ optional 'alt'): one role of a geographic position — a complete pair under one parent object projects as one spatial index; a lone role emits nothing. 'range_start'/'range_end': one bound of an interval (validity period, band) — a complete pair projects as one overlap-queryable range index. None = no explicit request; identity properties (is_key/database_key are indexed by identity) and date-ish columns (indexed by type) keep their own derived classes. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the link-time classification pass — roles seeded from obvious names, bounded against the samples (coordinates in range, start <= end) — and curated in the Database Sync page's Model tab. Stripped from every enrichment prompt.
              */
-            index?: ("filter" | "search" | "lat" | "lon" | "alt" | "range_start" | "range_end") | null;
+            index?: ("search" | "lat" | "lon" | "alt" | "range_start" | "range_end") | null;
             /**
              * Is Key
              * @description True = identifier field for entity lookup and array item deduplication, null = output-only field
@@ -19681,6 +19798,7 @@ export type EnrichmentOptionsResponse = components['schemas']['EnrichmentOptions
 export type EnrichmentPromptSummary = components['schemas']['EnrichmentPromptSummary'];
 export type EntityDefinitionInput = components['schemas']['EntityDefinition-Input'];
 export type EntityDefinitionOutput = components['schemas']['EntityDefinition-Output'];
+export type EntityIndexSpec = components['schemas']['EntityIndexSpec'];
 export type EntityKeyCollision = components['schemas']['EntityKeyCollision'];
 export type EntityStateListResponse = components['schemas']['EntityStateListResponse'];
 export type EntityStateRow = components['schemas']['EntityStateRow'];
@@ -19712,6 +19830,8 @@ export type ImportBenchmarkResultsResponse = components['schemas']['ImportBenchm
 export type ImportedBenchmarkResult = components['schemas']['ImportedBenchmarkResult'];
 export type ImportRequest = components['schemas']['ImportRequest'];
 export type ImportResult = components['schemas']['ImportResult'];
+export type IndexMergeSuggestion = components['schemas']['IndexMergeSuggestion'];
+export type IndexSuggestionDismissRequest = components['schemas']['IndexSuggestionDismissRequest'];
 export type JobsListResponse = components['schemas']['JobsListResponse'];
 export type JobSummary = components['schemas']['JobSummary'];
 export type JoinOrganizationRequest = components['schemas']['JoinOrganizationRequest'];
@@ -27943,6 +28063,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SchemaEnrichmentDataPurgeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_index_suggestion_api_schema_saved__schema_id__index_suggestions_dismiss_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IndexSuggestionDismissRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DbModelScopeResponse"];
                 };
             };
             /** @description Validation Error */
