@@ -4158,6 +4158,28 @@ export type paths = {
         patch: operations["update_schema_property_api_schema_saved__schema_id__property_patch"];
         trace?: never;
     };
+    "/api/schema/saved/{schema_id}/property/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move Schema Property
+         * @description Move ONE property of the working copy into another container — a $defs
+         *     entity, an inline object, or the root — keeping its flags and expertise.
+         *     Moving into a $defs type edits the TYPE: every usage site gains the field.
+         */
+        post: operations["move_schema_property_api_schema_saved__schema_id__property_move_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schema/saved/{schema_id}/publish": {
         parameters: {
             query?: never;
@@ -4436,6 +4458,50 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/semantic-concepts/{semantic_id}/aliases/{alias_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Alias
+         * @description Remove one surface form from a concept (pruning a captured variant).
+         *
+         *     The group's last row is refused — deleting the concept itself is the delete
+         *     flow's job, which states its convergence cost. Removing the canonical alias
+         *     promotes the most-referenced survivor.
+         */
+        delete: operations["remove_alias_api_semantic_concepts__semantic_id__aliases__alias_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/{semantic_id}/canonical/{alias_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Canonical Alias
+         * @description Make this alias the concept's canonical (display) surface form.
+         */
+        put: operations["set_canonical_alias_api_semantic_concepts__semantic_id__canonical__alias_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/semantic-concepts/delete": {
         parameters: {
             query?: never;
@@ -4548,6 +4614,52 @@ export type paths = {
          *     inside a normal request budget.
          */
         post: operations["import_concepts_api_semantic_concepts_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Merge Concepts
+         * @description Fold the loser concept into the winner (owner+ — it rewrites the shared
+         *     vocabulary AND converges every linked replica).
+         *
+         *     The loser's aliases repoint to the winner's semantic_id (their texts keep
+         *     resolving, now to the surviving id), entities keyed on the loser repoint or are
+         *     absorbed, referencing payloads are rewritten, and each linked database receives
+         *     one convergence batch: loser-row deletes, then re-projected current state.
+         */
+        post: operations["merge_concepts_api_semantic_concepts_merge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/merge-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get Merge Impact
+         * @description What merging the loser into the winner would touch — the confirm dialog's numbers.
+         */
+        post: operations["get_merge_impact_api_semantic_concepts_merge_impact_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6389,10 +6501,41 @@ export type components = {
             identity_keys_existing?: string[];
         };
         /**
+         * ConceptAlias
+         * @description One surface form of a concept (a `semantic_concepts` row within its group).
+         */
+        ConceptAlias: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Canonical */
+            is_canonical: boolean;
+            /** Normalized Text */
+            normalized_text: string;
+            /** Origin */
+            origin?: string | null;
+            /** Ref Count */
+            ref_count: number;
+            /** Text */
+            text: string;
+        };
+        /**
          * ConceptCreateRequest
-         * @description Manually add a concept to the vocabulary (curate bar).
+         * @description Manually add a concept — or an alias of an existing one — to the vocabulary.
          */
         ConceptCreateRequest: {
+            /**
+             * Alias Of
+             * @description semantic_id of the concept this text is an alias of. The text becomes a new surface form of that concept instead of a concept of its own. Refused when the text already resolves to a DIFFERENT concept at or above the threshold — the alias would make resolution order-dependent.
+             */
+            alias_of?: string | null;
             /** Concept Type */
             concept_type: string;
             /**
@@ -6525,8 +6668,74 @@ export type components = {
             text: string;
         };
         /**
+         * ConceptMergeImpact
+         * @description What a merge would touch — the confirm dialog's numbers.
+         *
+         *     Entity counts cover the platform entity store; `database_names` are the replicas
+         *     that will receive the convergence deltas (loser-row deletes + re-projected
+         *     current state) on their next sync.
+         */
+        ConceptMergeImpact: {
+            /** Absorbed Entity Count */
+            absorbed_entity_count: number;
+            /** Concept Type */
+            concept_type: string;
+            /** Database Names */
+            database_names: string[];
+            /** Entity Count */
+            entity_count: number;
+            /** Loser Alias Count */
+            loser_alias_count: number;
+            /** Loser Ref Count */
+            loser_ref_count: number;
+            /** Loser Text */
+            loser_text: string;
+            /** Referrer Entity Count */
+            referrer_entity_count: number;
+            /** Schema Names */
+            schema_names: string[];
+            /** Winner Text */
+            winner_text: string;
+        };
+        /**
+         * ConceptMergeRequest
+         * @description Fold the loser concept into the winner (Duplicates band → Merge).
+         */
+        ConceptMergeRequest: {
+            /**
+             * Loser Id
+             * Format: uuid
+             */
+            loser_id: string;
+            /**
+             * Winner Id
+             * Format: uuid
+             */
+            winner_id: string;
+        };
+        /** ConceptMergeResult */
+        ConceptMergeResult: {
+            /** Aliases Moved */
+            aliases_moved: number;
+            /** Databases Notified */
+            databases_notified: number;
+            /** Deltas Queued */
+            deltas_queued: number;
+            /** Entities Absorbed */
+            entities_absorbed: number;
+            /** Entities Repointed */
+            entities_repointed: number;
+            /** Referrers Rewritten */
+            referrers_rewritten: number;
+        };
+        /**
          * ConceptNeighbor
-         * @description A concept in the same slice, with its true similarity to the focus concept.
+         * @description An alias row in the same slice, with its true similarity to the focus.
+         *
+         *     Similarity is measured per surface form (each alias has its own vector); against a
+         *     concept focus it is the max over the focus group's vectors. `semantic_id` names the
+         *     row's group so callers can aggregate per concept (the table shows the group max,
+         *     the expansion each alias's own number).
          */
         ConceptNeighbor: {
             /** Canonical Text */
@@ -6536,8 +6745,18 @@ export type components = {
              * Format: uuid
              */
             id: string;
+            /**
+             * Is Canonical
+             * @default true
+             */
+            is_canonical: boolean;
             /** Ref Count */
             ref_count: number;
+            /**
+             * Semantic Id
+             * Format: uuid
+             */
+            semantic_id: string;
             /** Similarity */
             similarity: number;
         };
@@ -8225,6 +8444,10 @@ export type components = {
         /**
          * DuplicatePair
          * @description Two concepts of one slice whose similarity sits inside the review band.
+         *
+         *     `a_id`/`b_id` are the two GROUPS' semantic_ids (aliases of one concept never pair
+         *     with each other); `a_text`/`b_text` are the closest pair of surface forms, and the
+         *     similarity is the max over the groups' alias vectors — the pair a merge would act on.
          */
         DuplicatePair: {
             /**
@@ -11562,10 +11785,10 @@ export type components = {
             /** @description Advisory, relationship sites only: the item mixes the related entity's own facts with facts about the pairing (issue #116). Written by the schema analysis; stripped from every LLM prompt; survives description edits and self-invalidates when the item's field set changes. Absent = never analyzed. */
             identity_scoping?: components["schemas"]["IdentityScopingInfo"] | null;
             /**
-             * Indexed
-             * @description True = a consumer app filters, sorts or facets its LIST screens by this property, so its column gets a secondary index in every database whose index_scalars policy admits explicit flags (docs/ENTITY_LAYER.md → indexing). Redundant on identity properties (is_key/database_key are indexed by identity) and on closed sets (enum refs, booleans, dates are indexed by type) — those keep their own class. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the flags step at schema generation (bounded per entity) and editable in the Schema editor. Stripped from every LLM prompt.
+             * Index
+             * @description Why this property's column should be indexed in consumer databases, stated as intent — never as a physical index type (btree/GiST is the renderer's per-dialect call; docs/ENTITY_LAYER.md → indexing). 'filter': a consumer app filters, sorts or facets its LIST screens by this column — plain secondary index, in every database whose index_scalars policy admits explicit flags. 'lat'/'lon' (+ optional 'alt'): one role of a geographic position — a complete pair under one parent object projects as one spatial index; a lone role emits nothing. 'range_start'/'range_end': one bound of an interval (validity period, band) — a complete pair projects as one overlap-queryable range index. None = no explicit request; identity properties (is_key/database_key are indexed by identity) and date-ish columns (indexed by type) keep their own derived classes. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the link-time classification pass — roles seeded from obvious names, bounded against the samples (coordinates in range, start <= end) — and curated in the Database Sync page's Model tab. Stripped from every enrichment prompt.
              */
-            indexed?: boolean | null;
+            index?: ("filter" | "lat" | "lon" | "alt" | "range_start" | "range_end") | null;
             /**
              * Is Key
              * @description True = identifier field for entity lookup and array item deduplication, null = output-only field
@@ -11731,10 +11954,10 @@ export type components = {
             /** @description Advisory, relationship sites only: the item mixes the related entity's own facts with facts about the pairing (issue #116). Written by the schema analysis; stripped from every LLM prompt; survives description edits and self-invalidates when the item's field set changes. Absent = never analyzed. */
             identity_scoping?: components["schemas"]["IdentityScopingInfo"] | null;
             /**
-             * Indexed
-             * @description True = a consumer app filters, sorts or facets its LIST screens by this property, so its column gets a secondary index in every database whose index_scalars policy admits explicit flags (docs/ENTITY_LAYER.md → indexing). Redundant on identity properties (is_key/database_key are indexed by identity) and on closed sets (enum refs, booleans, dates are indexed by type) — those keep their own class. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the flags step at schema generation (bounded per entity) and editable in the Schema editor. Stripped from every LLM prompt.
+             * Index
+             * @description Why this property's column should be indexed in consumer databases, stated as intent — never as a physical index type (btree/GiST is the renderer's per-dialect call; docs/ENTITY_LAYER.md → indexing). 'filter': a consumer app filters, sorts or facets its LIST screens by this column — plain secondary index, in every database whose index_scalars policy admits explicit flags. 'lat'/'lon' (+ optional 'alt'): one role of a geographic position — a complete pair under one parent object projects as one spatial index; a lone role emits nothing. 'range_start'/'range_end': one bound of an interval (validity period, band) — a complete pair projects as one overlap-queryable range index. None = no explicit request; identity properties (is_key/database_key are indexed by identity) and date-ish columns (indexed by type) keep their own derived classes. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the link-time classification pass — roles seeded from obvious names, bounded against the samples (coordinates in range, start <= end) — and curated in the Database Sync page's Model tab. Stripped from every enrichment prompt.
              */
-            indexed?: boolean | null;
+            index?: ("filter" | "lat" | "lon" | "alt" | "range_start" | "range_end") | null;
             /**
              * Is Key
              * @description True = identifier field for entity lookup and array item deduplication, null = output-only field
@@ -14021,6 +14244,24 @@ export type components = {
             parent_path: string;
         };
         /**
+         * SchemaPropertyMoveRequest
+         * @description Move one property into another container. The property keeps its flags
+         *     and expertise; only its parent changes.
+         */
+        SchemaPropertyMoveRequest: {
+            /**
+             * New Parent Path
+             * @description '' = root, or an object path / '$defs.X'
+             * @default
+             */
+            new_parent_path: string;
+            /**
+             * Path
+             * @description Property path, e.g. 'ceremonies[].ceremony_type'
+             */
+            path: string;
+        };
+        /**
          * SchemaPropertyUpdateRequest
          * @description One property edit. Only the fields passed are changed; `flags` values of
          *     null CLEAR the flag. `remove: true` deletes the property instead.
@@ -14032,7 +14273,7 @@ export type components = {
             examples?: (string | number | boolean)[] | null;
             /**
              * Flags
-             * @description Flag updates; editable: database_key, db_name, db_name_absolute, db_type, db_type_length, expertise, format, indexed, is_key, language_discriminator, multilingual, nullable, ordered, pattern, preserve, semantic_concept_type, semantic_embedding_model, semantic_id, semantic_threshold, shared, unique_group
+             * @description Flag updates; editable: database_key, db_name, db_name_absolute, db_type, db_type_length, expertise, format, index, is_key, language_discriminator, multilingual, nullable, ordered, pattern, preserve, semantic_concept_type, semantic_embedding_model, semantic_id, semantic_threshold, shared, unique_group
              */
             flags?: {
                 [key: string]: unknown;
@@ -14238,6 +14479,13 @@ export type components = {
         };
         /** SemanticConceptDetail */
         SemanticConceptDetail: {
+            /**
+             * Alias Count
+             * @default 1
+             */
+            alias_count: number;
+            /** Aliases */
+            aliases?: components["schemas"]["ConceptAlias"][];
             /** Canonical Text */
             canonical_text: string;
             /** Concept Type */
@@ -14301,9 +14549,20 @@ export type components = {
         };
         /**
          * SemanticConceptSummary
-         * @description One concept row in the management table.
+         * @description One concept (= one semantic_id group) in the management table.
+         *
+         *     `id` is the group's semantic_id; `canonical_text` the canonical alias's text;
+         *     `ref_count` sums usage over every alias. `aliases` lists the member surface
+         *     forms (usually one).
          */
         SemanticConceptSummary: {
+            /**
+             * Alias Count
+             * @default 1
+             */
+            alias_count: number;
+            /** Aliases */
+            aliases?: components["schemas"]["ConceptAlias"][];
             /** Canonical Text */
             canonical_text: string;
             /** Concept Type */
@@ -19342,6 +19601,7 @@ export type CleanupDeactivatedRequest = components['schemas']['CleanupDeactivate
 export type CleanupDeactivatedResponse = components['schemas']['CleanupDeactivatedResponse'];
 export type CleanupSpecInfo = components['schemas']['CleanupSpecInfo'];
 export type CommonTypeCompare = components['schemas']['CommonTypeCompare'];
+export type ConceptAlias = components['schemas']['ConceptAlias'];
 export type ConceptCreateRequest = components['schemas']['ConceptCreateRequest'];
 export type ConceptDeleteImpact = components['schemas']['ConceptDeleteImpact'];
 export type ConceptDeleteRequest = components['schemas']['ConceptDeleteRequest'];
@@ -19349,6 +19609,9 @@ export type ConceptDeleteResult = components['schemas']['ConceptDeleteResult'];
 export type ConceptImportRequest = components['schemas']['ConceptImportRequest'];
 export type ConceptImportResult = components['schemas']['ConceptImportResult'];
 export type ConceptImportRow = components['schemas']['ConceptImportRow'];
+export type ConceptMergeImpact = components['schemas']['ConceptMergeImpact'];
+export type ConceptMergeRequest = components['schemas']['ConceptMergeRequest'];
+export type ConceptMergeResult = components['schemas']['ConceptMergeResult'];
 export type ConceptNeighbor = components['schemas']['ConceptNeighbor'];
 export type ConceptNeighborList = components['schemas']['ConceptNeighborList'];
 export type ConceptProbeRequest = components['schemas']['ConceptProbeRequest'];
@@ -19579,6 +19842,7 @@ export type SchemaPromptRequest = components['schemas']['SchemaPromptRequest'];
 export type SchemaPromptResponse = components['schemas']['SchemaPromptResponse'];
 export type SchemaPromptStreamRequest = components['schemas']['SchemaPromptStreamRequest'];
 export type SchemaPropertyAddRequest = components['schemas']['SchemaPropertyAddRequest'];
+export type SchemaPropertyMoveRequest = components['schemas']['SchemaPropertyMoveRequest'];
 export type SchemaPropertyUpdateRequest = components['schemas']['SchemaPropertyUpdateRequest'];
 export type SchemaPropMatch = components['schemas']['SchemaPropMatch'];
 export type SchemaPublishDiff = components['schemas']['SchemaPublishDiff'];
@@ -27939,6 +28203,49 @@ export interface operations {
             };
         };
     };
+    move_schema_property_api_schema_saved__schema_id__property_move_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchemaPropertyMoveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     publish_schema_api_schema_saved__schema_id__publish_post: {
         parameters: {
             query?: {
@@ -28592,6 +28899,78 @@ export interface operations {
             };
         };
     };
+    remove_alias_api_semantic_concepts__semantic_id__aliases__alias_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                alias_id: string;
+                semantic_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_canonical_alias_api_semantic_concepts__semantic_id__canonical__alias_id__put: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                alias_id: string;
+                semantic_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     delete_concepts_api_semantic_concepts_delete_post: {
         parameters: {
             query?: {
@@ -28775,6 +29154,84 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConceptImportResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    merge_concepts_api_semantic_concepts_merge_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConceptMergeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConceptMergeResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_merge_impact_api_semantic_concepts_merge_impact_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConceptMergeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConceptMergeImpact"];
                 };
             };
             /** @description Validation Error */
