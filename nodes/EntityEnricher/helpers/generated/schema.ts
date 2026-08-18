@@ -8930,7 +8930,7 @@ export type components = {
             entity_type: string;
             /**
              * Owned By
-             * @description Owning entity type when this type is a weak entity (owned relationship site); its rows are identified by the owner's keys plus database_keys. A 1-1-owned type with a non-nullable semantic_id keeps that column as its database key (source 'semantic_id') so the row's identity column is indexed; a 1-1-owned type without one is identified by the owner alone (database_keys is empty, source 'owner')
+             * @description Owning entity type when this type is a weak entity (owned relationship site); its rows are identified by the owner's keys plus database_keys. A 1-1-owned type with a non-nullable semantic_id keeps that column as its database key (source 'semantic_id') so the row's identity column is indexed; a 1-1-owned type without one is identified by the owner alone (database_keys is empty, source 'owner'). An array-owned type with no scalar keys of its own but a promoted 1-1 reference keys on (owner, reference) — the junction-with-attributes grain (database_keys is empty, source 'reference')
              */
             owned_by?: string | null;
             /**
@@ -8942,7 +8942,7 @@ export type components = {
              * Source
              * @enum {string}
              */
-            source: "semantic_id" | "id_field" | "natural_keys" | "manual" | "adopted" | "owner";
+            source: "semantic_id" | "id_field" | "natural_keys" | "manual" | "adopted" | "owner" | "reference";
         };
         /**
          * EntityUniqueConflict
@@ -14394,7 +14394,7 @@ export type components = {
             examples?: (string | number | boolean)[] | null;
             /**
              * Flags
-             * @description Flag updates; editable: database_key, db_name, db_name_absolute, db_type, db_type_length, expertise, format, index, is_key, language_discriminator, multilingual, nullable, ordered, pattern, preserve, semantic_concept_type, semantic_embedding_model, semantic_id, semantic_threshold, shared, unique_group
+             * @description Flag updates; editable: database_key, db_name, db_name_absolute, db_type, db_type_length, expertise, format, index, is_key, language_discriminator, multilingual, nullable, ordered, pattern, preserve, semantic_concept_type, semantic_embedding_model, semantic_id, semantic_threshold, shared, shared_reason, unique_group
              */
             flags?: {
                 [key: string]: unknown;
