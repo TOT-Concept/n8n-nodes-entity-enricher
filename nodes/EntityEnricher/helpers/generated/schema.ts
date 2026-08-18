@@ -7503,8 +7503,11 @@ export type components = {
             name: string;
             /** Notify Debounce S */
             notify_debounce_s: number;
-            /** On Incomplete Child */
-            on_incomplete_child: string;
+            /**
+             * On Gaps
+             * @enum {string}
+             */
+            on_gaps: "reject_entity" | "skip_children" | "accept_partial";
             /**
              * Organization Id
              * Format: uuid
@@ -7549,8 +7552,6 @@ export type components = {
              * @default 0
              */
             quarantined_deltas: number;
-            /** Require Complete */
-            require_complete: boolean;
             /**
              * Schemas
              * @description Schemas linked to this database (their union is what it syncs)
@@ -7558,7 +7559,7 @@ export type components = {
             schemas?: components["schemas"]["LinkedSchemaRef"][];
             /**
              * Shape Shipped
-             * @description The replica shape has shipped (first snapshot or DDL delta — the shipped-shape ledger exists). Locks propagate_not_null AND pk_strategy: no DDL travels on those toggles, so changing them on a live replica would silently diverge from what the replica holds
+             * @description The replica shape has shipped (first snapshot or DDL delta — the shipped-shape ledger exists). Locks pk_strategy (no DDL travels on that toggle); on_gaps and propagate_not_null stay changeable — a change that alters the effective NOT NULL set queues a guarded per-table migration instead
              * @default false
              */
             shape_shipped: boolean;
@@ -7628,12 +7629,12 @@ export type components = {
              */
             notify_debounce_s: number;
             /**
-             * On Incomplete Child
-             * @description With require_complete: 'skip_row' (default) prunes only the children whose own fields are unfilled and admits the rest — an array item is dropped, a shared 1-1 reference is detached (child not written, parent's foreign key NULL); gaps with no such child above them still reject. 'reject_entity' refuses the whole enrichment when any non-nullable field is unfilled
-             * @default skip_row
+             * On Gaps
+             * @description What is written when an enrichment comes back with gaps (non-nullable fields unfilled). 'reject_entity' — nothing: one gap anywhere, including inside a nested object, refuses the whole enrichment. 'skip_children' (default) — the entity, without its incomplete children: the entity's own row must be complete, a broken child is pruned and reported (an array item is dropped, a shared 1-1 reference is detached — child not written, parent's foreign key NULL); gaps with no such child above them still reject. 'accept_partial' — everything: gaps land as NULLs, nothing is rejected, and under last-write-wins a later partial run erases what an earlier one filled
+             * @default skip_children
              * @enum {string}
              */
-            on_incomplete_child: "reject_entity" | "skip_row";
+            on_gaps: "reject_entity" | "skip_children" | "accept_partial";
             /**
              * Page Limit
              * @description Delta batch size
@@ -7655,10 +7656,9 @@ export type components = {
             pk_strategy: "surrogate" | "natural";
             /**
              * Propagate Not Null
-             * @description Emit NOT NULL on columns the schema declares always-present. Forces require_complete on: the constraint and the admission gate are one feature — without the gate the replica rejects the delta, aborts the transaction and stalls its own feed. ON by default since entity merge became last-write-wins (issue #105): the latest payload IS the state, so a partial run erases what an earlier one filled instead of leaving it in place — the gate this flag forces on is what keeps that from reaching the replica, and the constraint states the same contract in the consumer's own database. Set it to false (with require_complete) for a database that wants partial rows. Changeable after the replica shape has shipped (issue #101): the toggle queues a guarded per-table migration — SET NOT NULL validates the rows the replica already holds and quarantines that one statement on violations (fill the rows, then re-drive from the Quarantine tab) while the rest of the feed keeps flowing; turning it off drops the constraints unconditionally
-             * @default true
+             * @description Mirror the gate in the consumer's database: NOT NULL on columns the schema declares always-present — and, under on_gaps='reject_entity', on the foreign-key columns of required shared 1-1 references too (under 'skip_children' those stay nullable so a skipped child can detach). Omitted = automatic: ON under the two strict rungs, OFF under 'accept_partial'. Explicit true with 'accept_partial' is refused — the constraint and the gate are one feature; without the gate the replica rejects the delta, aborts the transaction and stalls its own feed. Changeable after the replica shape has shipped (issue #101): a change queues a guarded per-table migration — SET NOT NULL validates the rows the replica already holds and quarantines that one statement on violations (fill the rows, then re-drive from the Quarantine tab) while the rest of the feed keeps flowing; turning it off drops the constraints unconditionally
              */
-            propagate_not_null: boolean;
+            propagate_not_null?: boolean | null;
             /**
              * Purge Entity State
              * @description Also delete entity rows once every database of the schema acknowledged their latest revision (data minimization — not GDPR erasure; records remain). The server stops being a source of truth: snapshots become partial, the convergence checksum goes blind, re-enrichments lose their merge base, and a paused link cannot backfill. It also blinds the server-side duplicate probe that guards the schema's declared unique groups: purged rows are invisible to it, so a collision is caught by the replica's own UNIQUE index instead — that write quarantines and is listed in the Quarantine tab rather than being refused at enrichment time
@@ -7671,12 +7671,6 @@ export type components = {
              * @default false
              */
             purge_on_ack: boolean;
-            /**
-             * Require Complete
-             * @description Admission gate: only enrichments with all non-nullable fields filled are recorded
-             * @default true
-             */
-            require_complete: boolean;
             /**
              * Target Host
              * @description Sync host (id or name) that provisions this registration. Omitted: auto-assigned when exactly one eligible host is connected, else the registration is created unassigned (the response lists connected_hosts to pick from; assign later via PATCH).
@@ -7710,7 +7704,7 @@ export type components = {
             database: components["schemas"]["DatabaseSync"];
             /**
              * Registration Notices
-             * @description The weighty registration-time decisions (propagate_not_null, pk_strategy), restated with this schema's own numbers — read them now: after the first snapshot or DDL delta, pk_strategy can no longer be changed at all, and a propagate_not_null change costs a validating migration (issue #101)
+             * @description The weighty registration-time decisions (propagate_not_null, pk_strategy), restated with this schema's own numbers — read them now: after the first snapshot or DDL delta, pk_strategy can no longer be changed at all, and an on_gaps or propagate_not_null change that alters the effective NOT NULL set costs a validating migration (issue #101)
              */
             registration_notices?: components["schemas"]["RegistrationNotice"][];
             /** Stamped Keys */
@@ -7819,7 +7813,7 @@ export type components = {
             delta_count: number;
             /**
              * Detached References
-             * @description Shared 1-1 references detached by databases in on_incomplete_child='skip_row' mode (the referenced entity had an unfilled non-nullable field of its own): the child was not written or updated and the parent's foreign key is NULL, instead of the whole entity being refused over it. Distinct from skipped_items — no row was dropped, a link was cut
+             * @description Shared 1-1 references detached by databases in on_gaps='skip_children' mode (the referenced entity had an unfilled non-nullable field of its own): the child was not written or updated and the parent's foreign key is NULL, instead of the whole entity being refused over it. Distinct from skipped_items — no row was dropped, a link was cut
              */
             detached_references?: string[];
             /**
@@ -7868,12 +7862,12 @@ export type components = {
             shared_entity_conflicts?: components["schemas"]["SharedEntityConflict"][];
             /**
              * Skipped Items
-             * @description Array items dropped by databases in on_incomplete_child='skip_row' mode (their own non-nullable fields were unfilled); the rest of the entity was admitted
+             * @description Array items dropped by databases in on_gaps='skip_children' mode (their own non-nullable fields were unfilled); the rest of the entity was admitted
              */
             skipped_items?: string[];
             /**
              * Status
-             * @description Three-state view of `saved`: 'rejected' (nothing was written), 'saved' (everything the run produced was written), or 'partial' — the entity landed but some of what it produced did NOT and nothing re-sends it (skipped_items dropped by a skip_row database, detached_references cut by one, key_collisions dropped as duplicate identities). A partial write is silent data loss until the schema is fixed and the entity re-enriched, so treat it as a warning, not a success
+             * @description Three-state view of `saved`: 'rejected' (nothing was written), 'saved' (everything the run produced was written), or 'partial' — the entity landed but some of what it produced did NOT and nothing re-sends it (skipped_items dropped by a skip_children database, detached_references cut by one, key_collisions dropped as duplicate identities). A partial write is silent data loss until the schema is fixed and the entity re-enriched, so treat it as a warning, not a success
              * @enum {string}
              */
             readonly status: "saved" | "partial" | "rejected";
@@ -7904,8 +7898,8 @@ export type components = {
             name?: string | null;
             /** Notify Debounce S */
             notify_debounce_s?: number | null;
-            /** On Incomplete Child */
-            on_incomplete_child?: ("reject_entity" | "skip_row") | null;
+            /** On Gaps */
+            on_gaps?: ("reject_entity" | "skip_children" | "accept_partial") | null;
             /** Page Limit */
             page_limit?: number | null;
             /** Pattern Index Localized Keys */
@@ -7918,8 +7912,6 @@ export type components = {
             purge_entity_state?: boolean | null;
             /** Purge On Ack */
             purge_on_ack?: boolean | null;
-            /** Require Complete */
-            require_complete?: boolean | null;
             /**
              * Target Host
              * @description Sync host (id or name) to assign. Present-with-null clears the assignment; absent leaves it untouched.
@@ -7951,6 +7943,18 @@ export type components = {
             entity_tables: number;
             /** Errors */
             errors?: string[];
+            /**
+             * Reference Columns
+             * @description Foreign-key columns of required shared 1-1 references that on_gaps='reject_entity' + propagate_not_null would also ship NOT NULL (under 'skip_children' they stay nullable so a skipped child can detach)
+             * @default 0
+             */
+            reference_columns: number;
+            /**
+             * Reference Tables
+             * @description Entity tables carrying at least one such reference column
+             * @default 0
+             */
+            reference_tables: number;
             /**
              * Requires Key Language
              * @description This schema projects something language-locked (a multilingual database key, or a multilingual unordered value array whose '{value}_key' companion is derived): the registration must pick the language its identity tokens are written in
@@ -9151,7 +9155,7 @@ export type components = {
              * @description Cost of LLM arbitration (None if rule-based)
              */
             cost_usd?: number | null;
-            /** @description Entity-layer outcome for the merged result (docs/ENTITY_LAYER.md). saved=false carries the admission-gate rejection reason — a fused result can validate yet still be refused by a require_complete database because merging left required fields null. */
+            /** @description Entity-layer outcome for the merged result (docs/ENTITY_LAYER.md). saved=false carries the admission-gate rejection reason — a fused result can validate yet still be refused by a strict-on_gaps database because merging left required fields null. */
             database?: components["schemas"]["DatabaseSyncOutcome"] | null;
             /** Error Message */
             error_message?: string | null;
