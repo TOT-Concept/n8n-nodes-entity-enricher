@@ -4002,6 +4002,10 @@ export type paths = {
         /**
          * Duplicate Saved Schema
          * @description Duplicate a schema into the user's organization.
+         *
+         *     `include_database_model=false` strips every database-model annotation
+         *     (classification flags + entity-level indexes) from the copy, so a later
+         *     database link re-runs classification from scratch.
          */
         post: operations["duplicate_saved_schema_api_schema_saved__schema_id__duplicate_post"];
         delete?: never;
@@ -28004,6 +28008,7 @@ export interface operations {
     duplicate_saved_schema_api_schema_saved__schema_id__duplicate_post: {
         parameters: {
             query?: {
+                include_database_model?: boolean;
                 new_name?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
