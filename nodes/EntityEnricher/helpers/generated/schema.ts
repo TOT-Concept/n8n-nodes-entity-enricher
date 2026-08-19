@@ -4299,6 +4299,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/schema/scoping-split": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Split a relationship site's entity facts into a subobject
+         * @description Applies the structural remedy an `identity_scoping` annotation proposes: the related entity's own facts move into their own subobject, the per-parent facts stay on the item. Deterministic, free and stateless — the same rewrite sample generation applies, exposed so a caller holding an already-approved sample can take the remedy and regenerate. Nothing is saved: feed the returned samples back into schema generation.
+         */
+        post: operations["split_scoping_site_api_schema_scoping_split_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schemas/{schema_id}/databases": {
         parameters: {
             query?: never;
@@ -9481,6 +9501,11 @@ export type components = {
          */
         IdentityScopingFinding: {
             /**
+             * Entity Carrier
+             * @description Set when that subobject ALREADY exists on the item: the entity fields are misplaced beside it and belong inside it
+             */
+            entity_carrier?: string | null;
+            /**
              * Entity Fields
              * @description Fields that are facts about the related entity itself
              */
@@ -9508,7 +9533,7 @@ export type components = {
             path: string;
             /**
              * Suggested Entity Name
-             * @description snake_case name proposed for the nested entity subobject
+             * @description snake_case name of the subobject the entity fields belong in
              */
             suggested_entity_name?: string | null;
         };
@@ -9527,6 +9552,11 @@ export type components = {
          *     `mixed=False` is a clean marker (no chip) driving incremental re-analysis.
          */
         IdentityScopingInfo: {
+            /**
+             * Entity Carrier
+             * @description Set when that subobject ALREADY exists on the item: the entity fields are misplaced beside it and belong inside it
+             */
+            entity_carrier?: string | null;
             /**
              * Entity Fields
              * @description Fields that are facts about the related entity itself
@@ -9554,7 +9584,7 @@ export type components = {
             pair_fields?: string[];
             /**
              * Suggested Entity Name
-             * @description snake_case name proposed for the nested entity subobject
+             * @description snake_case name of the subobject the entity fields belong in
              */
             suggested_entity_name?: string | null;
         };
@@ -14578,6 +14608,72 @@ export type components = {
             schema_name: string;
         };
         /**
+         * ScopingSplitRequest
+         * @description Apply one identity-scoping verdict to a sample set (issue #116).
+         *
+         *     The site is addressed by its FIELD SET, not by a path: one schema site can
+         *     be reached at several places in a sample (a shape reused at two sites is
+         *     one `$defs` entity), and splitting only one of them would leave the samples
+         *     describing two different shapes. Every site whose members match is split.
+         */
+        ScopingSplitRequest: {
+            /**
+             * Entity Fields
+             * @description Item fields that are facts about the related entity itself.
+             */
+            entity_fields: string[];
+            /**
+             * Entity Name
+             * @description snake_case name of the subobject the entity fields move into. When the item already carries that object, name it here too.
+             */
+            entity_name: string;
+            /**
+             * Entity Samples
+             * @description The samples to restructure — every one is rewritten identically.
+             */
+            entity_samples: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Fields
+             * @description The site's full member names, exactly as the `identity_scoping` annotation recorded them (its `fields` fingerprint).
+             */
+            fields: string[];
+            /**
+             * Path
+             * @description Optional dotted SAMPLE path restricting the split to one site when the same shape occurs at several.
+             */
+            path?: string | null;
+        };
+        /**
+         * ScopingSplitResponse
+         * @description The restructured samples, plus what the split actually did.
+         */
+        ScopingSplitResponse: {
+            /**
+             * Applied
+             * @description False when the site could not be split (see `reason`).
+             */
+            applied: boolean;
+            /**
+             * Entity Samples
+             * @description The samples after the split — unchanged when it did not apply.
+             */
+            entity_samples: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Paths
+             * @description Sample paths that were split (several when the shape is reused).
+             */
+            paths?: string[];
+            /**
+             * Reason
+             * @description Why nothing was applied, when applied=false.
+             */
+            reason?: string | null;
+        };
+        /**
          * ScoreBenchmarkJobResponse
          * @description Response after starting a scoring job (progress streams over the LLM job SSE).
          */
@@ -16584,7 +16680,8 @@ export type components = {
         };
         /**
          * SSEExpertiseCompleted
-         * @description Emitted when one expertise domain finishes within a model's run.
+         * @description Emitted when one expertise domain (or pipeline step) finishes within a
+         *     model's run.
          */
         SSEExpertiseCompleted: {
             /**
@@ -19978,6 +20075,8 @@ export type SchemaPublishPreviewResponse = components['schemas']['SchemaPublishP
 export type SchemaPublishRequest = components['schemas']['SchemaPublishRequest'];
 export type SchemaPublishResponse = components['schemas']['SchemaPublishResponse'];
 export type SchemaSemanticUsage = components['schemas']['SchemaSemanticUsage'];
+export type ScopingSplitRequest = components['schemas']['ScopingSplitRequest'];
+export type ScopingSplitResponse = components['schemas']['ScopingSplitResponse'];
 export type ScoreBenchmarkJobResponse = components['schemas']['ScoreBenchmarkJobResponse'];
 export type ScoreBenchmarkRequest = components['schemas']['ScoreBenchmarkRequest'];
 export type SemanticConceptDetail = components['schemas']['SemanticConceptDetail'];
@@ -28553,6 +28652,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SemanticKeyUsageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    split_scoping_site_api_schema_scoping_split_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScopingSplitRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScopingSplitResponse"];
                 };
             };
             /** @description Validation Error */
