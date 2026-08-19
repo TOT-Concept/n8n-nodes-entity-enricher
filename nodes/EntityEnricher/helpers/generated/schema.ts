@@ -3738,13 +3738,10 @@ export type paths = {
         get?: never;
         put?: never;
         /**
-         * Analyze Sample Determinism
-         * @description Analyze a raw sample JSON for non-deterministic property names (stateless).
-         *
-         *     Never mutates the sample — returns a report of flagged properties with
-         *     suggested renames the caller (UI one-click, or an agent) can apply.
+         * Check a sample for ambiguously named properties
+         * @description Reads every property IN THE CONTEXT OF ITS PARENT and counts how many distinct things it could be asking for. Two or more competing readings (`kind='ambiguous'`, an unframed value — no unit, currency, period, as-of convention, range or polarity — included) mean each model settles on a different one and the column silently mixes answers to different questions; none at all (`kind='unmappable'`) means the parent has no such fact, so the model will invent a value. Rides along with the identity-scoping check on the sample's relationship sites. Stateless: the sample is never mutated — the report proposes renames the caller (UI one-click, or an agent) applies.
          */
-        post: operations["analyze_sample_determinism_api_schema_analyze_sample_post"];
+        post: operations["analyze_sample_ambiguity_api_schema_analyze_sample_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3923,14 +3920,10 @@ export type paths = {
         get?: never;
         put?: never;
         /**
-         * Analyze Saved Schema Determinism
-         * @description Analyze a saved schema and write `non_determinism` onto its properties.
-         *
-         *     Incremental by default (`force=false`): only properties still missing the
-         *     attribute are analyzed (covers imports, manual edits, renames). `force=true`
-         *     re-analyzes every property.
+         * Re-check a saved schema for ambiguously named properties
+         * @description Same parent-anchored count as the sample route, but on a LIVE schema: the user's descriptions are handed to the analyzer and judged — one that merely restates the name adds nothing and the property is read as if it had none — so the remedy here is a description pinning ONE meaning rather than a rename that would break the data contract. Verdicts are written onto the properties (`ambiguity`), together with the identity-scoping verdicts of the relationship sites, and the updated schema is persisted and returned.
          */
-        post: operations["analyze_saved_schema_determinism_api_schema_saved__schema_id__analyze_post"];
+        post: operations["analyze_saved_schema_ambiguity_api_schema_saved__schema_id__analyze_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5140,8 +5133,138 @@ export type components = {
             organization_id: string;
         };
         /**
+         * AmbiguityCheckResponse
+         * @description Report returned by both analyzer routes — flagged findings only, plus counts.
+         */
+        AmbiguityCheckResponse: {
+            /**
+             * Analyzed Count
+             * @default 0
+             */
+            analyzed_count: number;
+            /**
+             * Findings
+             * @description Medium/high findings only (properties admitting exactly one reading are omitted). Each carries the competing `interpretations` and, per its `kind`, either rename proposals ('ambiguous') or the readings rejected for a name this parent cannot answer at all ('unmappable').
+             */
+            findings?: components["schemas"]["AmbiguityFinding"][];
+            /**
+             * Identity Scoping
+             * @description Mixed relationship sites only (issue #116): items whose fields mix the related entity's own facts with facts about the pairing. Clean sites are omitted here; they persist as clean markers on the schema (schema-analyze route).
+             */
+            identity_scoping?: components["schemas"]["IdentityScopingFinding"][];
+            /** Record Id */
+            record_id?: string | null;
+            /** @description Updated schema (schema-analyze route only) */
+            schema?: components["schemas"]["GeneratedJsonSchema-Output"] | null;
+            /** Schema Id */
+            schema_id?: string | null;
+            /**
+             * Summary
+             * @description Counts per level, e.g. {low, medium, high}
+             */
+            summary?: {
+                [key: string]: number;
+            };
+        };
+        /**
+         * AmbiguityFinding
+         * @description One analyzed property. `low` = clear (no badge); `medium`/`high` = flagged.
+         */
+        AmbiguityFinding: {
+            /**
+             * Applied Name
+             * @description Set when a rename was auto-applied in-job (generated samples only)
+             */
+            applied_name?: string | null;
+            /**
+             * Interpretations
+             * @description 2-4 short, distinct readings the property admits, most likely first, in the requester's UI locale. For an `unmappable` finding these are the closest readings considered AND REJECTED (the note says why none fit), so it may legitimately carry fewer. Empty for clean low findings
+             */
+            interpretations?: string[];
+            /**
+             * Kind
+             * @description 'ambiguous' = several readings compete; 'unmappable' = no reading fits this parent at all, so the model will invent a value. Only meaningful on flagged findings
+             * @default ambiguous
+             * @enum {string}
+             */
+            kind: "ambiguous" | "unmappable";
+            /**
+             * Level
+             * @description high = the competing readings yield materially different data; medium = they overlap but the edge cases differ; low = clear
+             * @enum {string}
+             */
+            level: "low" | "medium" | "high";
+            /**
+             * Note
+             * @description Reason + remedy, in the requester's UI locale
+             * @default
+             */
+            note: string;
+            /**
+             * Path
+             * @description Dotted path of the analyzed property
+             */
+            path: string;
+            /**
+             * Suggested Description
+             * @description A rewritten description pinning ONE meaning (normally the first interpretation). The remedy once the schema is LIVE — emitted only on the user-triggered re-check, where descriptions are authoritative and a rename would break the data contract
+             */
+            suggested_description?: string | null;
+            /**
+             * Suggested Names
+             * @description 1-3 name proposals that admit only the first interpretation (never duplicating parent context). The remedy BEFORE anything depends on the schema — at generation time nothing consumes it yet, so renaming is free and a description could not disambiguate a name it was derived from
+             */
+            suggested_names?: string[];
+        };
+        /**
+         * AmbiguityInfo
+         * @description Advisory flag: this property's name admits more than one meaning.
+         *
+         *     Read in the context of its parent object, how many distinct things could
+         *     the property be asking for? Exactly one = clear. Two or more = the
+         *     enriching LLM settles on one of them per run, so the column silently mixes
+         *     answers to different questions. None at all = `kind="unmappable"`: the
+         *     parent has nothing the name could retrieve, and the model invents a value.
+         *     Value stability across runs is NOT what this measures.
+         *
+         *     Written post-generation by the ambiguity analyzer, NEVER by the
+         *     generation/edit LLM (it is stripped from every prompt). Its lifecycle
+         *     follows the property — renaming the property, deleting it, or editing its
+         *     description drops the flag, and a missing attribute means "never analyzed"
+         *     (drives incremental re-analysis). `level="low"` is a clean marker (no
+         *     badge); `medium`/`high` flag ambiguity.
+         */
+        AmbiguityInfo: {
+            /**
+             * Interpretations
+             * @description The competing readings the property admits, most likely first — or, for 'unmappable', the closest readings that were REJECTED. Omitted (never empty-list) for clean low-level markers, so an analyzed-clean property does not carry dead JSON forever.
+             */
+            interpretations?: string[] | null;
+            /**
+             * Kind
+             * @description What the chip says: 'ambiguous' = several readings compete, pin one down; 'unmappable' = no reading fits this parent, the value will be invented. Omitted for clean low-level markers.
+             */
+            kind?: ("ambiguous" | "unmappable") | null;
+            /**
+             * Level
+             * @description Ambiguity severity: low = exactly one reading; high = the competing readings yield materially different data; medium = they overlap but the edge cases differ
+             * @enum {string}
+             */
+            level: "low" | "medium" | "high";
+            /**
+             * Note
+             * @description Human-readable reason + remedy, in the requester's UI locale. Omitted (never empty-string) for clean low-level markers.
+             */
+            note?: string | null;
+            /**
+             * Suggested Description
+             * @description A rewritten description pinning ONE meaning. Only the user-triggered re-check emits it: at generation time the description is derived from the name, so the remedy there is a rename instead.
+             */
+            suggested_description?: string | null;
+        };
+        /**
          * AnalyzeSampleRequest
-         * @description Request to analyze a raw sample JSON for non-deterministic property names.
+         * @description Request to analyze a raw sample JSON for ambiguously named properties.
          */
         AnalyzeSampleRequest: {
             /**
@@ -5825,7 +5948,7 @@ export type components = {
             error_message?: string | null;
             /**
              * Generation Meta
-             * @description Type-specific run metadata (sample_generation: determinism_report, resolved_type; schema_generation: property_count, expertise_count)
+             * @description Type-specific run metadata (sample_generation: ambiguity_report, resolved_type; schema_generation: property_count, expertise_count)
              */
             generation_meta?: {
                 [key: string]: unknown;
@@ -8278,40 +8401,6 @@ export type components = {
              */
             schema_delta_count: number;
         };
-        /**
-         * DeterminismCheckResponse
-         * @description Report returned by both analyzer routes — flagged findings only, plus counts.
-         */
-        DeterminismCheckResponse: {
-            /**
-             * Analyzed Count
-             * @default 0
-             */
-            analyzed_count: number;
-            /**
-             * Findings
-             * @description Medium/high findings only (deterministic props omitted)
-             */
-            findings?: components["schemas"]["NonDeterminismFinding"][];
-            /**
-             * Identity Scoping
-             * @description Mixed relationship sites only (issue #116): items whose fields mix the related entity's own facts with facts about the pairing. Clean sites are omitted here; they persist as clean markers on the schema (schema-analyze route).
-             */
-            identity_scoping?: components["schemas"]["IdentityScopingFinding"][];
-            /** Record Id */
-            record_id?: string | null;
-            /** @description Updated schema (schema-analyze route only) */
-            schema?: components["schemas"]["GeneratedJsonSchema-Output"] | null;
-            /** Schema Id */
-            schema_id?: string | null;
-            /**
-             * Summary
-             * @description Counts per level, e.g. {low, medium, high}
-             */
-            summary?: {
-                [key: string]: number;
-            };
-        };
         /** DeviceCodeConfirmRequest */
         DeviceCodeConfirmRequest: {
             /** Label */
@@ -9394,7 +9483,7 @@ export type components = {
             naming_convention: string;
             /**
              * Sample Count
-             * @description How many samples of this entity type to generate in one job. Sample 1 defines the field set (full pipeline incl. determinism analysis) and names the instances for the remaining slots; samples 2..N are parallel follow-up turns that keep the same fields and fill values for their named instance. Forced to 1 whenever attachment_ids is set.
+             * @description How many samples of this entity type to generate in one job. Sample 1 defines the field set (full pipeline incl. the ambiguity check) and names the instances for the remaining slots; samples 2..N are parallel follow-up turns that keep the same fields and fill values for their named instance. Forced to 1 whenever attachment_ids is set.
              * @default 1
              */
             sample_count: number;
@@ -9542,9 +9631,9 @@ export type components = {
          * @description Advisory flag: a relationship site whose items mix entity-intrinsic and
          *     pair-scoped facts (issue #116).
          *
-         *     Written by the schema analysis (the same pass as `non_determinism`), NEVER
+         *     Written by the schema analysis (the same pass as `ambiguity`), NEVER
          *     by the generation/edit LLM (stripped from every prompt). Its lifecycle
-         *     deliberately DIVERGES from `non_determinism`: the remedy is structural
+         *     deliberately DIVERGES from `ambiguity`: the remedy is structural
          *     (nest the entity fields into a subobject and regenerate), so a description
          *     edit does not clear it — only a change to the item's field set does. The
          *     recorded `fields` are the self-invalidation fingerprint: every consumer
@@ -11083,79 +11172,6 @@ export type components = {
             /** Total Models */
             total_models: number;
         };
-        /**
-         * NonDeterminismFinding
-         * @description One analyzed property. `low` = clean (no badge); `medium`/`high` = flagged.
-         */
-        NonDeterminismFinding: {
-            /**
-             * Applied Name
-             * @description Set when a rename was auto-applied in-job (generated samples only)
-             */
-            applied_name?: string | null;
-            /**
-             * Cause
-             * @description Why it varies (only for flagged properties)
-             */
-            cause?: ("temporal" | "ambiguous" | "subjective" | "multi_valued") | null;
-            /**
-             * Level
-             * @description Reproducibility band
-             * @enum {string}
-             */
-            level: "low" | "medium" | "high";
-            /**
-             * Note
-             * @description Reason + remedy, in the requester's UI locale
-             * @default
-             */
-            note: string;
-            /**
-             * Path
-             * @description Dotted path of the analyzed property
-             */
-            path: string;
-            /**
-             * Restructure
-             * @description True when the remedy is a restructure (scalar → keyed array), not a rename
-             * @default false
-             */
-            restructure: boolean;
-            /**
-             * Suggested Description
-             * @description A rewritten property description that pins the missing frame (period/unit/scope; for arrays: cardinality + ordering criterion). The preferred, non-breaking remedy for schema properties — applying it never changes the data contract, unlike a rename.
-             */
-            suggested_description?: string | null;
-            /**
-             * Suggested Names
-             * @description 1-3 more-deterministic name proposals (never duplicating parent context)
-             */
-            suggested_names?: string[];
-        };
-        /**
-         * NonDeterminismInfo
-         * @description Advisory flag: how much a property's enriched value drifts across runs.
-         *
-         *     Written post-generation by the non-determinism analyzer, NEVER by the
-         *     generation/edit LLM (it is stripped from every prompt). Its lifecycle
-         *     follows the property — renaming the property, deleting it, or editing its
-         *     description drops the flag, and a missing attribute means "never analyzed"
-         *     (drives incremental re-analysis). `level="low"` is a clean marker (no
-         *     badge); `medium`/`high` flag drift.
-         */
-        NonDeterminismInfo: {
-            /**
-             * Level
-             * @description Non-determinism severity: low = reproducible across models/runs; medium/high = the value is likely to vary (temporal / ambiguous / subjective / multi-valued)
-             * @enum {string}
-             */
-            level: "low" | "medium" | "high";
-            /**
-             * Note
-             * @description Human-readable reason + remedy, in the requester's UI locale. Omitted (never empty-string) for clean low-level markers.
-             */
-            note?: string | null;
-        };
         /** OAuthGrantListItem */
         OAuthGrantListItem: {
             /** Client Id */
@@ -11887,6 +11903,8 @@ export type components = {
              * @description Reference to an entity definition in $defs (e.g., '#/$defs/Company') or to a named enum in $enums (e.g., '#/$enums/TowerShape'). The two namespaces are disjoint: a '#/$defs/' ref is a RELATIONSHIP (its target projects as its own table), a '#/$enums/' ref is a closed-set SCALAR (it projects as an ordinary column).
              */
             $ref?: string | null;
+            /** @description Advisory: this property's name, read against its parent, admits more than one meaning (or none at all) — so the enriching model may answer a different question than intended. Written by the ambiguity analyzer post-generation; stripped from every LLM prompt; dropped when the property is renamed, removed, or its description edited. Absent = never analyzed. */
+            ambiguity?: components["schemas"]["AmbiguityInfo"] | null;
             /**
              * Database Key
              * @description True = this property is part of its containing object's Database key: the upsert conflict target and DDL unique index shared by all schema databases (docs/ENTITY_LAYER.md). Proposed by the flags step at schema generation and finalized by the stamping ladder (semantic_id → Id-like field → natural keys, which also backfills legacy schemas at link time); must be scalar (multilingual allowed — projects a '{prop}_key' companion column); required at write time. Stripped from every LLM prompt.
@@ -11961,8 +11979,6 @@ export type components = {
              * @description If true, enrichment returns values in all requested languages
              */
             multilingual?: boolean | null;
-            /** @description Advisory: how likely this property's enriched value is to vary across models/runs. Written by the non-determinism analyzer post-generation; stripped from every LLM prompt; dropped when the property is renamed, removed, or its description edited. Absent = never analyzed. */
-            non_determinism?: components["schemas"]["NonDeterminismInfo"] | null;
             /**
              * Nullable
              * @description True if this property can be null
@@ -12056,6 +12072,8 @@ export type components = {
              * @description Reference to an entity definition in $defs (e.g., '#/$defs/Company') or to a named enum in $enums (e.g., '#/$enums/TowerShape'). The two namespaces are disjoint: a '#/$defs/' ref is a RELATIONSHIP (its target projects as its own table), a '#/$enums/' ref is a closed-set SCALAR (it projects as an ordinary column).
              */
             $ref?: string | null;
+            /** @description Advisory: this property's name, read against its parent, admits more than one meaning (or none at all) — so the enriching model may answer a different question than intended. Written by the ambiguity analyzer post-generation; stripped from every LLM prompt; dropped when the property is renamed, removed, or its description edited. Absent = never analyzed. */
+            ambiguity?: components["schemas"]["AmbiguityInfo"] | null;
             /**
              * Database Key
              * @description True = this property is part of its containing object's Database key: the upsert conflict target and DDL unique index shared by all schema databases (docs/ENTITY_LAYER.md). Proposed by the flags step at schema generation and finalized by the stamping ladder (semantic_id → Id-like field → natural keys, which also backfills legacy schemas at link time); must be scalar (multilingual allowed — projects a '{prop}_key' companion column); required at write time. Stripped from every LLM prompt.
@@ -12130,8 +12148,6 @@ export type components = {
              * @description If true, enrichment returns values in all requested languages
              */
             multilingual?: boolean | null;
-            /** @description Advisory: how likely this property's enriched value is to vary across models/runs. Written by the non-determinism analyzer post-generation; stripped from every LLM prompt; dropped when the property is renamed, removed, or its description edited. Absent = never analyzed. */
-            non_determinism?: components["schemas"]["NonDeterminismInfo"] | null;
             /**
              * Nullable
              * @description True if this property can be null
@@ -14064,6 +14080,12 @@ export type components = {
          */
         SavedSchemaCreate: {
             /**
+             * Ambiguity Check Enabled
+             * @description Whether the ambiguity check is enabled for this schema (analyzer post-pass on generation, analyze routes, ambiguity chips in the UI).
+             * @default true
+             */
+            ambiguity_check_enabled: boolean;
+            /**
              * Entity Samples
              * @description 1..N sample objects the schema was generated from (restores the sample panel on reopen)
              */
@@ -14085,12 +14107,6 @@ export type components = {
             is_pinned: boolean;
             /** Name */
             name: string;
-            /**
-             * Non Determinism Enabled
-             * @description Whether non-determinism analysis is enabled for this schema (analyzer post-pass on generation, analyze routes, 'varies' badges in the UI).
-             * @default true
-             */
-            non_determinism_enabled: boolean;
             schema_content: components["schemas"]["GeneratedJsonSchema-Input"];
             /** Tags */
             tags?: string[];
@@ -14148,6 +14164,11 @@ export type components = {
             /** Ai Suggestions */
             ai_suggestions?: string[] | null;
             /**
+             * Ambiguity Check Enabled
+             * @default true
+             */
+            ambiguity_check_enabled: boolean;
+            /**
              * Created At
              * Format: date-time
              */
@@ -14181,11 +14202,6 @@ export type components = {
             /** Name */
             name: string;
             /**
-             * Non Determinism Enabled
-             * @default true
-             */
-            non_determinism_enabled: boolean;
-            /**
              * Publish State
              * @description draft (no linked database) | unpublished (linked, never published) | in_sync | dirty (structural edits pending publish)
              * @default draft
@@ -14212,6 +14228,8 @@ export type components = {
          * @description Request model for updating a saved schema.
          */
         SavedSchemaUpdate: {
+            /** Ambiguity Check Enabled */
+            ambiguity_check_enabled?: boolean | null;
             /** Entity Samples */
             entity_samples?: {
                 [key: string]: unknown;
@@ -14229,8 +14247,6 @@ export type components = {
             key_language?: string | null;
             /** Name */
             name?: string | null;
-            /** Non Determinism Enabled */
-            non_determinism_enabled?: boolean | null;
             schema_content?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
             /** Tags */
             tags?: string[] | null;
@@ -18829,7 +18845,7 @@ export type components = {
             } | null;
             /**
              * Save Schema
-             * @description Auto-save the generated schema as a saved schema (default). False skips the save AND the determinism post-pass — used when the schema is a throwaway draft, e.g. generating a benchmark gold reference.
+             * @description Auto-save the generated schema as a saved schema (default). False skips the save AND the ambiguity post-pass — used when the schema is a throwaway draft, e.g. generating a benchmark gold reference.
              * @default true
              */
             save_schema: boolean;
@@ -19255,7 +19271,7 @@ export type components = {
             } | null;
             /**
              * Save Schema
-             * @description Auto-save the generated schema as a saved schema (default). False skips the save AND the determinism post-pass — used when the schema is a throwaway draft, e.g. generating a benchmark gold reference.
+             * @description Auto-save the generated schema as a saved schema (default). False skips the save AND the ambiguity post-pass — used when the schema is a throwaway draft, e.g. generating a benchmark gold reference.
              * @default true
              */
             save_schema: boolean;
@@ -19314,7 +19330,7 @@ export type components = {
             naming_convention: string;
             /**
              * Sample Count
-             * @description How many samples of this entity type to generate in one job. Sample 1 defines the field set (full pipeline incl. determinism analysis) and names the instances for the remaining slots; samples 2..N are parallel follow-up turns that keep the same fields and fill values for their named instance. Forced to 1 whenever attachment_ids is set.
+             * @description How many samples of this entity type to generate in one job. Sample 1 defines the field set (full pipeline incl. the ambiguity check) and names the instances for the remaining slots; samples 2..N are parallel follow-up turns that keep the same fields and fill values for their named instance. Forced to 1 whenever attachment_ids is set.
              * @default 1
              */
             sample_count: number;
@@ -19772,6 +19788,9 @@ export type components = {
 };
 export type AccountTypeChangeRequest = components['schemas']['AccountTypeChangeRequest'];
 export type AllocateCreditsRequest = components['schemas']['AllocateCreditsRequest'];
+export type AmbiguityCheckResponse = components['schemas']['AmbiguityCheckResponse'];
+export type AmbiguityFinding = components['schemas']['AmbiguityFinding'];
+export type AmbiguityInfo = components['schemas']['AmbiguityInfo'];
 export type AnalyzeSampleRequest = components['schemas']['AnalyzeSampleRequest'];
 export type ApiKeyCreate = components['schemas']['ApiKeyCreate'];
 export type ApiKeyCreateResponse = components['schemas']['ApiKeyCreateResponse'];
@@ -19885,7 +19904,6 @@ export type DeltaAckResponse = components['schemas']['DeltaAckResponse'];
 export type DeltaBatchResponse = components['schemas']['DeltaBatchResponse'];
 export type DeltaRow = components['schemas']['DeltaRow'];
 export type DeltaSummaryResponse = components['schemas']['DeltaSummaryResponse'];
-export type DeterminismCheckResponse = components['schemas']['DeterminismCheckResponse'];
 export type DeviceCodeConfirmRequest = components['schemas']['DeviceCodeConfirmRequest'];
 export type DeviceCodePollRequest = components['schemas']['DeviceCodePollRequest'];
 export type DeviceCodePollResponse = components['schemas']['DeviceCodePollResponse'];
@@ -19970,8 +19988,6 @@ export type ModelUsageRequest = components['schemas']['ModelUsageRequest'];
 export type ModelUsageResponse = components['schemas']['ModelUsageResponse'];
 export type ModelValidationRequest = components['schemas']['ModelValidationRequest'];
 export type ModelValidationResponse = components['schemas']['ModelValidationResponse'];
-export type NonDeterminismFinding = components['schemas']['NonDeterminismFinding'];
-export type NonDeterminismInfo = components['schemas']['NonDeterminismInfo'];
 export type OAuthGrantListItem = components['schemas']['OAuthGrantListItem'];
 export type OrganizationDetailResponse = components['schemas']['OrganizationDetailResponse'];
 export type OrganizationResponse = components['schemas']['OrganizationResponse'];
@@ -27556,7 +27572,7 @@ export interface operations {
             };
         };
     };
-    analyze_sample_determinism_api_schema_analyze_sample_post: {
+    analyze_sample_ambiguity_api_schema_analyze_sample_post: {
         parameters: {
             query?: {
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
@@ -27583,7 +27599,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DeterminismCheckResponse"];
+                    "application/json": components["schemas"]["AmbiguityCheckResponse"];
                 };
             };
             /** @description Validation Error */
@@ -27988,7 +28004,7 @@ export interface operations {
             };
         };
     };
-    analyze_saved_schema_determinism_api_schema_saved__schema_id__analyze_post: {
+    analyze_saved_schema_ambiguity_api_schema_saved__schema_id__analyze_post: {
         parameters: {
             query?: {
                 force?: boolean;
@@ -28015,7 +28031,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DeterminismCheckResponse"];
+                    "application/json": components["schemas"]["AmbiguityCheckResponse"];
                 };
             };
             /** @description Validation Error */

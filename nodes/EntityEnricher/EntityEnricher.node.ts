@@ -508,7 +508,7 @@ export class EntityEnricher implements INodeType {
 				type: 'number',
 				typeOptions: { minValue: 1, maxValue: 20 },
 				default: 1,
-				description: 'How many samples of this entity type to generate in one job. The first defines the field set (full pipeline incl. determinism analysis) and names the instances for the remaining slots; the rest are fast parallel follow-up turns that keep the same fields and fill values for their named instance. Forced to 1 whenever Attachment IDs is set.',
+				description: 'How many samples of this entity type to generate in one job. The first defines the field set (full pipeline incl. ambiguity analysis) and names the instances for the remaining slots; the rest are fast parallel follow-up turns that keep the same fields and fill values for their named instance. Forced to 1 whenever Attachment IDs is set.',
 				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
 			},
 			{

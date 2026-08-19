@@ -14,7 +14,7 @@ interface SampleCompletedEvent extends GenericSSEEvent {
 	samples_requested?: number;
 	samples_note?: string;
 	error_message?: string;
-	determinism_report?: IDataObject;
+	ambiguity_report?: IDataObject;
 	attachment_coherence?: IDataObject;
 	cost_usd?: number;
 	input_tokens?: number;
@@ -138,8 +138,8 @@ function buildOutputItems(
 			samples_generated: completed.samples!.length,
 			samples_requested: completed.samples_requested ?? sampleCountRequested,
 			entity_type: entityType,
-			...(i === 0 && completed.determinism_report
-				? { determinism_report: completed.determinism_report } : {}),
+			...(i === 0 && completed.ambiguity_report
+				? { ambiguity_report: completed.ambiguity_report } : {}),
 			...(i === 0 && completed.attachment_coherence
 				? { attachment_coherence: completed.attachment_coherence } : {}),
 			...(i === 0 ? {
