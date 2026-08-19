@@ -56,7 +56,8 @@ export interface ProfileLimits {
 	daily_prompt_limit?: number | null;
 	weekly_prompt_limit?: number | null;
 	monthly_prompt_limit?: number | null;
-	max_record_results?: number | null;
+	max_record_retention_days?: number | null;
+	max_delta_retention_days?: number | null;
 	max_concurrent_jobs?: number | null;
 	max_models_per_enrichment?: number | null;
 	max_languages?: number | null;
