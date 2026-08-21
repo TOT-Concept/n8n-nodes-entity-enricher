@@ -4268,6 +4268,34 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/schema/saved/deleted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Deleted Schemas
+         * @description Schemas in the trash, for the Data retention section's recovery dialog.
+         *
+         *     Declared before `/saved/{schema_id}` so "deleted" is matched as a literal
+         *     rather than parsed as a UUID.
+         *
+         *     Scoped to the caller's OWN organization, not `effective_org_id` — that helper
+         *     returns None for a system admin (cross-org bypass), and this dialog is the
+         *     Settings page for one org: its trash and its retention window. Same reasoning
+         *     as `check_retention_limits`, where the window is org-based for admins too.
+         */
+        get: operations["list_deleted_schemas_api_schema_saved_deleted_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schema/saved/semantic-key-usage": {
         parameters: {
             query?: never;
@@ -8228,6 +8256,43 @@ export type components = {
              */
             deleted: number;
         };
+        /**
+         * DeletedSchemaItem
+         * @description One schema in the trash, for the recovery dialog.
+         */
+        DeletedSchemaItem: {
+            /** Deleted At */
+            deleted_at?: string | null;
+            /**
+             * Has Benchmark
+             * @default false
+             */
+            has_benchmark: boolean;
+            /**
+             * Has Linked Database
+             * @default false
+             */
+            has_linked_database: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * DeletedSchemaListResponse
+         * @description Trashed schemas plus the org window that governs when they are purged.
+         */
+        DeletedSchemaListResponse: {
+            /** Retention Days */
+            retention_days?: number | null;
+            /** Schemas */
+            schemas: components["schemas"]["DeletedSchemaItem"][];
+            /** Total */
+            total: number;
+        };
         /** DeltaAckRequest */
         DeltaAckRequest: {
             /**
@@ -9043,7 +9108,7 @@ export type components = {
             entity_type: string;
             /**
              * Owned By
-             * @description Owning entity type when this type is a weak entity (owned relationship site); its rows are identified by the owner's keys plus database_keys. A 1-1-owned type with a non-nullable semantic_id keeps that column as its database key (source 'semantic_id') so the row's identity column is indexed; a 1-1-owned type without one is identified by the owner alone (database_keys is empty, source 'owner'). An array-owned type with no scalar keys of its own but a promoted 1-1 reference keys on (owner, reference) — the junction-with-attributes grain (database_keys is empty, source 'reference')
+             * @description Owning entity type when this type is a weak entity (owned relationship site); its rows are identified by the owner's keys plus database_keys. A 1-1-owned type with a non-nullable semantic_id keeps that column as its database key (source 'semantic_id') so the row's identity column is indexed; a 1-1-owned type without one is identified by the owner alone (database_keys is empty, source 'owner'). An array-owned type with no scalar keys of its own but a promoted 1-1 reference keys on (owner, reference) — the junction-with-attributes grain (database_keys is empty, source 'reference'); one whose only identity material sits in an OWNED 1-1 target that flattens into its row borrows that target's own designation as dotted keys (source 'owned_identity')
              */
             owned_by?: string | null;
             /**
@@ -9055,7 +9120,7 @@ export type components = {
              * Source
              * @enum {string}
              */
-            source: "semantic_id" | "id_field" | "natural_keys" | "manual" | "adopted" | "owner" | "reference";
+            source: "semantic_id" | "id_field" | "natural_keys" | "manual" | "adopted" | "owner" | "reference" | "owned_identity";
         };
         /**
          * EntityUniqueConflict
@@ -11222,6 +11287,8 @@ export type components = {
             address_line1?: string | null;
             /** Address Line2 */
             address_line2?: string | null;
+            /** Attachment Retention Days */
+            attachment_retention_days?: number | null;
             benchmark_score_weights: components["schemas"]["BenchmarkScoreWeightsByType"];
             /**
              * Billing Page Access
@@ -11249,6 +11316,8 @@ export type components = {
             /** Default Embedding Model */
             default_embedding_model?: string | null;
             default_task_models?: components["schemas"]["TaskModelDefaults"];
+            /** Delta Retention Days */
+            delta_retention_days?: number | null;
             /** Description */
             description?: string | null;
             /**
@@ -11271,6 +11340,10 @@ export type components = {
             plan_name?: string | null;
             /** Postal Code */
             postal_code?: string | null;
+            /** Record Retention Days */
+            record_retention_days?: number | null;
+            /** Schema Retention Days */
+            schema_retention_days?: number | null;
             /** Slug */
             slug: string;
             /** State Region */
@@ -11379,12 +11452,18 @@ export type components = {
          * @description Partial update of organization information. Omitted fields are left unchanged;
          *     explicit nulls clear the value. Slug is intentionally not updatable here (tunnel
          *     hostnames embed it) — only the account-type switch may rename it. Requires owner+ role.
+         *
+         *     A retention field set above the plan's ceiling is refused with HTTP 402 (see
+         *     `check_retention_limits`); an explicit null means keep forever, which the same
+         *     ceiling governs.
          */
         OrganizationUpdate: {
             /** Address Line1 */
             address_line1?: string | null;
             /** Address Line2 */
             address_line2?: string | null;
+            /** Attachment Retention Days */
+            attachment_retention_days?: number | null;
             benchmark_score_weights?: components["schemas"]["BenchmarkScoreWeightsByType"] | null;
             /** City */
             city?: string | null;
@@ -11398,6 +11477,8 @@ export type components = {
              */
             country_code?: string | null;
             default_task_models?: components["schemas"]["TaskModelDefaults"] | null;
+            /** Delta Retention Days */
+            delta_retention_days?: number | null;
             /** Description */
             description?: string | null;
             /** Logo Url */
@@ -11406,6 +11487,10 @@ export type components = {
             name?: string | null;
             /** Postal Code */
             postal_code?: string | null;
+            /** Record Retention Days */
+            record_retention_days?: number | null;
+            /** Schema Retention Days */
+            schema_retention_days?: number | null;
             /** State Region */
             state_region?: string | null;
             /** Website */
@@ -19899,6 +19984,8 @@ export type DeclaredUnknown = components['schemas']['DeclaredUnknown'];
 export type DefaultModelSelection = components['schemas']['DefaultModelSelection'];
 export type DeleteBenchmarkResultsRequest = components['schemas']['DeleteBenchmarkResultsRequest'];
 export type DeleteBenchmarkResultsResponse = components['schemas']['DeleteBenchmarkResultsResponse'];
+export type DeletedSchemaItem = components['schemas']['DeletedSchemaItem'];
+export type DeletedSchemaListResponse = components['schemas']['DeletedSchemaListResponse'];
 export type DeltaAckRequest = components['schemas']['DeltaAckRequest'];
 export type DeltaAckResponse = components['schemas']['DeltaAckResponse'];
 export type DeltaBatchResponse = components['schemas']['DeltaBatchResponse'];
@@ -28633,6 +28720,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_deleted_schemas_api_schema_saved_deleted_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletedSchemaListResponse"];
                 };
             };
             /** @description Validation Error */
