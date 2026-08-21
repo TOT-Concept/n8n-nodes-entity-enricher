@@ -8717,7 +8717,7 @@ export type components = {
         EnrichmentInputContract: {
             /**
              * Array Item Keys
-             * @description Array path → the is_key property names of its item type. Supplying items for an array closes it (the model enriches exactly those items) and each supplied item must carry one of these keys so the enriched items can be matched back. An empty list means the item type has no key: leave that array out of the input and let the model discover its items.
+             * @description Array path → the key paths of its item type: the item's own is_key/database_key property names, or — when the item has none — dotted paths into the 1-1 nested object its identity delegates to ('passenger_class.class_name'). Supplying items for an array closes it (the model enriches exactly those items) and each supplied item must carry one of these keys (a dotted key as a nested value) so the enriched items can be matched back. An empty list means the item type has no matchable key: leave that array out of the input and let the model discover its items.
              */
             array_item_keys?: {
                 [key: string]: string[];
@@ -23724,7 +23724,7 @@ export interface operations {
     delete_database_api_databases__database_id__delete: {
         parameters: {
             query?: {
-                /** @description Also clear the database model the schema carries: database_key, db_type, indexed, owned and db_name/db_name_absolute on every property, plus the classification ledger and the key-language lock. Implies delete_entity_state — entity identity is derived from those flags, so state surviving them would never converge again. Ignored for a schema still linked to another database. */
+                /** @description Also clear the database model the schema carries: database_key, db_type, index, unique_group, shared, ordered and db_name/db_name_absolute on every property, plus its query-shaped indexes, the classification ledger and the key-language lock. Implies delete_entity_state — entity identity is derived from those flags, so state surviving them would never converge again. Ignored for a schema still linked to another database. */
                 clear_database_model?: boolean;
                 /** @description Also hard-delete the schema's entity state — the stored current state of its entities, which only a linked database ever writes to. Enrichment records are untouched. Ignored for a schema still linked to another database (that replica mirrors this state). */
                 delete_entity_state?: boolean;
@@ -24476,7 +24476,7 @@ export interface operations {
     unlink_schema_from_database_api_databases__database_id__schemas__schema_id__delete: {
         parameters: {
             query?: {
-                /** @description Also clear the database model the schema carries: database_key, db_type, indexed, owned and db_name/db_name_absolute on every property, plus the classification ledger and the key-language lock. Implies delete_entity_state — entity identity is derived from those flags, so state surviving them would never converge again. Ignored for a schema still linked to another database. */
+                /** @description Also clear the database model the schema carries: database_key, db_type, index, unique_group, shared, ordered and db_name/db_name_absolute on every property, plus its query-shaped indexes, the classification ledger and the key-language lock. Implies delete_entity_state — entity identity is derived from those flags, so state surviving them would never converge again. Ignored for a schema still linked to another database. */
                 clear_database_model?: boolean;
                 /** @description Also hard-delete the schema's entity state — the stored current state of its entities, which only a linked database ever writes to. Enrichment records are untouched. Ignored for a schema still linked to another database (that replica mirrors this state). */
                 delete_entity_state?: boolean;
