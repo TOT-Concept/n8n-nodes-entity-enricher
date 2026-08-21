@@ -138,7 +138,7 @@ nullable where an instance legitimately lacks the property, and a shape with par
 recurring third parties.
 
 **Generate Semantic IDs is on** in this workflow, because the schema is headed for a database sync.
-Without semantic IDs every table keys on whatever `is_key` property generation picked (a name, a
+Without semantic IDs every table keys on whatever `identifying` property generation picked (a name, a
 website), which drifts between runs and mints duplicate rows; adding them afterwards means
 hand-editing every object. It needs an organization embedding model (Settings ▸ Organization) and
 adds embedding cost.

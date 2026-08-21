@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Changed — the schema flag `is_key` is now `identifying`
+
+The property-level flag naming the values that identify an object was called `is_key`, which read as "primary key" — the one thing it is not. It never enforced uniqueness (that is `unique_group`), it is not the database row key (that is `database_key`), and it is not caller-owned (that is `preserve`). What it actually selects is the subset of properties whose values *match one instance of a thing to another* — across input and output items, across models during fusion, and against the semantic-ID concept registry. It is now spelled **`identifying`**, beside `database_key` (row identity) and `semantic_id` (concept identity).
+
+The rename is a clean break, applied everywhere at once: schemas returned by the API carry `identifying`, and every stored schema was rewritten. Any workflow reading `is_key` off a schema property (a Code node inspecting Get Schema output, a filter on the flag) must read `identifying` instead. The node's own search-key extraction follows the new flag — and with it, its dead support for the far older `search_key: "search"` spelling is gone.
+
 ### Removed — Generate Schema: **Extra Instructions**
 
 The API no longer accepts `extra_instructions` on schema generation, so the field is gone from Generate Schema. The schema's structure is derived deterministically from the input samples, and per-property flags come from dedicated classification calls — free-form guidance had nothing left to steer and could only fight those rules. To shape the schema's *content*, put the guidance on **Generate Sample** (its Extra Instructions field stays); to localize specific properties, set `multilingual` on them after generation in the schema editor. A workflow that had filled the field keeps running — the value is simply no longer sent.

@@ -41,7 +41,7 @@ export function flattenKeys(data: Record<string, unknown>, prefix = ''): string[
  * Skips into nested objects but bypasses arrays of objects.
  * Returns dot-separated paths (e.g. "engine.manufacturer.name").
  *
- * Supports both current (`is_key: true`) and legacy (`search_key: "search"`) formats.
+ * A property is a search key when it carries `identifying: true`.
  */
 export function extractSearchKeys(
 	properties: Record<string, unknown>,
@@ -52,7 +52,7 @@ export function extractSearchKeys(
 		const prop = rawProp as Record<string, unknown>;
 		const path = prefix ? `${prefix}.${name}` : name;
 
-		if (prop.is_key === true || prop.search_key === 'search') {
+		if (prop.identifying === true) {
 			keys.push(path);
 		}
 

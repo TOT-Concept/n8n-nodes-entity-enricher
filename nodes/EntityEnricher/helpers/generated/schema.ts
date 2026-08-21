@@ -6692,12 +6692,12 @@ export type components = {
             entity_type: string;
             /**
              * Identity Keys Candidate
-             * @description Candidate-side is_key property paths of the divergence (see identity_keys_existing)
+             * @description Candidate-side identifying property paths of the divergence (see identity_keys_existing)
              */
             identity_keys_candidate?: string[];
             /**
              * Identity Keys Existing
-             * @description Set (with identity_keys_candidate) when both sides key on a minted semantic_id but their is_key properties (incl. 1-1 nested) differ — semantic IDs would diverge, the link is blocked
+             * @description Set (with identity_keys_candidate) when both sides key on a minted semantic_id but their identifying properties (incl. 1-1 nested) differ — semantic IDs would diverge, the link is blocked
              */
             identity_keys_existing?: string[];
         };
@@ -8717,14 +8717,14 @@ export type components = {
         EnrichmentInputContract: {
             /**
              * Array Item Keys
-             * @description Array path → the key paths of its item type: the item's own is_key/database_key property names, or — when the item has none — dotted paths into the 1-1 nested object its identity delegates to ('passenger_class.class_name'). Supplying items for an array closes it (the model enriches exactly those items) and each supplied item must carry one of these keys (a dotted key as a nested value) so the enriched items can be matched back. An empty list means the item type has no matchable key: leave that array out of the input and let the model discover its items.
+             * @description Array path → the identifying paths of its item type: the item's own identifying/database_key property names, or — when the item has none — dotted paths into the 1-1 nested object its identity delegates to ('passenger_class.class_name'). Supplying items for an array closes it (the model enriches exactly those items) and each supplied item must carry one of these identifying values (a dotted path as a nested value) so the enriched items can be matched back. An empty list means the item type has no matchable identifying property: leave that array out of the input and let the model discover its items.
              */
             array_item_keys?: {
                 [key: string]: string[];
             };
             /**
              * Identifying Keys
-             * @description Dotted paths of the schema's is_key properties. At least ONE must carry a non-empty value — they are what identifies the entity to enrich. Empty list: the schema has no keys and the whole input is used as-is.
+             * @description Dotted paths of the schema's identifying properties. At least ONE must carry a non-empty value — they are what identifies the entity to enrich. Empty list: the schema has no identifying properties and the whole input is used as-is.
              */
             identifying_keys?: string[];
             /**
@@ -9037,7 +9037,7 @@ export type components = {
             entity_type: string;
             /**
              * Kept
-             * @description Identifying (is_key / database_key) values of the item kept
+             * @description Identity (`identifying` / `database_key`) values of the item kept
              */
             kept: {
                 [key: string]: string;
@@ -12040,18 +12040,18 @@ export type components = {
              * @description Machine-checkable shape of a string property's value (JSON Schema 'format'). An ENRICHMENT contract: the dynamic output model enforces the shape (date → datetime.date, uuid → UUID, email/uri/ipv4/ipv6 → StringConstraints regex), so a malformed value ('9:00', 'not@ok', '999.0.0.1') is a validation error the model retries on; date-family and uuid additionally re-serialize into the canonical rendering. Detected from the sample values at schema generation and bounded against them (every value must prove the format, else it is dropped); the URI shape requires 'scheme://' so bare domains like 'example.com' stay plain strings. Also defaults the column type at link time (date→DATE, time→TIME, date-time→TIMESTAMP, uuid→UUID) unless db_type says otherwise; email/uri/ipv4/ipv6 stay TEXT. Mutually exclusive with pattern and with multilingual.
              */
             format?: ("date" | "time" | "date-time" | "uuid" | "email" | "uri" | "ipv4" | "ipv6") | null;
+            /**
+             * Identifying
+             * @description True = identifier field for entity lookup and array item deduplication, null = output-only field
+             */
+            identifying?: boolean | null;
             /** @description Advisory, relationship sites only: the item mixes the related entity's own facts with facts about the pairing (issue #116). Written by the schema analysis; stripped from every LLM prompt; survives description edits and self-invalidates when the item's field set changes. Absent = never analyzed. */
             identity_scoping?: components["schemas"]["IdentityScopingInfo"] | null;
             /**
              * Index
-             * @description Why this property's column should be indexed in consumer databases, stated as intent — never as a physical index type (btree/GiST is the renderer's per-dialect call; docs/ENTITY_LAYER.md → indexing). 'search': a consumer app substring-searches this text column (%text% in a search box) — string properties only; projects as a pg_trgm trigram index on PostgreSQL (per language on localized columns, uncapped), nothing on other dialects; policy tier 'explicit'. Plain filter/sort btrees are NOT a per-property role: they are declared as entity-level query-shaped indexes (EntityDefinition.indexes), ordered like the query they serve. 'lat'/'lon' (+ optional 'alt'): one role of a geographic position — a complete pair under one parent object projects as one spatial index; a lone role emits nothing. 'range_start'/'range_end': one bound of an interval (validity period, band) — a complete pair projects as one overlap-queryable range index. None = no explicit request; identity properties (is_key/database_key are indexed by identity) and date-ish columns (indexed by type) keep their own derived classes. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the link-time classification pass — roles seeded from obvious names, bounded against the samples (coordinates in range, start <= end) — and curated in the Database Sync page's Model tab. Stripped from every enrichment prompt.
+             * @description Why this property's column should be indexed in consumer databases, stated as intent — never as a physical index type (btree/GiST is the renderer's per-dialect call; docs/ENTITY_LAYER.md → indexing). 'search': a consumer app substring-searches this text column (%text% in a search box) — string properties only; projects as a pg_trgm trigram index on PostgreSQL (per language on localized columns, uncapped), nothing on other dialects; policy tier 'explicit'. Plain filter/sort btrees are NOT a per-property role: they are declared as entity-level query-shaped indexes (EntityDefinition.indexes), ordered like the query they serve. 'lat'/'lon' (+ optional 'alt'): one role of a geographic position — a complete pair under one parent object projects as one spatial index; a lone role emits nothing. 'range_start'/'range_end': one bound of an interval (validity period, band) — a complete pair projects as one overlap-queryable range index. None = no explicit request; identity properties (identifying/database_key are indexed by identity) and date-ish columns (indexed by type) keep their own derived classes. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the link-time classification pass — roles seeded from obvious names, bounded against the samples (coordinates in range, start <= end) — and curated in the Database Sync page's Model tab. Stripped from every enrichment prompt.
              */
             index?: ("search" | "lat" | "lon" | "alt" | "range_start" | "range_end") | null;
-            /**
-             * Is Key
-             * @description True = identifier field for entity lookup and array item deduplication, null = output-only field
-             */
-            is_key?: boolean | null;
             /** @description For array types: schema of array items */
             items?: components["schemas"]["PropertySchema-Input"] | null;
             /**
@@ -12071,7 +12071,7 @@ export type components = {
             nullable?: boolean | null;
             /**
              * Ordered
-             * @description Array-only. True = the order of items is part of the answer (steps, rankings, timelines). Projected child/junction rows keep their `_ordinal` position column and are identified by position — a reordered re-enrichment rewrites the moved rows. Absent/false (default) = set semantics: item identity is the value itself (or the item's declared key for object arrays, or a `value_key` token for multilingual scalar arrays); duplicates collapse (keep-first), nulls are skipped, and a reordered re-enrichment becomes a no-op — but the LLM's original answer order is NOT preserved in the projected replica (it survives in `records` and in the entity layer). The shuffle test decides: if shuffling the items would lose information, mark it ordered. Refused on non-array properties (docs/ENTITY_LAYER.md → ordered arrays).
+             * @description Array-only. True = the order of items is part of the answer (steps, rankings, timelines). Projected child/junction rows keep their `_ordinal` position column and are identified by position — a reordered re-enrichment rewrites the moved rows. Absent/false (default) = set semantics: item identity is the value itself (or the item's declared identifying properties for object arrays, or a `value_key` token for multilingual scalar arrays); duplicates collapse (keep-first), nulls are skipped, and a reordered re-enrichment becomes a no-op — but the LLM's original answer order is NOT preserved in the projected replica (it survives in `records` and in the entity layer). The shuffle test decides: if shuffling the items would lose information, mark it ordered. Refused on non-array properties (docs/ENTITY_LAYER.md → ordered arrays).
              */
             ordered?: boolean | null;
             /**
@@ -12108,12 +12108,12 @@ export type components = {
             semantic_embedding_model?: string | null;
             /**
              * Semantic Id
-             * @description True = this string property holds the embedding-based semantic ID of its containing object (the root entity, a 1-1 nested object, or an array item). Written post-enrichment (not by the LLM); mutually exclusive with is_key; at most one per object.
+             * @description True = this string property holds the embedding-based semantic ID of its containing object (the root entity, a 1-1 nested object, or an array item). Written post-enrichment (not by the LLM); mutually exclusive with identifying; at most one per object.
              */
             semantic_id?: boolean | null;
             /**
              * Semantic Source Keys
-             * @description Only on the semantic_id property: subset of is_key property paths (relative dotted paths from the containing object, 1-1 nested descendants included, e.g. 'title' or 'manufacturer.name') whose values compose the embedding text. None/absent = all keys (default). Lets several schemas converge on identical semantic IDs by selecting the keys they share.
+             * @description Only on the semantic_id property: subset of identifying property paths (relative dotted paths from the containing object, 1-1 nested descendants included, e.g. 'title' or 'manufacturer.name') whose values compose the embedding text. None/absent = all keys (default). Lets several schemas converge on identical semantic IDs by selecting the keys they share.
              */
             semantic_source_keys?: string[] | null;
             /**
@@ -12138,7 +12138,7 @@ export type components = {
             type?: string | null;
             /**
              * Unique Group
-             * @description Label declaring that this property's value identifies AT MOST ONE object of its type. Properties of one object sharing a label form a single UNIQUE constraint over their columns together (first_name + last_name identify jointly); a label used once is a one-column unique. An object may carry several independent labels — three registry identifiers are three constraints, not one composite. This is why the flag is a label and not a boolean, and why `is_key` cannot stand in for it: the default-key ladder already reads N is_key properties as ONE composite key (schema_validation._pick_default_keys). Materialized on EVERY database the schema is linked to: a constraint the schema declares is not a read/write trade a registration gets to decline, so declaring the label is the whole decision. Every member must be a non-nullable scalar (NULLs are distinct in SQL, so a nullable member silently disables the constraint). Stripped from every LLM prompt; curated in the Database Sync page's Model tab.
+             * @description Label declaring that this property's value identifies AT MOST ONE object of its type. Properties of one object sharing a label form a single UNIQUE constraint over their columns together (first_name + last_name identify jointly); a label used once is a one-column unique. An object may carry several independent labels — three registry identifiers are three constraints, not one composite. This is why the flag is a label and not a boolean, and why `identifying` cannot stand in for it: the default-key ladder already reads N identifying properties as ONE composite key (schema_validation._pick_default_keys). Materialized on EVERY database the schema is linked to: a constraint the schema declares is not a read/write trade a registration gets to decline, so declaring the label is the whole decision. Every member must be a non-nullable scalar (NULLs are distinct in SQL, so a nullable member silently disables the constraint). Stripped from every LLM prompt; curated in the Database Sync page's Model tab.
              */
             unique_group?: string | null;
             /**
@@ -12209,18 +12209,18 @@ export type components = {
              * @description Machine-checkable shape of a string property's value (JSON Schema 'format'). An ENRICHMENT contract: the dynamic output model enforces the shape (date → datetime.date, uuid → UUID, email/uri/ipv4/ipv6 → StringConstraints regex), so a malformed value ('9:00', 'not@ok', '999.0.0.1') is a validation error the model retries on; date-family and uuid additionally re-serialize into the canonical rendering. Detected from the sample values at schema generation and bounded against them (every value must prove the format, else it is dropped); the URI shape requires 'scheme://' so bare domains like 'example.com' stay plain strings. Also defaults the column type at link time (date→DATE, time→TIME, date-time→TIMESTAMP, uuid→UUID) unless db_type says otherwise; email/uri/ipv4/ipv6 stay TEXT. Mutually exclusive with pattern and with multilingual.
              */
             format?: ("date" | "time" | "date-time" | "uuid" | "email" | "uri" | "ipv4" | "ipv6") | null;
+            /**
+             * Identifying
+             * @description True = identifier field for entity lookup and array item deduplication, null = output-only field
+             */
+            identifying?: boolean | null;
             /** @description Advisory, relationship sites only: the item mixes the related entity's own facts with facts about the pairing (issue #116). Written by the schema analysis; stripped from every LLM prompt; survives description edits and self-invalidates when the item's field set changes. Absent = never analyzed. */
             identity_scoping?: components["schemas"]["IdentityScopingInfo"] | null;
             /**
              * Index
-             * @description Why this property's column should be indexed in consumer databases, stated as intent — never as a physical index type (btree/GiST is the renderer's per-dialect call; docs/ENTITY_LAYER.md → indexing). 'search': a consumer app substring-searches this text column (%text% in a search box) — string properties only; projects as a pg_trgm trigram index on PostgreSQL (per language on localized columns, uncapped), nothing on other dialects; policy tier 'explicit'. Plain filter/sort btrees are NOT a per-property role: they are declared as entity-level query-shaped indexes (EntityDefinition.indexes), ordered like the query they serve. 'lat'/'lon' (+ optional 'alt'): one role of a geographic position — a complete pair under one parent object projects as one spatial index; a lone role emits nothing. 'range_start'/'range_end': one bound of an interval (validity period, band) — a complete pair projects as one overlap-queryable range index. None = no explicit request; identity properties (is_key/database_key are indexed by identity) and date-ish columns (indexed by type) keep their own derived classes. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the link-time classification pass — roles seeded from obvious names, bounded against the samples (coordinates in range, start <= end) — and curated in the Database Sync page's Model tab. Stripped from every enrichment prompt.
+             * @description Why this property's column should be indexed in consumer databases, stated as intent — never as a physical index type (btree/GiST is the renderer's per-dialect call; docs/ENTITY_LAYER.md → indexing). 'search': a consumer app substring-searches this text column (%text% in a search box) — string properties only; projects as a pg_trgm trigram index on PostgreSQL (per language on localized columns, uncapped), nothing on other dialects; policy tier 'explicit'. Plain filter/sort btrees are NOT a per-property role: they are declared as entity-level query-shaped indexes (EntityDefinition.indexes), ordered like the query they serve. 'lat'/'lon' (+ optional 'alt'): one role of a geographic position — a complete pair under one parent object projects as one spatial index; a lone role emits nothing. 'range_start'/'range_end': one bound of an interval (validity period, band) — a complete pair projects as one overlap-queryable range index. None = no explicit request; identity properties (identifying/database_key are indexed by identity) and date-ish columns (indexed by type) keep their own derived classes. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the link-time classification pass — roles seeded from obvious names, bounded against the samples (coordinates in range, start <= end) — and curated in the Database Sync page's Model tab. Stripped from every enrichment prompt.
              */
             index?: ("search" | "lat" | "lon" | "alt" | "range_start" | "range_end") | null;
-            /**
-             * Is Key
-             * @description True = identifier field for entity lookup and array item deduplication, null = output-only field
-             */
-            is_key?: boolean | null;
             /** @description For array types: schema of array items */
             items?: components["schemas"]["PropertySchema-Output"] | null;
             /**
@@ -12240,7 +12240,7 @@ export type components = {
             nullable?: boolean | null;
             /**
              * Ordered
-             * @description Array-only. True = the order of items is part of the answer (steps, rankings, timelines). Projected child/junction rows keep their `_ordinal` position column and are identified by position — a reordered re-enrichment rewrites the moved rows. Absent/false (default) = set semantics: item identity is the value itself (or the item's declared key for object arrays, or a `value_key` token for multilingual scalar arrays); duplicates collapse (keep-first), nulls are skipped, and a reordered re-enrichment becomes a no-op — but the LLM's original answer order is NOT preserved in the projected replica (it survives in `records` and in the entity layer). The shuffle test decides: if shuffling the items would lose information, mark it ordered. Refused on non-array properties (docs/ENTITY_LAYER.md → ordered arrays).
+             * @description Array-only. True = the order of items is part of the answer (steps, rankings, timelines). Projected child/junction rows keep their `_ordinal` position column and are identified by position — a reordered re-enrichment rewrites the moved rows. Absent/false (default) = set semantics: item identity is the value itself (or the item's declared identifying properties for object arrays, or a `value_key` token for multilingual scalar arrays); duplicates collapse (keep-first), nulls are skipped, and a reordered re-enrichment becomes a no-op — but the LLM's original answer order is NOT preserved in the projected replica (it survives in `records` and in the entity layer). The shuffle test decides: if shuffling the items would lose information, mark it ordered. Refused on non-array properties (docs/ENTITY_LAYER.md → ordered arrays).
              */
             ordered?: boolean | null;
             /**
@@ -12277,12 +12277,12 @@ export type components = {
             semantic_embedding_model?: string | null;
             /**
              * Semantic Id
-             * @description True = this string property holds the embedding-based semantic ID of its containing object (the root entity, a 1-1 nested object, or an array item). Written post-enrichment (not by the LLM); mutually exclusive with is_key; at most one per object.
+             * @description True = this string property holds the embedding-based semantic ID of its containing object (the root entity, a 1-1 nested object, or an array item). Written post-enrichment (not by the LLM); mutually exclusive with identifying; at most one per object.
              */
             semantic_id?: boolean | null;
             /**
              * Semantic Source Keys
-             * @description Only on the semantic_id property: subset of is_key property paths (relative dotted paths from the containing object, 1-1 nested descendants included, e.g. 'title' or 'manufacturer.name') whose values compose the embedding text. None/absent = all keys (default). Lets several schemas converge on identical semantic IDs by selecting the keys they share.
+             * @description Only on the semantic_id property: subset of identifying property paths (relative dotted paths from the containing object, 1-1 nested descendants included, e.g. 'title' or 'manufacturer.name') whose values compose the embedding text. None/absent = all keys (default). Lets several schemas converge on identical semantic IDs by selecting the keys they share.
              */
             semantic_source_keys?: string[] | null;
             /**
@@ -12307,7 +12307,7 @@ export type components = {
             type?: string | null;
             /**
              * Unique Group
-             * @description Label declaring that this property's value identifies AT MOST ONE object of its type. Properties of one object sharing a label form a single UNIQUE constraint over their columns together (first_name + last_name identify jointly); a label used once is a one-column unique. An object may carry several independent labels — three registry identifiers are three constraints, not one composite. This is why the flag is a label and not a boolean, and why `is_key` cannot stand in for it: the default-key ladder already reads N is_key properties as ONE composite key (schema_validation._pick_default_keys). Materialized on EVERY database the schema is linked to: a constraint the schema declares is not a read/write trade a registration gets to decline, so declaring the label is the whole decision. Every member must be a non-nullable scalar (NULLs are distinct in SQL, so a nullable member silently disables the constraint). Stripped from every LLM prompt; curated in the Database Sync page's Model tab.
+             * @description Label declaring that this property's value identifies AT MOST ONE object of its type. Properties of one object sharing a label form a single UNIQUE constraint over their columns together (first_name + last_name identify jointly); a label used once is a one-column unique. An object may carry several independent labels — three registry identifiers are three constraints, not one composite. This is why the flag is a label and not a boolean, and why `identifying` cannot stand in for it: the default-key ladder already reads N identifying properties as ONE composite key (schema_validation._pick_default_keys). Materialized on EVERY database the schema is linked to: a constraint the schema declares is not a read/write trade a registration gets to decline, so declaring the label is the whole decision. Every member must be a non-nullable scalar (NULLs are distinct in SQL, so a nullable member silently disables the constraint). Stripped from every LLM prompt; curated in the Database Sync page's Model tab.
              */
             unique_group?: string | null;
             /**
@@ -14529,7 +14529,7 @@ export type components = {
             examples?: (string | number | boolean)[] | null;
             /**
              * Flags
-             * @description Flag updates; editable: database_key, db_name, db_name_absolute, db_type, db_type_length, expertise, format, index, is_key, language_discriminator, multilingual, nullable, ordered, pattern, preserve, semantic_concept_type, semantic_embedding_model, semantic_id, semantic_threshold, shared, shared_reason, unique_group
+             * @description Flag updates; editable: database_key, db_name, db_name_absolute, db_type, db_type_length, expertise, format, identifying, index, language_discriminator, multilingual, nullable, ordered, pattern, preserve, semantic_concept_type, semantic_embedding_model, semantic_id, semantic_threshold, shared, shared_reason, unique_group
              */
             flags?: {
                 [key: string]: unknown;
@@ -14568,7 +14568,7 @@ export type components = {
             desc_score?: number | null;
             /**
              * Flag Diffs
-             * @description Behavioral flags that disagree (is_key, nullable, ...)
+             * @description Behavioral flags that disagree (identifying, nullable, ...)
              */
             flag_diffs?: string[];
             /** Flags Score */
@@ -14695,7 +14695,7 @@ export type components = {
         };
         /**
          * SchemaSemanticUsage
-         * @description Semantic-id usage of one saved schema, for cross-schema key alignment.
+         * @description Semantic-id usage of one saved schema, for cross-schema alignment of identifying properties.
          */
         SchemaSemanticUsage: {
             /** Concepts */
@@ -14928,12 +14928,12 @@ export type components = {
         };
         /**
          * SemanticConceptUsage
-         * @description One semantic-id object of a schema: its concept scope + identity key paths.
+         * @description One semantic-id object of a schema: its concept scope + identifying paths.
          */
         SemanticConceptUsage: {
             /**
              * All Key Paths
-             * @description Every candidate is_key path of the object incl. 1-1 nested descendants — the universe a selection may draw from, wider than what composes by default (a related entity's key is a candidate but does not participate unless explicitly selected)
+             * @description Every candidate identifying path of the object incl. 1-1 nested descendants — the universe a selection may draw from, wider than what composes by default (a related entity's identifying property is a candidate but does not participate unless explicitly selected)
              */
             all_key_paths: string[];
             /**
@@ -14943,7 +14943,7 @@ export type components = {
             concept_type: string;
             /**
              * Source Keys
-             * @description The identity participants actually composing this concept's text, IN COMPOSITION ORDER (relative dotted paths) — the semantic_source_keys selection when set, else the schema's default composition. Two schemas mint the same ids only when their lists match position by position. None only when the object has no usable key at all
+             * @description The identity participants actually composing this concept's text, IN COMPOSITION ORDER (relative dotted paths) — the semantic_source_keys selection when set, else the schema's default composition. Two schemas mint the same ids only when their lists match position by position. None only when the object has no usable identifying property at all
              */
             source_keys?: string[] | null;
         };
@@ -15031,7 +15031,7 @@ export type components = {
             fields?: components["schemas"]["SharedEntityFieldConflict"][];
             /**
              * Keys
-             * @description Identifying (is_key / database_key) values of the shared row
+             * @description Identity (`identifying` / `database_key`) values of the shared row
              */
             keys?: {
                 [key: string]: string;
@@ -18901,7 +18901,7 @@ export type components = {
             }[];
             /**
              * Generate Semantic Ids
-             * @description If true, add a semantic_id string property to every object that has a key source — the root entity, 1-1 nested objects, and array items alike (enables embedding-based entity resolution).
+             * @description If true, add a semantic_id string property to every object that has an identifying source — the root entity, 1-1 nested objects, and array items alike (enables embedding-based entity resolution).
              * @default false
              */
             generate_semantic_ids: boolean;
@@ -19327,7 +19327,7 @@ export type components = {
             }[];
             /**
              * Generate Semantic Ids
-             * @description If true, add a semantic_id string property to every object that has a key source — the root entity, 1-1 nested objects, and array items alike (enables embedding-based entity resolution).
+             * @description If true, add a semantic_id string property to every object that has an identifying source — the root entity, 1-1 nested objects, and array items alike (enables embedding-based entity resolution).
              * @default false
              */
             generate_semantic_ids: boolean;
