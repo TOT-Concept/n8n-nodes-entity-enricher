@@ -11,8 +11,25 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** No Frontend */
-        get: operations["no_frontend__get"];
+        /** Serve Index */
+        get: operations["serve_index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve Spa */
+        get: operations["serve_spa__path__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4471,7 +4488,7 @@ export type paths = {
          * @description Add a concept to the vocabulary at usage 0.
          *
          *     Refused with 409 when an existing concept already matches at or above the
-         *     threshold: the new row could never win a resolution, and two twins split future
+         *     judge_floor: the new row could never win a resolution, and two twins split future
          *     matches unpredictably. The 409 body carries the probe so the UI can offer the
          *     incumbent instead.
          */
@@ -4618,29 +4635,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/semantic-concepts/duplicates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Duplicates
-         * @description Concept pairs in the gray zone — close, but not close enough to have merged.
-         *
-         *     The band runs from `threshold - band_width` up to (not including) `threshold`:
-         *     above it the pair would already be one concept, below it they are unrelated.
-         */
-        get: operations["list_duplicates_api_semantic_concepts_duplicates_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/semantic-concepts/export": {
         parameters: {
             query?: never;
@@ -4683,6 +4677,10 @@ export type paths = {
          *     creates the unmatched rows and needs owner+, since it grows the shared vocabulary.
          *     Synchronous by design: the row cap keeps one request's worth of embedding calls
          *     inside a normal request budget.
+         *
+         *     `concept_type` need not exist: a file is a normal way to open a vocabulary, and
+         *     `embedding_model` picks the space that new type will live in (refused, 400, against
+         *     a type whose concepts already live elsewhere — that move is a migration).
          */
         post: operations["import_concepts_api_semantic_concepts_import_post"];
         delete?: never;
@@ -4865,6 +4863,57 @@ export type paths = {
         get: operations["get_projection_api_semantic_concepts_projection_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Review Queue
+         * @description Pairs the JUDGE left for a person: `unsure`, then `same_as_both`, then a
+         *     `distinct` it decided at very high similarity.
+         *
+         *     This replaced a similarity band. Nothing reaches a person because two texts
+         *     measure close — every entry is a judgment, which is what makes the queue
+         *     finite. The `distinct` lane exists because the judge is the only authority
+         *     and never escalates on its own: a separation above
+         *     `REVIEW_SUSPICION_COSINE` is the shape its misses take, so it is offered for
+         *     confirmation rather than trusted silently (docs/SEMANTIC_IDS.md).
+         */
+        get: operations["list_review_queue_api_semantic_concepts_review_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/semantic-concepts/review/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dismiss Review Pair
+         * @description Answer a queue pair without merging — the two really are two things.
+         *
+         *     The verdict row is kept and stamped, so the queue stops offering it and the
+         *     fact that someone looked survives.
+         */
+        post: operations["dismiss_review_pair_api_semantic_concepts_review_dismiss_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6744,13 +6793,13 @@ export type components = {
              * @description Composite key (provider::model) to embed a NEW concept type under. Refused when the type's vocabulary already lives in another model.
              */
             embedding_model?: string | null;
+            /**
+             * Judge Floor
+             * @description Omit to use the organization default (Settings → Organization).
+             */
+            judge_floor?: number | null;
             /** Text */
             text: string;
-            /**
-             * Threshold
-             * @default 0.92
-             */
-            threshold: number;
         };
         /**
          * ConceptDeleteImpact
@@ -6800,17 +6849,22 @@ export type components = {
             /** Concept Type */
             concept_type: string;
             /**
+             * Embedding Model
+             * @description Composite key (provider::model) to embed a NEW concept type under — an import is a normal way to open one. Refused when the type's vocabulary already lives in another model.
+             */
+            embedding_model?: string | null;
+            /**
+             * Judge Floor
+             * @description Omit to use the organization default (Settings → Organization).
+             */
+            judge_floor?: number | null;
+            /**
              * Mint
              * @default false
              */
             mint: boolean;
             /** Texts */
             texts: string[];
-            /**
-             * Threshold
-             * @default 0.92
-             */
-            threshold: number;
         };
         /** ConceptImportResult */
         ConceptImportResult: {
@@ -6823,6 +6877,8 @@ export type components = {
              * @default 0
              */
             exact_count: number;
+            /** Judge Floor */
+            judge_floor: number;
             /**
              * Matched Count
              * @default 0
@@ -6842,8 +6898,6 @@ export type components = {
              * @default 0
              */
             skipped_count: number;
-            /** Threshold */
-            threshold: number;
             /**
              * Would Mint Count
              * @default 0
@@ -6988,17 +7042,17 @@ export type components = {
              */
             embedding_model?: string | null;
             /**
+             * Judge Floor
+             * @description Omit to use the organization default (Settings → Organization).
+             */
+            judge_floor?: number | null;
+            /**
              * Neighbors
              * @default 10
              */
             neighbors: number;
             /** Text */
             text: string;
-            /**
-             * Threshold
-             * @default 0.92
-             */
-            threshold: number;
         };
         /**
          * ConceptProbeResponse
@@ -7016,6 +7070,11 @@ export type components = {
              * @default 0
              */
             embedding_tokens: number;
+            /**
+             * Judge Floor
+             * @default 0.55
+             */
+            judge_floor: number;
             /** Matched Id */
             matched_id?: string | null;
             /** Matched Text */
@@ -7031,11 +7090,6 @@ export type components = {
             outcome: "exact_hit" | "match" | "no_match" | "unavailable";
             /** Similarity */
             similarity?: number | null;
-            /**
-             * Threshold
-             * @default 0.92
-             */
-            threshold: number;
         };
         /**
          * ConceptProjection
@@ -8661,11 +8715,18 @@ export type components = {
         };
         /**
          * DuplicatePair
-         * @description Two concepts of one slice whose similarity sits inside the review band.
+         * @description Two concepts a person is being asked to look at.
          *
          *     `a_id`/`b_id` are the two GROUPS' semantic_ids (aliases of one concept never pair
          *     with each other); `a_text`/`b_text` are the closest pair of surface forms, and the
          *     similarity is the max over the groups' alias vectors — the pair a merge would act on.
+         *
+         *     Pairs reach a person because the JUDGE produced them: `unsure` is its
+         *     escalation, `same_as_both` a duplicate it found while answering another
+         *     question, and `distinct` a separation it made at a similarity so high
+         *     (`REVIEW_SUSPICION_COSINE`) that a miss is worth ruling out. No pair is here
+         *     on similarity alone — every one is a judgment, and a `distinct` one is
+         *     already settled unless a person overrides it (docs/SEMANTIC_IDS.md).
          */
         DuplicatePair: {
             /**
@@ -8688,10 +8749,20 @@ export type components = {
             b_text: string;
             /** Concept Type */
             concept_type: string;
-            /** Embedding Model */
+            /**
+             * Embedding Model
+             * @default
+             */
             embedding_model: string;
+            /** Reason */
+            reason?: string | null;
             /** Similarity */
             similarity: number;
+            /**
+             * Verdict
+             * @default
+             */
+            verdict: string;
         };
         /** DuplicatePairList */
         DuplicatePairList: {
@@ -8769,6 +8840,12 @@ export type components = {
              * @description Org's embedding model (composite key) for semantic IDs; null = disabled
              */
             default_embedding_model?: string | null;
+            /**
+             * Default Judge Floor
+             * @description The retrieval floor semantic-ID resolution applies to a property that declares none — the org setting, else the platform default. Always a number (unlike the org detail endpoint, which reports the raw setting and uses null for 'not set').
+             * @default 0.55
+             */
+            default_judge_floor: number;
             /**
              * Default Models
              * @description What 'auto' model selection currently resolves to, keyed by task type (enrichment / schema_generation / sample_generation). Sparse: tasks with no pinned default and no scoring-source scores are omitted; null when nothing resolves
@@ -11315,6 +11392,8 @@ export type components = {
             current_plan_sort_order?: number | null;
             /** Default Embedding Model */
             default_embedding_model?: string | null;
+            /** Default Judge Floor */
+            default_judge_floor?: number | null;
             default_task_models?: components["schemas"]["TaskModelDefaults"];
             /** Delta Retention Days */
             delta_retention_days?: number | null;
@@ -11476,6 +11555,8 @@ export type components = {
              * @description ISO 3166-1 alpha-2
              */
             country_code?: string | null;
+            /** Default Judge Floor */
+            default_judge_floor?: number | null;
             default_task_models?: components["schemas"]["TaskModelDefaults"] | null;
             /** Delta Retention Days */
             delta_retention_days?: number | null;
@@ -12055,6 +12136,11 @@ export type components = {
             /** @description For array types: schema of array items */
             items?: components["schemas"]["PropertySchema-Input"] | null;
             /**
+             * Judge Floor
+             * @description Only on the semantic_id property, and only ever an OVERRIDE: similarity at or above which an existing concept is put to the identity judge. NOT a merge threshold — nothing merges on similarity; the judge decides, and below this floor there is simply no question worth asking. Omit it (the normal case) to follow the organization's default_judge_floor, else the platform default 0.55 — set here only for a concept type whose true duplicates are worded very differently from the rest of the schema's.
+             */
+            judge_floor?: number | null;
+            /**
              * Language Discriminator
              * @description True = this string property IS the language axis of its containing object: each sibling row of the parent array carries one language's values, discriminated by this ISO 639-1 code (language is the DATA, as in per-language description rows or official names). Proposed by the flags step at schema generation and dropped unless every observed sample value is a known language code. Its presence turns the integrated language mechanism OFF for the whole subtree: no property under the same parent may be multilingual (enforced at generation and refused at publish), and the property never gets a closed enum — the language set is a per-request parameter, not a domain fact one sample can close.
              */
@@ -12116,11 +12202,6 @@ export type components = {
              * @description Only on the semantic_id property: subset of identifying property paths (relative dotted paths from the containing object, 1-1 nested descendants included, e.g. 'title' or 'manufacturer.name') whose values compose the embedding text. None/absent = all keys (default). Lets several schemas converge on identical semantic IDs by selecting the keys they share.
              */
             semantic_source_keys?: string[] | null;
-            /**
-             * Semantic Threshold
-             * @description Cosine similarity threshold for reusing an existing concept (default 0.92)
-             */
-            semantic_threshold?: number | null;
             /**
              * Shared
              * @description Whether one row of this relationship's target serves EVERY parent that points at it. **true** = shared: one converged row, a junction table (array) or a plain FK (1-1). **false** = owned: the target's data is per-parent (docs/ENTITY_LAYER.md - owned entities) - an owned ARRAY's items are weak entities in a child table with owner FK columns instead of a junction, identity scoped by the owner, while an owned 1-1 target FLATTENS into the parent's row (issue #93): no table of its own, members as prefixed columns, its semantic_id - which keeps resolving to an org-global concept - as a plain data column. An owned type has exactly one owning site and is referenced nowhere else. **null** = no pass has judged this site; it behaves as shared, and a classification pass may still decide it. This is BOTH the recorded verdict and the effective flag the projection and write path read. It used to be two fields - a public `owned` and a verdict-only `shared` - which could disagree: the 'already judged' test read `shared`, a flag no API caller ever set, so an explicit `owned: false` was silently overturned on the next pass (issue #97). One field cannot drift from itself.
@@ -12224,6 +12305,11 @@ export type components = {
             /** @description For array types: schema of array items */
             items?: components["schemas"]["PropertySchema-Output"] | null;
             /**
+             * Judge Floor
+             * @description Only on the semantic_id property, and only ever an OVERRIDE: similarity at or above which an existing concept is put to the identity judge. NOT a merge threshold — nothing merges on similarity; the judge decides, and below this floor there is simply no question worth asking. Omit it (the normal case) to follow the organization's default_judge_floor, else the platform default 0.55 — set here only for a concept type whose true duplicates are worded very differently from the rest of the schema's.
+             */
+            judge_floor?: number | null;
+            /**
              * Language Discriminator
              * @description True = this string property IS the language axis of its containing object: each sibling row of the parent array carries one language's values, discriminated by this ISO 639-1 code (language is the DATA, as in per-language description rows or official names). Proposed by the flags step at schema generation and dropped unless every observed sample value is a known language code. Its presence turns the integrated language mechanism OFF for the whole subtree: no property under the same parent may be multilingual (enforced at generation and refused at publish), and the property never gets a closed enum — the language set is a per-request parameter, not a domain fact one sample can close.
              */
@@ -12285,11 +12371,6 @@ export type components = {
              * @description Only on the semantic_id property: subset of identifying property paths (relative dotted paths from the containing object, 1-1 nested descendants included, e.g. 'title' or 'manufacturer.name') whose values compose the embedding text. None/absent = all keys (default). Lets several schemas converge on identical semantic IDs by selecting the keys they share.
              */
             semantic_source_keys?: string[] | null;
-            /**
-             * Semantic Threshold
-             * @description Cosine similarity threshold for reusing an existing concept (default 0.92)
-             */
-            semantic_threshold?: number | null;
             /**
              * Shared
              * @description Whether one row of this relationship's target serves EVERY parent that points at it. **true** = shared: one converged row, a junction table (array) or a plain FK (1-1). **false** = owned: the target's data is per-parent (docs/ENTITY_LAYER.md - owned entities) - an owned ARRAY's items are weak entities in a child table with owner FK columns instead of a junction, identity scoped by the owner, while an owned 1-1 target FLATTENS into the parent's row (issue #93): no table of its own, members as prefixed columns, its semantic_id - which keeps resolving to an org-global concept - as a plain data column. An owned type has exactly one owning site and is referenced nowhere else. **null** = no pass has judged this site; it behaves as shared, and a classification pass may still decide it. This is BOTH the recorded verdict and the effective flag the projection and write path read. It used to be two fields - a public `owned` and a verdict-only `shared` - which could disagree: the 'already judged' test read `shared`, a flag no API caller ever set, so an explicit `owned: false` was silently overturned on the next pass (issue #97). One field cannot drift from itself.
@@ -13935,6 +14016,22 @@ export type components = {
             target_schema?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
         };
         /**
+         * ReviewDismissRequest
+         * @description Close a review-queue pair without merging: the two really are two things.
+         */
+        ReviewDismissRequest: {
+            /**
+             * A Id
+             * Format: uuid
+             */
+            a_id: string;
+            /**
+             * B Id
+             * Format: uuid
+             */
+            b_id: string;
+        };
+        /**
          * RubricCovernessDetail
          * @description Read-time coverness (trusted richness vs the scenario's best peer).
          *
@@ -14529,7 +14626,7 @@ export type components = {
             examples?: (string | number | boolean)[] | null;
             /**
              * Flags
-             * @description Flag updates; editable: database_key, db_name, db_name_absolute, db_type, db_type_length, expertise, format, identifying, index, language_discriminator, multilingual, nullable, ordered, pattern, preserve, semantic_concept_type, semantic_embedding_model, semantic_id, semantic_threshold, shared, shared_reason, unique_group
+             * @description Flag updates; editable: database_key, db_name, db_name_absolute, db_type, db_type_length, expertise, format, identifying, index, judge_floor, language_discriminator, multilingual, nullable, ordered, pattern, preserve, semantic_concept_type, semantic_embedding_model, semantic_id, shared, shared_reason, unique_group
              */
             flags?: {
                 [key: string]: unknown;
@@ -16512,16 +16609,18 @@ export type components = {
         };
         /**
          * SSEEntitySkipped
-         * @description Emitted when a batch entity is skipped before starting: the job was
-         *     cancelled, or the org's live prompt-count/credit quota ran out mid-batch
-         *     (whether consumed by this batch or by concurrent activity).
+         * @description Emitted when a batch entity yields no enrichment. Either it never started —
+         *     the job was cancelled, or the org's live prompt-count/credit quota ran out
+         *     mid-batch (whether consumed by this batch or by concurrent activity) — or the
+         *     pre-flight classifier discarded it as not the schema's entity type, which is
+         *     what batch does instead of the pause single enrichment offers a user.
          */
         SSEEntitySkipped: {
             /**
              * Code
              * @enum {string}
              */
-            code: "cancelled" | "prompt_limit_reached" | "insufficient_credits";
+            code: "cancelled" | "prompt_limit_reached" | "insufficient_credits" | "classification_mismatch";
             /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
@@ -20145,6 +20244,7 @@ export type RelationalMapResponse = components['schemas']['RelationalMapResponse
 export type RelationalRef = components['schemas']['RelationalRef'];
 export type RelationalTable = components['schemas']['RelationalTable'];
 export type RetryExpertisesRequest = components['schemas']['RetryExpertisesRequest'];
+export type ReviewDismissRequest = components['schemas']['ReviewDismissRequest'];
 export type RubricCovernessDetail = components['schemas']['RubricCovernessDetail'];
 export type RubricJudgeDetail = components['schemas']['RubricJudgeDetail'];
 export type RunBenchmarkJobResponse = components['schemas']['RunBenchmarkJobResponse'];
@@ -20273,7 +20373,7 @@ export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutRespon
 export type WebhookSecretResponse = components['schemas']['WebhookSecretResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
-    no_frontend__get: {
+    serve_index__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -20289,6 +20389,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    serve_spa__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -29495,45 +29626,6 @@ export interface operations {
             };
         };
     };
-    list_duplicates_api_semantic_concepts_duplicates_get: {
-        parameters: {
-            query?: {
-                band_width?: number;
-                concept_types?: string[] | null;
-                limit?: number;
-                threshold?: number;
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DuplicatePairList"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     export_concepts_api_semantic_concepts_export_get: {
         parameters: {
             query?: {
@@ -29905,6 +29997,80 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ConceptProjection"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_review_queue_api_semantic_concepts_review_get: {
+        parameters: {
+            query?: {
+                concept_types?: string[] | null;
+                limit?: number;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DuplicatePairList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_review_pair_api_semantic_concepts_review_dismiss_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewDismissRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

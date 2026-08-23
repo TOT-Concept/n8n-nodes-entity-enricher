@@ -10,7 +10,7 @@ import type {
 	SseFusionCompleted,
 } from '../helpers/types';
 import { arbitrationAudit, isModelCompleted, isFusionCompleted } from '../helpers/types';
-import { validateEntitySearchKeys } from '../helpers/validation';
+import { validateEntityInput } from '../helpers/validation';
 import {
 	deleteAttachmentsQuietly,
 	resolveBinaryPropertyNames,
@@ -112,12 +112,11 @@ export async function execute(
 		throw new NodeOperationError(context.getNode(), 'At least one model is required', { itemIndex });
 	}
 
-	// Validate input has at least one search key from the schema (case-insensitive, supports nested paths)
-	if (searchKeys && searchKeys.length > 0) {
-		const error = validateEntitySearchKeys(parsedEntityData, searchKeys);
-		if (error) {
-			throw new NodeOperationError(context.getNode(), error, { itemIndex });
-		}
+	// Refuse an item with nothing in it; field names that differ from the
+	// schema's are fine (see validateEntityInput).
+	const inputError = validateEntityInput(parsedEntityData, searchKeys ?? []);
+	if (inputError) {
+		throw new NodeOperationError(context.getNode(), inputError, { itemIndex });
 	}
 
 	// Upload input binary files as attachments (merged node: no separate

@@ -3,40 +3,6 @@
  */
 
 /**
- * Check if a dot-separated key path exists in data (case-insensitive).
- * E.g. hasNestedKey({CommonName: "x"}, "commonName") → true
- */
-export function hasNestedKey(data: Record<string, unknown>, keyPath: string): boolean {
-	const parts = keyPath.split('.');
-	let current: unknown = data;
-	for (const part of parts) {
-		if (current == null || typeof current !== 'object') return false;
-		const obj = current as Record<string, unknown>;
-		const matchingKey = Object.keys(obj).find(
-			(k) => k.toLowerCase() === part.toLowerCase(),
-		);
-		if (!matchingKey) return false;
-		current = obj[matchingKey];
-	}
-	return true;
-}
-
-/**
- * Flatten object keys into dot-separated paths (top-level + one level of nesting).
- */
-export function flattenKeys(data: Record<string, unknown>, prefix = ''): string[] {
-	const keys: string[] = [];
-	for (const [k, v] of Object.entries(data)) {
-		const path = prefix ? `${prefix}.${k}` : k;
-		keys.push(path);
-		if (v != null && typeof v === 'object' && !Array.isArray(v)) {
-			keys.push(...flattenKeys(v as Record<string, unknown>, path));
-		}
-	}
-	return keys;
-}
-
-/**
  * Recursively extract search key paths from schema properties.
  * Skips into nested objects but bypasses arrays of objects.
  * Returns dot-separated paths (e.g. "engine.manufacturer.name").
@@ -66,20 +32,40 @@ export function extractSearchKeys(
 	return keys;
 }
 
+/** True when `value` holds at least one non-empty scalar, at any depth. */
+function carriesAnyValue(value: unknown): boolean {
+	if (Array.isArray(value)) return value.some(carriesAnyValue);
+	if (value !== null && typeof value === 'object') {
+		return Object.values(value as Record<string, unknown>).some(carriesAnyValue);
+	}
+	if (value === null || value === undefined) return false;
+	if (typeof value === 'string') return value.trim() !== '';
+	return true;
+}
+
 /**
- * Validate that an entity has at least one matching search key from the schema.
+ * Validate that an entity carries something to enrich from.
+ *
+ * Mirrors the backend gate (`schema_runtime/input_contract.py`): input whose
+ * field names differ from the schema's is NOT an error — the enrichment prompt
+ * carries the raw input JSON, so any field naming the entity identifies it, and
+ * an entity of the wrong type is what the optional classification model
+ * discards. Only input carrying no value at all is refused, since it leaves the
+ * model nothing to identify and everything to invent.
+ *
+ * The schema's search keys are used as guidance in the message, nothing more.
  * Returns an error message string if validation fails, or null if valid.
  */
-export function validateEntitySearchKeys(
+export function validateEntityInput(
 	entity: Record<string, unknown>,
 	searchKeys: string[],
 ): string | null {
-	if (!searchKeys.length) return null;
+	if (carriesAnyValue(entity)) return null;
 
-	const matchingKeys = searchKeys.filter((keyPath) => hasNestedKey(entity, keyPath));
-	if (matchingKeys.length === 0) {
-		const inputKeys = flattenKeys(entity);
-		return `Input data has no matching search keys. The schema expects: ${searchKeys.join(', ')}. Input has: ${inputKeys.join(', ')}`;
-	}
-	return null;
+	const guidance = searchKeys.length
+		? ` The schema identifies its entity by ${searchKeys.join(', ')} — supply one of those,`
+			+ ' or any other field naming the entity: the enrichment reads the raw input, so its'
+			+ " field names need not match the schema's."
+		: '';
+	return `Empty input: this item carries no value, so nothing identifies the entity to enrich.${guidance}`;
 }

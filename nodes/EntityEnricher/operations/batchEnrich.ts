@@ -10,7 +10,7 @@ import type {
 	SseFusionCompleted,
 } from '../helpers/types';
 import { arbitrationAudit, isEntityCompleted, isFusionCompleted } from '../helpers/types';
-import { validateEntitySearchKeys } from '../helpers/validation';
+import { validateEntityInput } from '../helpers/validation';
 import {
 	deleteAttachmentsQuietly,
 	resolveBinaryPropertyNames,
@@ -110,19 +110,18 @@ export async function execute(
 		throw new NodeOperationError(context.getNode(), 'No input entities provided');
 	}
 
-	// Validate each entity has at least one search key from the schema
-	if (searchKeys && searchKeys.length > 0) {
-		for (let i = 0; i < entities.length; i++) {
-			const error = validateEntitySearchKeys(
-				entities[i] as Record<string, unknown>,
-				searchKeys,
+	// Refuse items with nothing in them; field names that differ from the
+	// schema's are fine (see validateEntityInput).
+	for (let i = 0; i < entities.length; i++) {
+		const error = validateEntityInput(
+			entities[i] as Record<string, unknown>,
+			searchKeys ?? [],
+		);
+		if (error) {
+			throw new NodeOperationError(
+				context.getNode(),
+				`Entity at index ${i}: ${error}`,
 			);
-			if (error) {
-				throw new NodeOperationError(
-					context.getNode(),
-					`Entity at index ${i}: ${error}`,
-				);
-			}
 		}
 	}
 
