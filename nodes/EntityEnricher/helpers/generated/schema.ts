@@ -11,25 +11,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Serve Index */
-        get: operations["serve_index__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/{path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve Spa */
-        get: operations["serve_spa__path__get"];
+        /** No Frontend */
+        get: operations["no_frontend__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -7396,6 +7379,8 @@ export type components = {
             amount: string;
             /** Balance After */
             balance_after: string;
+            /** Call Count */
+            call_count?: number | null;
             /**
              * Created At
              * Format: date-time
@@ -7410,10 +7395,24 @@ export type components = {
              * Format: uuid
              */
             id: string;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /** Job Id */
+            job_id?: string | null;
             /** Metadata */
             metadata?: {
                 [key: string]: unknown;
             } | null;
+            /** Model Composite Key */
+            model_composite_key?: string | null;
+            /** Model Name */
+            model_name?: string | null;
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Record Type */
+            record_type?: string | null;
+            /** Step */
+            step?: string | null;
             /** Type */
             type: string;
         };
@@ -9125,6 +9124,79 @@ export type components = {
              */
             path: string;
         };
+        /**
+         * EntityMap
+         * @description The region registry. Membership lives on the properties, not here.
+         */
+        EntityMap: {
+            /**
+             * Regions
+             * @description Region id → region. Always contains the root region.
+             */
+            regions?: {
+                [key: string]: components["schemas"]["EntityRegion"];
+            };
+            /**
+             * Version
+             * @description Map format version; a map written by an older version has every region stale and is re-judged incrementally.
+             * @default 1
+             */
+            version: number;
+        };
+        /**
+         * EntityRegion
+         * @description One region of the partition: a thing, or a relationship between things.
+         */
+        EntityRegion: {
+            /**
+             * Description
+             * @description One sentence describing the type, true of any instance
+             * @default
+             */
+            description: string;
+            /**
+             * Endpoints
+             * @description Pairing only: the region ids it relates, owner first. An entity region leaves this empty.
+             */
+            endpoints?: string[];
+            /**
+             * Fingerprint
+             * @description Sorted member field names this region's judgment was rendered on. A drifted member set marks the region STALE — re-judged incrementally, never silently trusted.
+             */
+            fingerprint?: string[];
+            /**
+             * Kind
+             * @description entity = an identifiable thing existing beyond this record; pairing = a relationship carrying its own facts, identified by the regions it connects rather than by anything of its own
+             * @enum {string}
+             */
+            kind: "entity" | "pairing";
+            /**
+             * Member Paths
+             * @description Every property path belonging to this region, sites included — derived from the per-property membership and re-stamped whenever the map is written. Legibility only, never authoritative: the stamps on the properties are the membership. The root region stores none — it owns every path no other region claims.
+             */
+            member_paths?: string[];
+            /**
+             * Note
+             * @description Advisory sentence for the editor, in the requester's UI locale — typically why a region spans more than one site.
+             */
+            note?: string | null;
+            /**
+             * Parent
+             * @description Region id this one hangs from — the region of the object that contains its members. None for the root region only.
+             */
+            parent?: string | null;
+            /**
+             * Reason
+             * @description Why this region was split off — the evidence, in one sentence. Required for every region but the root: a split with no recorded evidence is refused rather than trusted.
+             * @default
+             */
+            reason: string;
+            /**
+             * Type Name
+             * @description PascalCase name of the TYPE this region describes
+             */
+            type_name: string;
+        };
         /** EntityStateListResponse */
         EntityStateListResponse: {
             /** Entities */
@@ -9506,6 +9578,8 @@ export type components = {
             $defs?: {
                 [key: string]: components["schemas"]["EntityDefinition-Input"];
             } | null;
+            /** @description Entity map region registry (issue #160): the logical partition of every property path into entity/pairing regions, orthogonal to the JSON object structure. Membership itself lives on each property (`entity_region`); this half says what each region IS. Absent = never mapped, and every property belongs to its host object. */
+            $entity_map?: components["schemas"]["EntityMap"] | null;
             /**
              * $Enums
              * @description Reusable closed value sets, referenced from properties via $ref: '#/$enums/Name'. Kept out of $defs so the 'a $defs ref is a relationship' invariant of the entity layer holds unchanged.
@@ -9525,16 +9599,6 @@ export type components = {
             expertise_domains: {
                 [key: string]: components["schemas"]["ExpertiseDomain"];
             };
-            /**
-             * Identification Confidence
-             * @description Confidence that identifiers can uniquely identify the entity: 'high' = unique, 'medium' = may match multiple, 'low' = weak/missing
-             */
-            identification_confidence?: ("high" | "medium" | "low") | null;
-            /**
-             * Identification Notes
-             * @description Notes about identification challenges, e.g., 'Common company name, consider adding country'
-             */
-            identification_notes?: string | null;
             /** @description The root entity definition with its properties */
             root: components["schemas"]["EntityDefinition-Input"];
         };
@@ -9553,6 +9617,8 @@ export type components = {
             $defs?: {
                 [key: string]: components["schemas"]["EntityDefinition-Output"];
             } | null;
+            /** @description Entity map region registry (issue #160): the logical partition of every property path into entity/pairing regions, orthogonal to the JSON object structure. Membership itself lives on each property (`entity_region`); this half says what each region IS. Absent = never mapped, and every property belongs to its host object. */
+            $entity_map?: components["schemas"]["EntityMap"] | null;
             /**
              * $Enums
              * @description Reusable closed value sets, referenced from properties via $ref: '#/$enums/Name'. Kept out of $defs so the 'a $defs ref is a relationship' invariant of the entity layer holds unchanged.
@@ -9572,16 +9638,6 @@ export type components = {
             expertise_domains: {
                 [key: string]: components["schemas"]["ExpertiseDomain"];
             };
-            /**
-             * Identification Confidence
-             * @description Confidence that identifiers can uniquely identify the entity: 'high' = unique, 'medium' = may match multiple, 'low' = weak/missing
-             */
-            identification_confidence?: ("high" | "medium" | "low") | null;
-            /**
-             * Identification Notes
-             * @description Notes about identification challenges, e.g., 'Common company name, consider adding country'
-             */
-            identification_notes?: string | null;
             /** @description The root entity definition with its properties */
             root: components["schemas"]["EntityDefinition-Output"];
         };
@@ -10466,9 +10522,9 @@ export type components = {
         ModelCostRow: {
             /**
              * Composite Key
-             * @description Model composite key
+             * @description Model composite key (null for pre-usage-ledger rows)
              */
-            composite_key: string;
+            composite_key?: string | null;
             /**
              * Model Name
              * @description Model display name
@@ -12107,6 +12163,16 @@ export type components = {
              */
             description?: string | null;
             /**
+             * Entity Region
+             * @description Entity map (issue #160): the id of the region this property belongs to — the logical entity or pairing its value states a fact about, which is NOT necessarily the object it physically sits in. Absent = unjudged, and the property belongs to its host object's region. The registry is `$entity_map` at the schema root. Written by the map builder, stripped from every LLM prompt; membership travels with the property, so a rename or a move carries it.
+             */
+            entity_region?: string | null;
+            /**
+             * Entity Region Reason
+             * @description Only for a CROSS-OBJECT membership (the region is not the host object's): the evidence for moving this property's allegiance, in one sentence. Required there — a transfer with no recorded reason is refused, because a parent fact absorbed into a shared entity corrupts it for every other parent.
+             */
+            entity_region_reason?: string | null;
+            /**
              * Examples
              * @description Example values for this property (native JSON types preserved)
              */
@@ -12275,6 +12341,16 @@ export type components = {
              * @description Human-readable description of what this property represents
              */
             description?: string | null;
+            /**
+             * Entity Region
+             * @description Entity map (issue #160): the id of the region this property belongs to — the logical entity or pairing its value states a fact about, which is NOT necessarily the object it physically sits in. Absent = unjudged, and the property belongs to its host object's region. The registry is `$entity_map` at the schema root. Written by the map builder, stripped from every LLM prompt; membership travels with the property, so a rename or a move carries it.
+             */
+            entity_region?: string | null;
+            /**
+             * Entity Region Reason
+             * @description Only for a CROSS-OBJECT membership (the region is not the host object's): the evidence for moving this property's allegiance, in one sentence. Required there — a transfer with no recorded reason is refused, because a parent fact absorbed into a shared entity corrupts it for every other parent.
+             */
+            entity_region_reason?: string | null;
             /**
              * Examples
              * @description Example values for this property (native JSON types preserved)
@@ -14287,6 +14363,11 @@ export type components = {
              * @default false
              */
             is_pinned: boolean;
+            /**
+             * Key Language
+             * @description Key-language pre-selection for multilingual database keys. Generation stamps the run's resolved language here (the request's, else the one scoping detected — auto mode included), so a schema arrives with its key language chosen; the owner can still change it until a database link or entity state locks it.
+             */
+            key_language?: string | null;
             /** Name */
             name: string;
             schema_content: components["schemas"]["GeneratedJsonSchema-Input"];
@@ -15504,6 +15585,11 @@ export type components = {
              */
             job_type: string;
             /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
              */
@@ -15595,6 +15681,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -15689,6 +15780,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -15807,6 +15903,11 @@ export type components = {
              */
             job_type: string;
             /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
              */
@@ -15898,6 +15999,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -15992,6 +16098,11 @@ export type components = {
              */
             job_type: string;
             /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
              */
@@ -16084,6 +16195,11 @@ export type components = {
              */
             job_type: string;
             /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
              */
@@ -16174,6 +16290,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -16268,6 +16389,11 @@ export type components = {
              */
             job_type: string;
             /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
              */
@@ -16361,6 +16487,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -16462,6 +16593,11 @@ export type components = {
              */
             job_type: string;
             /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
              */
@@ -16556,6 +16692,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -16671,6 +16812,11 @@ export type components = {
              */
             job_type: string;
             /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
              */
@@ -16759,6 +16905,11 @@ export type components = {
              */
             job_type: string;
             /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
              */
@@ -16844,6 +16995,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -16953,6 +17109,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -17069,6 +17230,11 @@ export type components = {
              */
             job_type: string;
             /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
              */
@@ -17177,6 +17343,11 @@ export type components = {
              */
             job_type: string;
             /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
              */
@@ -17265,6 +17436,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -17355,6 +17531,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -17448,6 +17629,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -17543,6 +17729,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -17681,6 +17872,11 @@ export type components = {
              */
             job_type: string;
             /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
              */
@@ -17800,6 +17996,11 @@ export type components = {
              */
             job_type: string;
             /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
              */
@@ -17898,6 +18099,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -18006,6 +18212,11 @@ export type components = {
              */
             job_type: string;
             /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
              */
@@ -18111,6 +18322,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -18258,6 +18474,11 @@ export type components = {
              */
             job_type: string;
             /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
              */
@@ -18353,6 +18574,11 @@ export type components = {
              */
             job_type: string;
             /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
              */
@@ -18444,6 +18670,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -18537,6 +18768,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -18651,6 +18887,11 @@ export type components = {
              */
             job_type: string;
             /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
              */
@@ -18739,6 +18980,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -18832,6 +19078,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
             /**
              * Last Error Summary
              * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
@@ -20109,6 +20360,8 @@ export type EntityDefinitionInput = components['schemas']['EntityDefinition-Inpu
 export type EntityDefinitionOutput = components['schemas']['EntityDefinition-Output'];
 export type EntityIndexSpec = components['schemas']['EntityIndexSpec'];
 export type EntityKeyCollision = components['schemas']['EntityKeyCollision'];
+export type EntityMap = components['schemas']['EntityMap'];
+export type EntityRegion = components['schemas']['EntityRegion'];
 export type EntityStateListResponse = components['schemas']['EntityStateListResponse'];
 export type EntityStateRow = components['schemas']['EntityStateRow'];
 export type EntityTypeKeys = components['schemas']['EntityTypeKeys'];
@@ -20373,7 +20626,7 @@ export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutRespon
 export type WebhookSecretResponse = components['schemas']['WebhookSecretResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
-    serve_index__get: {
+    no_frontend__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -20389,37 +20642,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    serve_spa__path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
