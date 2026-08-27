@@ -9137,6 +9137,13 @@ export type components = {
                 [key: string]: components["schemas"]["EntityRegion"];
             };
             /**
+             * Site Regions
+             * @description Site path → region id, for the one shape a property-level stamp cannot express (issue #161): a relationship site inside a `$def` referenced from several places is ONE property object reached under SEVERAL paths, so stamping it would speak for every occurrence at once. An entry here places one occurrence — by its full path, spelled the way `entity_regions.collect` walks it — and outranks the shared property stamp for that path alone. Sites only: a value member's membership stays on the property (cross-object transfers need the reason recorded there).
+             */
+            site_regions?: {
+                [key: string]: string;
+            };
+            /**
              * Version
              * @description Map format version; a map written by an older version has every region stale and is re-judged incrementally.
              * @default 1
@@ -13765,6 +13772,11 @@ export type components = {
             /** Databases */
             databases?: components["schemas"]["RecordSyncDatabaseState"][];
             /**
+             * Gate Conflicts
+             * @description Cross-parent overwrites this record's write inflicted on SHARED rows (issue #149): values another parent's enrichment had stored, rewritten by this one — reported, never blocked, because last write wins is the contract. Stored on the record (`db_sync_conflicts`) since the flap they evidence spans several enrichments. The usual fix is marking the relationship owned (`shared: false`); an `all_fields_disagreed` entry points at the identity instead (a namesake object, not an update)
+             */
+            gate_conflicts?: components["schemas"]["SharedEntityConflict"][];
+            /**
              * Gate Error
              * @description Why the gate refused the write, or what a partial write dropped
              */
@@ -15203,6 +15215,17 @@ export type components = {
          *     Reported, never blocked — first-write-wins would be just as wrong.
          */
         SharedEntityConflict: {
+            /**
+             * All Fields Disagreed
+             * @description Echo of the sibling identity_underidentifies verdict at this path (every compared field disagreed — likely a namesake object, not an update), denormalized so each stored conflict is self-contained; the sibling entry carries the detail (semantic_id, compared_fields)
+             * @default false
+             */
+            all_fields_disagreed: boolean;
+            /**
+             * Entity Id
+             * @description Entity-layer id of the overwritten shared row — the stable handle that groups the same row's conflicts across enrichments (each conflict is stamped on its causing record, `db_sync_conflicts`)
+             */
+            entity_id?: string | null;
             /** Entity Type */
             entity_type: string;
             /** Fields */
