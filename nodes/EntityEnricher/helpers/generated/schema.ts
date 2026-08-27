@@ -4123,6 +4123,12 @@ export type paths = {
          *     Loads the current schema from database, sends it to an LLM with the user's
          *     prompt, and saves the resulting schema with new AI-generated suggestions.
          *     Also saves an enrichment record for tracking.
+         *
+         *     Failures follow the same typed contract as every other blocking endpoint in
+         *     this family (422 `model_retired` / `context_length_exceeded`, 429
+         *     `rate_limited`, 504 `provider_timeout`, 502 `model_output_invalid`): a
+         *     provider rate-limit used to surface here as an untyped 500, so a caller
+         *     could not tell a retryable condition from a bug.
          */
         post: operations["generate_schema_from_prompt_api_schema_saved__schema_id__prompt_post"];
         delete?: never;
@@ -9698,13 +9704,6 @@ export type components = {
              */
             typical_objects?: string[] | null;
         };
-        /** GenerateSampleStreamResponse */
-        GenerateSampleStreamResponse: {
-            /** Job Id */
-            job_id: string;
-            /** Message */
-            message: string;
-        };
         /**
          * GenerateSchemaResponse
          * @description Response from schema generation.
@@ -9738,6 +9737,11 @@ export type components = {
             success: boolean;
             /** Suggestions */
             suggestions?: string[] | null;
+            /**
+             * Warnings
+             * @description Non-fatal degradations of a run that still delivered a schema — self-repair notes the generator recorded, and any bookkeeping that failed (an unsaved audit record). Absent when the run was clean.
+             */
+            warnings?: string[] | null;
         };
         /** HostClaimRequest */
         HostClaimRequest: {
@@ -15876,6 +15880,103 @@ export type components = {
             index: number;
         };
         /**
+         * SSEAttempt
+         * @description One attempt of one model. `last_error_summary` on the same event carries
+         *     what went wrong on the previous attempt, when the retry had a reason.
+         */
+        SSEAttempt: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default attempt
+             * @constant
+             */
+            event: "attempt";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Model */
+            model?: string | null;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Step
+             * @description The pipeline step this attempt belongs to, when named.
+             */
+            step?: string | null;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
          * SSEBatchCompleted
          * @description Emitted when the entire batch enrichment job finishes.
          */
@@ -16247,6 +16348,98 @@ export type components = {
             status: string;
             /** Timeout Seconds */
             timeout_seconds: number;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
+         * SSEClassificationMismatchTimeout
+         * @description Nobody answered a classification-mismatch pause in time; the job is
+         *     cancelled rather than left waiting.
+         */
+        SSEClassificationMismatchTimeout: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default classification_mismatch_timeout
+             * @constant
+             */
+            event: "classification_mismatch_timeout";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Reason */
+            reason?: string | null;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
             /**
              * Total Entities
              * @description Batch jobs only: number of entities in the batch
@@ -16967,97 +17160,6 @@ export type components = {
             total_models: number;
         };
         /**
-         * SSEError
-         * @description Error event within a job.
-         */
-        SSEError: {
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /** Error Message */
-            error_message?: string | null;
-            /**
-             * Event
-             * @default error
-             * @constant
-             */
-            event: "error";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
-            /**
-             * Job Id
-             * @description Unique job identifier
-             */
-            job_id: string;
-            /**
-             * Job Type
-             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
-             */
-            job_type: string;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /** Running Models */
-            running_models?: string[];
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
-            /**
-             * Status
-             * @description Job status: pending, running, paused, completed, failed, cancelled
-             */
-            status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
-        };
-        /**
          * SSEExpertiseCompleted
          * @description Emitted when one expertise domain (or pipeline step) finishes within a
          *     model's run.
@@ -17182,6 +17284,105 @@ export type components = {
             total_entities?: number | null;
             /** Total Expertises */
             total_expertises: number;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
+         * SSEExpertiseStarted
+         * @description One expertise domain (or staged pipeline step) began.
+         */
+        SSEExpertiseStarted: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /** Completed Expertises */
+            completed_expertises?: number | null;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default expertise_started
+             * @constant
+             */
+            event: "expertise_started";
+            /** Expertise Key */
+            expertise_key?: string | null;
+            /** Expertise Name */
+            expertise_name?: string | null;
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Model */
+            model?: string | null;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
+            /** Total Expertises */
+            total_expertises?: number | null;
             /**
              * Total Models
              * @default 0
@@ -17393,6 +17594,95 @@ export type components = {
              * @description IDs of records being fused
              */
             source_record_ids?: string[] | null;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
+         * SSEHeartbeat
+         * @description Keep-alive emitted while a job runs and nothing else has happened.
+         */
+        SSEHeartbeat: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default heartbeat
+             * @constant
+             */
+            event: "heartbeat";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -17698,6 +17988,274 @@ export type components = {
             total_models: number;
         };
         /**
+         * SSEJobPaused
+         * @description Status transition emitted by `set_status`: the job is waiting for an
+         *     answer (classification mismatch, or a planner clarification).
+         */
+        SSEJobPaused: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default paused
+             * @constant
+             */
+            event: "paused";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
+         * SSEJobPending
+         * @description Status transition emitted by `set_status`.
+         */
+        SSEJobPending: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default pending
+             * @constant
+             */
+            event: "pending";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
+         * SSEJobRunning
+         * @description Status transition emitted by `set_status`.
+         */
+        SSEJobRunning: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default running
+             * @constant
+             */
+            event: "running";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
          * SSEModelAutoSelected
          * @description Emitted once when the server auto-selects the model for a job.
          *
@@ -17964,6 +18522,98 @@ export type components = {
             total_models: number;
         };
         /**
+         * SSEModelsSkipped
+         * @description Benchmark models dropped by the scenario's skip-incapable run policy, so
+         *     their rows can be marked skipped rather than left pending.
+         */
+        SSEModelsSkipped: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default models_skipped
+             * @constant
+             */
+            event: "models_skipped";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Models */
+            models?: string[];
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
          * SSEModelStarted
          * @description Emitted when a model starts processing.
          */
@@ -18038,6 +18688,95 @@ export type components = {
              * @description Model composite key
              */
             model: string;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
+         * SSEResumed
+         * @description A paused job was resumed (clarification answered, mismatch confirmed).
+         */
+        SSEResumed: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default resumed
+             * @constant
+             */
+            event: "resumed";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
             /** Running Models */
             running_models?: string[];
             /**
@@ -18982,6 +19721,95 @@ export type components = {
              * @constant
              */
             event: "scoring_unverified_reference";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+        };
+        /**
+         * SSEStarted
+         * @description First event on a stream: the job's state at connect time.
+         */
+        SSEStarted: {
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Event
+             * @default started
+             * @constant
+             */
+            event: "started";
             /**
              * Failed Entities
              * @description Batch jobs only: entities whose every model failed
@@ -20402,7 +21230,6 @@ export type FusionSummary = components['schemas']['FusionSummary'];
 export type GeneratedJsonSchemaInput = components['schemas']['GeneratedJsonSchema-Input'];
 export type GeneratedJsonSchemaOutput = components['schemas']['GeneratedJsonSchema-Output'];
 export type GenerateSampleRequest = components['schemas']['GenerateSampleRequest'];
-export type GenerateSampleStreamResponse = components['schemas']['GenerateSampleStreamResponse'];
 export type GenerateSchemaResponse = components['schemas']['GenerateSchemaResponse'];
 export type HostClaimRequest = components['schemas']['HostClaimRequest'];
 export type HostClaimResponse = components['schemas']['HostClaimResponse'];
@@ -20578,10 +21405,12 @@ export type SseArbitrationCompleted = components['schemas']['SSEArbitrationCompl
 export type SseArbitrationStarted = components['schemas']['SSEArbitrationStarted'];
 export type SseAttachmentCoherence = components['schemas']['SSEAttachmentCoherence'];
 export type SseAttachmentFile = components['schemas']['SSEAttachmentFile'];
+export type SseAttempt = components['schemas']['SSEAttempt'];
 export type SseBatchCompleted = components['schemas']['SSEBatchCompleted'];
 export type SseBatchStarted = components['schemas']['SSEBatchStarted'];
 export type SseClassificationCompleted = components['schemas']['SSEClassificationCompleted'];
 export type SseClassificationMismatchPause = components['schemas']['SSEClassificationMismatchPause'];
+export type SseClassificationMismatchTimeout = components['schemas']['SSEClassificationMismatchTimeout'];
 export type SseClassificationStarted = components['schemas']['SSEClassificationStarted'];
 export type SseConflictsDetected = components['schemas']['SSEConflictsDetected'];
 export type SseDatabaseRejected = components['schemas']['SSEDatabaseRejected'];
@@ -20589,16 +21418,22 @@ export type SseDatabaseSaved = components['schemas']['SSEDatabaseSaved'];
 export type SseEntityCompleted = components['schemas']['SSEEntityCompleted'];
 export type SseEntitySkipped = components['schemas']['SSEEntitySkipped'];
 export type SseEntityStarted = components['schemas']['SSEEntityStarted'];
-export type SseError = components['schemas']['SSEError'];
 export type SseExpertiseCompleted = components['schemas']['SSEExpertiseCompleted'];
+export type SseExpertiseStarted = components['schemas']['SSEExpertiseStarted'];
 export type SseFusionCompleted = components['schemas']['SSEFusionCompleted'];
 export type SseFusionStarted = components['schemas']['SSEFusionStarted'];
+export type SseHeartbeat = components['schemas']['SSEHeartbeat'];
 export type SseJobCancelled = components['schemas']['SSEJobCancelled'];
 export type SseJobCompleted = components['schemas']['SSEJobCompleted'];
 export type SseJobFailed = components['schemas']['SSEJobFailed'];
+export type SseJobPaused = components['schemas']['SSEJobPaused'];
+export type SseJobPending = components['schemas']['SSEJobPending'];
+export type SseJobRunning = components['schemas']['SSEJobRunning'];
 export type SseModelAutoSelected = components['schemas']['SSEModelAutoSelected'];
 export type SseModelCompleted = components['schemas']['SSEModelCompleted'];
+export type SseModelsSkipped = components['schemas']['SSEModelsSkipped'];
 export type SseModelStarted = components['schemas']['SSEModelStarted'];
+export type SseResumed = components['schemas']['SSEResumed'];
 export type SseSampleClarificationPause = components['schemas']['SSESampleClarificationPause'];
 export type SseSampleInstanceProgress = components['schemas']['SSESampleInstanceProgress'];
 export type SseSampleInstanceRoster = components['schemas']['SSESampleInstanceRoster'];
@@ -20610,6 +21445,7 @@ export type SseScoringFailed = components['schemas']['SSEScoringFailed'];
 export type SseScoringProgress = components['schemas']['SSEScoringProgress'];
 export type SseScoringStarted = components['schemas']['SSEScoringStarted'];
 export type SseScoringUnverifiedReference = components['schemas']['SSEScoringUnverifiedReference'];
+export type SseStarted = components['schemas']['SSEStarted'];
 export type SseStrategySelected = components['schemas']['SSEStrategySelected'];
 export type StrategyInfo = components['schemas']['StrategyInfo'];
 export type StreamEnrichRequest = components['schemas']['StreamEnrichRequest'];
@@ -25727,7 +26563,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEError"])[];
+                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEStarted"] | components["schemas"]["SSEHeartbeat"] | components["schemas"]["SSEAttempt"] | components["schemas"]["SSEResumed"] | components["schemas"]["SSEModelsSkipped"] | components["schemas"]["SSEJobPending"] | components["schemas"]["SSEJobRunning"] | components["schemas"]["SSEJobPaused"] | components["schemas"]["SSEExpertiseStarted"] | components["schemas"]["SSEClassificationMismatchTimeout"])[];
                 };
             };
         };
@@ -28183,7 +29019,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GenerateSampleStreamResponse"];
+                    "application/json": components["schemas"]["StreamGenerateResponse"];
                 };
             };
             /** @description Validation Error */

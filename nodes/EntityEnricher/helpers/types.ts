@@ -25,7 +25,6 @@ export type {
 	SseJobCompleted,
 	SseJobFailed,
 	SseJobCancelled,
-	SseError,
 } from './generated/schema';
 
 import type {
@@ -36,7 +35,6 @@ import type {
 	SseJobCompleted,
 	SseJobFailed,
 	SseJobCancelled,
-	SseError,
 } from './generated/schema';
 
 // ---------------------------------------------------------------------------
@@ -93,7 +91,6 @@ export type SSEEvent =
 	| SseJobCompleted
 	| SseJobFailed
 	| SseJobCancelled
-	| SseError
 	| GenericSSEEvent;
 
 /** Catch-all for events the connector doesn't need to inspect (e.g. model_started, heartbeat). */
@@ -106,7 +103,10 @@ export interface GenericSSEEvent {
 // Terminal events set (used by SSE consumer)
 // ---------------------------------------------------------------------------
 
-export const TERMINAL_EVENTS = new Set(['completed', 'failed', 'cancelled', 'error']);
+/** The three statuses `set_status` can terminate a job with. There is no
+ * 'error' event: the server's typed catalog never declared one and the stream
+ * never emitted one. */
+export const TERMINAL_EVENTS = new Set(['completed', 'failed', 'cancelled']);
 
 // ---------------------------------------------------------------------------
 // Type guard helpers
