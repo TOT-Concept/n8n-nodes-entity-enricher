@@ -11,8 +11,25 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** No Frontend */
-        get: operations["no_frontend__get"];
+        /** Serve Index */
+        get: operations["serve_index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve Spa */
+        get: operations["serve_spa__path__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3516,9 +3533,15 @@ export type paths = {
          * Start Model Validation
          * @description Start a model validation job.
          *
-         *     Validates models by sending a minimal test prompt. Models that fail with
-         *     'model not found' are auto-deactivated. Previously auto-deactivated models
-         *     that pass are reactivated.
+         *     mode='health' (default) validates models by sending a minimal test prompt.
+         *     Models that fail with 'model not found' are auto-deactivated; previously
+         *     auto-deactivated models that pass are reactivated.
+         *
+         *     mode='capabilities' empirically probes the capability flags that gate app
+         *     code paths (tool/native channels, strict mode, vision/pdf/audio input,
+         *     web search, reasoning effort) and persists the verdicts as a
+         *     source='probe' row per model — the highest-priority fusion source.
+         *     Activation is never touched in this mode.
          *
          *     Returns a job_id for SSE streaming via GET /api/llm/stream/{job_id}.
          */
@@ -3538,7 +3561,7 @@ export type paths = {
         };
         /**
          * Get Last Validation Results
-         * @description Get the last validation results from system config.
+         * @description Get the last validation results from system config (per mode).
          */
         get: operations["get_last_validation_results_api_providers_validate_last_results_get"];
         put?: never;
@@ -5751,6 +5774,11 @@ export type components = {
              * @description Model composite keys to use for enrichment. Optional: omit the field (or use the literal 'auto' entry) to let the server pick the organization's default model — pinned per-task default if set, else the best blended benchmark score. Auto resolves to a single model.
              */
             models?: string[];
+            /**
+             * Reasoning Effort
+             * @description Enable model thinking/reasoning for every entity in the batch at the given effort. Translated per provider (effort field, or the Qwen-style enable_thinking switch where levels collapse to on); silently dropped for models the app cannot control. None (default) keeps each model's default behavior.
+             */
+            reasoning_effort?: ("high" | "medium" | "low") | null;
             /**
              * Schema Id
              * @description Saved schema ID (alternative to inline target_schema)
@@ -10303,6 +10331,8 @@ export type components = {
             supports_prompt_caching?: boolean | null;
             /** Supports Reasoning */
             supports_reasoning?: boolean | null;
+            /** Supports Reasoning Effort */
+            supports_reasoning_effort?: boolean | null;
             /** Supports Response Schema */
             supports_response_schema?: boolean | null;
             /** Supports Strict Structured Output */
@@ -10674,6 +10704,11 @@ export type components = {
              */
             supports_reasoning: boolean;
             /**
+             * Supports Reasoning Effort
+             * @default false
+             */
+            supports_reasoning_effort: boolean;
+            /**
              * Supports Response Schema
              * @default false
              */
@@ -10838,6 +10873,11 @@ export type components = {
              * @default false
              */
             supports_reasoning: boolean;
+            /**
+             * Supports Reasoning Effort
+             * @default false
+             */
+            supports_reasoning_effort: boolean;
             /**
              * Supports Response Schema
              * @default false
@@ -11156,6 +11196,11 @@ export type components = {
              */
             supports_reasoning: boolean;
             /**
+             * Supports Reasoning Effort
+             * @default false
+             */
+            supports_reasoning_effort: boolean;
+            /**
              * Supports Response Schema
              * @default false
              */
@@ -11284,6 +11329,8 @@ export type components = {
             supports_prompt_caching?: boolean | null;
             /** Supports Reasoning */
             supports_reasoning?: boolean | null;
+            /** Supports Reasoning Effort */
+            supports_reasoning_effort?: boolean | null;
             /** Supports Response Schema */
             supports_response_schema?: boolean | null;
             /** Supports Strict Structured Output */
@@ -11358,6 +11405,13 @@ export type components = {
              * @default false
              */
             include_benchmark_failed: boolean;
+            /**
+             * Mode
+             * @description 'health' sends the minimal reachability prompt (may deactivate/reactivate models). 'capabilities' empirically probes each capability flag by driving the matching agent-factory path and persists the measured verdicts as a source='probe' row, which outranks every scraper source at read time.
+             * @default health
+             * @enum {string}
+             */
+            mode: "health" | "capabilities";
             /**
              * Model Ids
              * @description Specific model IDs to validate. If None, validates all models with API keys.
@@ -11963,7 +12017,7 @@ export type components = {
             research_model_key?: string | null;
             /**
              * Source
-             * @description Single pricing source (back-compat). Ignored when `sources` is set. One of 'litellm', 'pricepertoken', 'together', 'cohere', 'moonshot', 'zai'.
+             * @description Single pricing source (back-compat). Ignored when `sources` is set. One of 'litellm', 'pricepertoken', 'together', 'cohere', 'moonshot', 'zai', 'mistral'.
              * @default litellm
              */
             source: string;
@@ -14098,6 +14152,11 @@ export type components = {
              * @description Composite key (provider::model) to run the retry with. Defaults to the record's own model — pass a stronger one to recover a domain that model keeps failing. The record stays attributed to its original model; each retried expertise's prompt row records the model that actually ran it.
              */
             model?: string | null;
+            /**
+             * Reasoning Effort
+             * @description Enable model thinking/reasoning for the retried expertises at the given effort. Same semantics as the enrichment request field.
+             */
+            reasoning_effort?: ("high" | "medium" | "low") | null;
             /**
              * Record Id
              * @description Existing enrichment record ID
@@ -20063,6 +20122,11 @@ export type components = {
              * @description Model composite keys. Optional: omit the field (or use the literal 'auto' entry) to let the server pick the organization's default model — the pinned per-task default if set, else the model with the best blended overall score from scoring-source benchmarks. Auto always resolves to a single model, so it never triggers fusion.
              */
             models?: string[];
+            /**
+             * Reasoning Effort
+             * @description Enable model thinking/reasoning for this run at the given effort. Translated per provider (effort field, or the Qwen-style enable_thinking switch where levels collapse to on); silently dropped for models the app cannot control. None (default) keeps each model's default behavior.
+             */
+            reasoning_effort?: ("high" | "medium" | "low") | null;
             /** Schema Id */
             schema_id?: string | null;
             /**
@@ -20493,6 +20557,11 @@ export type components = {
              * @description Model composite keys. Optional: omit the field (or use the literal 'auto' entry) to let the server pick the organization's default model — the pinned per-task default if set, else the model with the best blended overall score from scoring-source benchmarks. Auto always resolves to a single model, so it never triggers fusion.
              */
             models?: string[];
+            /**
+             * Reasoning Effort
+             * @description Enable model thinking/reasoning for this run at the given effort. Translated per provider (effort field, or the Qwen-style enable_thinking switch where levels collapse to on); silently dropped for models the app cannot control. None (default) keeps each model's default behavior.
+             */
+            reasoning_effort?: ("high" | "medium" | "low") | null;
             /** Schema Id */
             schema_id?: string | null;
             /**
@@ -21485,7 +21554,7 @@ export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutRespon
 export type WebhookSecretResponse = components['schemas']['WebhookSecretResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
-    no_frontend__get: {
+    serve_index__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -21501,6 +21570,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    serve_spa__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -28485,6 +28585,7 @@ export interface operations {
     get_last_validation_results_api_providers_validate_last_results_get: {
         parameters: {
             query?: {
+                mode?: string;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
