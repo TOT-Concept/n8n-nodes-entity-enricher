@@ -3837,7 +3837,7 @@ export type paths = {
         put?: never;
         /**
          * Synchronous sample generation
-         * @description Blocks until sample generation finishes and returns the generated sample(s). Designed for non-streaming clients such as Make.com, Zapier, or curl — always runs with auto_answer=true (any attachment- planner clarification questions resolve to the planner's defaults rather than pausing, since a blocking call can't wait for a live answer). Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the offending property and `retryable: true`), 500 `sample_generation_empty` (no result), else 502 `sample_generation_failed`.
+         * @description Blocks until sample generation finishes and returns the generated sample(s). Designed for non-streaming clients such as Make.com, Zapier, or curl — always runs with auto_answer=true (the generator is told not to ask about an ambiguous request, and any attachment-planner clarification questions resolve to the planner's defaults rather than pausing, since a blocking call can't wait for a live answer). Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the offending property and `retryable: true`), 500 `sample_generation_empty` (no result), else 502 `sample_generation_failed`.
          */
         post: operations["generate_sample_sync_api_schema_sample_generate_sync_post"];
         delete?: never;
@@ -4435,7 +4435,11 @@ export type paths = {
         };
         /**
          * Get Relational Map
-         * @description The schema→relational projection (tables, columns, junctions) for the ER diagram.
+         * @description The schema→relational projection (tables, columns, junctions) for the ER
+         *     diagram. No registration stands behind a bare schema, so nullability is
+         *     reported as the automatic options of the default rung would ship it
+         *     (skip_children → propagate_not_null on, reference FKs nullable), on the
+         *     natural shape this map draws.
          */
         get: operations["get_relational_map_api_schemas__schema_id__relational_map_get"];
         put?: never;
@@ -9682,7 +9686,7 @@ export type components = {
             attachment_ids?: string[] | null;
             /**
              * Auto Answer
-             * @description Governs the attachment planner's clarification questions. None → resolved by origin (interactive for web/mcp, auto otherwise). True → never pause: proceed with the planner's default answers (headless-safe). False → pause and wait for answers.
+             * @description Governs clarification questions — the generator's own when the request is materially ambiguous (no attachments), the attachment planner's otherwise. None → resolved by origin (interactive for web/mcp, auto otherwise). True → never pause: the generator is told not to ask and the planner proceeds with its default answers (headless-safe). False → pause and wait for answers.
              */
             auto_answer?: boolean | null;
             /**
@@ -9691,15 +9695,9 @@ export type components = {
              * @default false
              */
             enable_web_search: boolean;
-            /** Entity Type */
-            entity_type: string;
-            /** Extra Instructions */
-            extra_instructions?: string | null;
-            /** Fields */
-            fields?: string[];
             /**
              * Language
-             * @description Output language code for generated sample values AND field names (e.g. 'en', 'fr'); an explicit code applies even when the attachment is in another language. Omitted (or 'auto', the default) → the generator follows the language the request itself is written in (entity type, named typical instances, extra instructions), else the attached document's language, else English.
+             * @description Output language code for generated sample values AND field names (e.g. 'en', 'fr'); an explicit code applies even when the attachment is in another language. Omitted (or 'auto', the default) → the generator follows the language the request itself is written in (the request text and named typical instances), else the attached document's language, else English.
              */
             language?: string | null;
             /**
@@ -9714,6 +9712,12 @@ export type components = {
              * @default auto
              */
             naming_convention: string;
+            /**
+             * Request
+             * @description What the sample should contain, in free text: the kind of entity (optionally a specific instance), the properties it must include, size/depth budgets, structural preferences. Binding for the generation — it overrides the generator's default choices; only the output contract (JSON-only, naming convention, quantity units, single-language samples) cannot be overridden. When the request is materially ambiguous the job may pause on clarification questions (see auto_answer). Required unless attachment_ids is set, where the attached document is the request and this text only narrows it.
+             * @default
+             */
+            request: string;
             /**
              * Sample Count
              * @description How many samples of this entity type to generate in one job. Sample 1 defines the field set (full pipeline incl. the ambiguity check) and names the instances for the remaining slots; samples 2..N are parallel follow-up turns that keep the same fields and fill values for their named instance. Forced to 1 whenever attachment_ids is set.
@@ -13963,6 +13967,12 @@ export type components = {
         RelationalChildTable: {
             /** Columns */
             columns: components["schemas"]["RelationalColumn"][];
+            /**
+             * Ordered
+             * @description The array is declared `ordered` (PropertySchema.ordered): rows are identified by their position and ship `_ordinal`. The Diagram tab draws the edge's …–N head as the ordered crow's foot
+             * @default false
+             */
+            ordered: boolean;
             /** Property Name */
             property_name: string;
             /**
@@ -13993,6 +14003,24 @@ export type components = {
             /** Name */
             name: string;
             /**
+             * Nullable
+             * @description The column ships without NOT NULL on this replica — the effective constraint after the registration's propagate_not_null gate and pk_strategy, not the schema's nullable flag alone
+             * @default true
+             */
+            nullable: boolean;
+            /**
+             * Origin
+             * @description Where the column comes from. 'property' = a schema property; every other value is a column the projection adds around the schema's own — 'surrogate_pk' (`_id`, pk_strategy='surrogate'), 'owner_fk' (FK to the owner / parent table: the `_(table)_id` stub under surrogate, the key copies under natural), 'reference_fk' (a shared 1-1 reference: `<prop>_id` under surrogate, the target-key copies under natural), 'junction_endpoint' (`_source_*` / `_target_*`), 'ordinal' (`_ordinal`, positional identity), 'value_key' (the key-language token identifying a row of an unordered multilingual value array), 'bookkeeping' (`_sync_revision`, `_created_at`, `_updated_at`). The Diagram tab hides everything but 'property' unless the projection columns are switched on
+             * @default property
+             * @enum {string}
+             */
+            origin: "property" | "surrogate_pk" | "owner_fk" | "reference_fk" | "junction_endpoint" | "ordinal" | "value_key" | "bookkeeping";
+            /**
+             * References Table
+             * @description Physical table this column is a FOREIGN KEY to — set on 'owner_fk', 'reference_fk' and 'junction_endpoint' columns (→ `(table)._id` under 'surrogate', the target's key column under 'natural'). Null on every other column
+             */
+            references_table?: string | null;
+            /**
              * Schema Names
              * @description Schemas feeding this column (database-scoped map only; null on single-schema maps)
              */
@@ -14005,6 +14033,17 @@ export type components = {
          * @description Array of entities → junction table on the target's keys.
          */
         RelationalLinkTable: {
+            /**
+             * Columns
+             * @description Every column the junction table ships (endpoints, `_ordinal` when ordered, bookkeeping) — none is a schema property, so the Diagram tab draws the table as a card only with the projection columns on
+             */
+            columns?: components["schemas"]["RelationalColumn"][];
+            /**
+             * Ordered
+             * @description The array is declared `ordered` (PropertySchema.ordered): junction rows are identified by their position and ship `_ordinal`. The Diagram tab draws the edge's …–N head as the ordered crow's foot
+             * @default false
+             */
+            ordered: boolean;
             /** Property Name */
             property_name: string;
             /**
@@ -14034,6 +14073,12 @@ export type components = {
          * @description Promoted 1-1 reference → target-key columns on the parent row.
          */
         RelationalRef: {
+            /**
+             * Nullable
+             * @description The foreign-key columns ship without NOT NULL on this replica: the schema site (or a wrapper above it) is nullable, or the registration can admit a row without the reference — NOT NULL needs on_gaps='reject_entity' with propagate_not_null. The ER diagram draws it as a dotted 0–1 edge
+             * @default true
+             */
+            nullable: boolean;
             /**
              * Physical Name
              * @description The reference's flattening chain in physical segments; its columns are '{physical_name}_{target key}'
@@ -14069,10 +14114,16 @@ export type components = {
             owned_by?: string | null;
             /**
              * Owned Is Array
-             * @description Owned via an array site (1-N with _ordinal) vs a 1-1 site
+             * @description Owned via an array site (1-N) vs a 1-1 site
              * @default false
              */
             owned_is_array: boolean;
+            /**
+             * Owned Ordered
+             * @description The owning array site is declared `ordered`: rows are identified by their position inside the owner and ship `_ordinal`. False on a 1-1 site and on an unordered (set) array. The Diagram tab draws the owned edge's …–N head as the ordered crow's foot
+             * @default false
+             */
+            owned_ordered: boolean;
             /**
              * Owned Via
              * @description The owning relationship property name on the owner type
@@ -14336,10 +14387,6 @@ export type components = {
              * @default false
              */
             enable_web_search: boolean;
-            /** Entity Type */
-            entity_type: string;
-            /** Extra Instructions */
-            extra_instructions?: string | null;
             /**
              * Language
              * @default en
@@ -14351,6 +14398,11 @@ export type components = {
              * @enum {string}
              */
             naming_convention: "auto" | "snake_case" | "camelCase";
+            /**
+             * Request
+             * @description The free-text sample request every model answers
+             */
+            request: string;
             /** Typical Object */
             typical_object?: string | null;
         };
@@ -15221,7 +15273,7 @@ export type components = {
             matched_text: string;
             /**
              * Similarity
-             * @description Cosine similarity of the match; null for a deterministic code/token-set reuse, where no embedding was consulted (issue #99)
+             * @description Cosine similarity of the match; null for a deterministic exact-code reuse, where no embedding was consulted (issue #99)
              */
             similarity?: number | null;
             /**
@@ -18975,7 +19027,7 @@ export type components = {
             skipped_entities: number;
             /**
              * Source Mode
-             * @description transcribe_data | structure_only | describe_subject
+             * @description knowledge (the generator itself asked, no attachment) | transcribe_data | structure_only | describe_subject (attachment planner)
              */
             source_mode: string;
             /**
@@ -20673,7 +20725,7 @@ export type components = {
             attachment_ids?: string[] | null;
             /**
              * Auto Answer
-             * @description Governs the attachment planner's clarification questions. None → resolved by origin (interactive for web/mcp, auto otherwise). True → never pause: proceed with the planner's default answers (headless-safe). False → pause and wait for answers.
+             * @description Governs clarification questions — the generator's own when the request is materially ambiguous (no attachments), the attachment planner's otherwise. None → resolved by origin (interactive for web/mcp, auto otherwise). True → never pause: the generator is told not to ask and the planner proceeds with its default answers (headless-safe). False → pause and wait for answers.
              */
             auto_answer?: boolean | null;
             /**
@@ -20682,15 +20734,9 @@ export type components = {
              * @default false
              */
             enable_web_search: boolean;
-            /** Entity Type */
-            entity_type: string;
-            /** Extra Instructions */
-            extra_instructions?: string | null;
-            /** Fields */
-            fields?: string[];
             /**
              * Language
-             * @description Output language code for generated sample values AND field names (e.g. 'en', 'fr'); an explicit code applies even when the attachment is in another language. Omitted (or 'auto', the default) → the generator follows the language the request itself is written in (entity type, named typical instances, extra instructions), else the attached document's language, else English.
+             * @description Output language code for generated sample values AND field names (e.g. 'en', 'fr'); an explicit code applies even when the attachment is in another language. Omitted (or 'auto', the default) → the generator follows the language the request itself is written in (the request text and named typical instances), else the attached document's language, else English.
              */
             language?: string | null;
             /**
@@ -20705,6 +20751,12 @@ export type components = {
              * @default auto
              */
             naming_convention: string;
+            /**
+             * Request
+             * @description What the sample should contain, in free text: the kind of entity (optionally a specific instance), the properties it must include, size/depth budgets, structural preferences. Binding for the generation — it overrides the generator's default choices; only the output contract (JSON-only, naming convention, quantity units, single-language samples) cannot be overridden. When the request is materially ambiguous the job may pause on clarification questions (see auto_answer). Required unless attachment_ids is set, where the attached document is the request and this text only narrows it.
+             * @default
+             */
+            request: string;
             /**
              * Sample Count
              * @description How many samples of this entity type to generate in one job. Sample 1 defines the field set (full pipeline incl. the ambiguity check) and names the instances for the remaining slots; samples 2..N are parallel follow-up turns that keep the same fields and fill values for their named instance. Forced to 1 whenever attachment_ids is set.

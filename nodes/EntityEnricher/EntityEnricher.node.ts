@@ -493,13 +493,13 @@ export class EntityEnricher implements INodeType {
 			// ─── Generate Sample Parameters ───
 
 			{
-				displayName: 'Entity Type',
-				name: 'sampleEntityType',
+				displayName: 'Request',
+				name: 'sampleRequest',
 				type: 'string',
-				required: true,
+				typeOptions: { rows: 4 },
 				default: '',
-				placeholder: 'e.g. Pharmaceutical Company',
-				description: 'What kind of entity to sample',
+				placeholder: 'e.g. Pharmaceutical company — include headquarters, therapeutic areas and the main products; keep it under 30 fields',
+				description: 'What the sample should contain, in free text: the kind of entity, the properties to include, size/depth budgets, structural preferences. Binding for the generation. Required unless Attachment IDs is set, where the document is the request and this text only narrows it.',
 				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
 			},
 			{
@@ -521,15 +521,6 @@ export class EntityEnricher implements INodeType {
 				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
 			},
 			{
-				displayName: 'Fields',
-				name: 'sampleFields',
-				type: 'string',
-				default: '',
-				placeholder: 'e.g. name, headquarters, revenue',
-				description: 'Comma-separated field names the sample must include (the model may add others)',
-				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
-			},
-			{
 				displayName: 'Naming Convention',
 				name: 'namingConvention',
 				type: 'options',
@@ -548,15 +539,6 @@ export class EntityEnricher implements INodeType {
 				default: '',
 				placeholder: 'e.g. 3fa85f64-..., 7c9e6679-...',
 				description: 'Comma-separated attachment UUIDs (from Add Attachment). Switches into source mode: transcribe the document or describe visible photo attributes only. Forces Sample Count to 1.',
-				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
-			},
-			{
-				displayName: 'Extra Instructions',
-				name: 'sampleExtraInstructions',
-				type: 'string',
-				typeOptions: { rows: 3 },
-				default: '',
-				description: 'Free-form guidance appended to the prompt',
 				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
 			},
 			{

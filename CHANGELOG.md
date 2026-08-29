@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Changed — Generate Sample takes one **Request** instead of Entity Type + Fields + Extra Instructions
+
+Generate Sample used to split what you wanted across three parameters: a required **Entity Type**, an optional comma-separated **Fields** list, and free-form **Extra Instructions** appended to the prompt. The API now takes a single free-text `request` — the kind of entity, the properties to include, any size or depth budget, structural preferences — and the node exposes it as one multi-line **Request** field. It is binding for the generation: an explicit budget beats the generator's default exhaustiveness, a requested shape beats its default choice (the split was exactly what let a budget lose to the defaults). The kind of entity is now derived by the model from the request and returned on every output item as `object_type` (the field that used to echo `entity_type`). **Request** is required unless **Attachment IDs** is set — there the document is the request and the text only narrows what to extract, so the old filename-derived placeholder is gone. Since the node runs non-interactively, an ambiguous request is resolved with its most standard reading rather than paused on (the web UI and MCP clients get asked instead).
+
+**Migration:** put the old Entity Type on the first line of Request, then the former Extra Instructions below it; name any must-have fields in the text. A workflow that still fills the removed parameters has them ignored; an empty Request without attachments fails with a clear error. Read `object_type` instead of `entity_type` from the output items.
+
 ### Changed — the schema flag `is_key` is now `identifying`
 
 The property-level flag naming the values that identify an object was called `is_key`, which read as "primary key" — the one thing it is not. It never enforced uniqueness (that is `unique_group`), it is not the database row key (that is `database_key`), and it is not caller-owned (that is `preserve`). What it actually selects is the subset of properties whose values *match one instance of a thing to another* — across input and output items, across models during fusion, and against the semantic-ID concept registry. It is now spelled **`identifying`**, beside `database_key` (row identity) and `semantic_id` (concept identity).

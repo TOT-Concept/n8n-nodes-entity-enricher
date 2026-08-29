@@ -212,7 +212,7 @@ Example workflow: [`03-document-to-enrichment.json`](examples/03-document-to-enr
 
 ## Schema Authoring
 
-**Generate Sample** invents realistic sample objects of an entity type; **Generate Schema** turns samples into a saved, reusable schema. Together they replace the hand-written JSON that used to be a prerequisite for the first enrichment.
+**Generate Sample** invents realistic sample objects from a free-text request; **Generate Schema** turns samples into a saved, reusable schema. Together they replace the hand-written JSON that used to be a prerequisite for the first enrichment.
 
 ```
 Generate Sample (Sample Count = 3) ──▶ Code (unwrap) ──▶ Generate Schema ──▶ Enrich Entity
