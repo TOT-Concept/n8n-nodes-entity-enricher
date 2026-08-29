@@ -11,25 +11,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Serve Index */
-        get: operations["serve_index__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/{path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve Spa */
-        get: operations["serve_spa__path__get"];
+        /** No Frontend */
+        get: operations["no_frontend__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3343,7 +3326,13 @@ export type paths = {
          * Bulk Delete Models
          * @description Delete multiple models by ID.
          *
-         *     By default skips models with linked enrichment records (reported in
+         *     Ids are **rows**: with the split-sources view each source row is its own
+         *     id, and only those rows go — a model stays in the catalog while another
+         *     source row still lists it. The merged view sends every source row of a
+         *     selected model.
+         *
+         *     By default skips rows whose deletion would orphan linked enrichment
+         *     records — i.e. the last row of a ``provider::model`` (reported in
          *     ``errors``). When ``data.force`` is true the guard is skipped — records
          *     keep their historical model name as denormalised text.
          *     Requires system admin.
@@ -9513,6 +9502,11 @@ export type components = {
              * @description Model an LLM arbitration call ran on — the requested arbitration_model, or the auto-resolved model when a rule-based merge escalated numeric fields the models disagreed about wildly. Set even when that call failed and rule-based values stood, since the tokens were still spent; `_arbitration_metadata.arbitration_model` is the narrower 'whose decisions were applied'.
              */
             arbitration_model_used?: string | null;
+            /**
+             * Cache Read Tokens
+             * @description Prompt-cache reads across the arbitration calls (None if rule-based). Arbitration runs one call per level of nesting after the root call; the shared prefix is cached by the first, so this is non-zero on every run that needed more than one call.
+             */
+            cache_read_tokens?: number | null;
             conflict_report: components["schemas"]["ConflictReport"];
             /**
              * Cost Usd
@@ -11407,7 +11401,7 @@ export type components = {
             include_benchmark_failed: boolean;
             /**
              * Mode
-             * @description 'health' sends the minimal reachability prompt (may deactivate/reactivate models). 'capabilities' empirically probes each capability flag by driving the matching agent-factory path and persists the measured verdicts as a source='probe' row, which outranks every scraper source at read time.
+             * @description 'health' sends the minimal reachability prompt (may deactivate/reactivate models). 'capabilities' empirically probes each capability flag by driving the matching agent-factory path and persists the measured verdicts as a source='probe' row, which outranks every scraper source at read time. Probes only ever run on active models: inactive rows are dropped from any scope, model_ids included.
              * @default health
              * @enum {string}
              */
@@ -15605,8 +15599,24 @@ export type components = {
         /**
          * SSEArbitrationCompleted
          * @description Emitted when LLM arbitration finishes.
+         *
+         *     The decisions themselves arrive on `fusion_completed` inside
+         *     `merged_result._arbitration_metadata`: the arbiter answers questions, and
+         *     the decisions are what the merge makes of those answers.
          */
         SSEArbitrationCompleted: {
+            /**
+             * Auto Outlier
+             * @default false
+             */
+            auto_outlier: boolean;
+            /** Cache Read Tokens */
+            cache_read_tokens?: number | null;
+            /**
+             * Calls
+             * @description LLM calls made (one per level, then per item)
+             */
+            calls?: number | null;
             /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
@@ -15627,13 +15637,6 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
-            /**
-             * Decisions
-             * @description Arbitration decisions (if successful)
-             */
-            decisions?: {
-                [key: string]: unknown;
-            }[] | null;
             /** Error Message */
             error_message?: string | null;
             /**
@@ -15721,6 +15724,12 @@ export type components = {
             /** Arbitration Model */
             arbitration_model: string;
             /**
+             * Auto Outlier
+             * @description True when a rule-based merge escalated numeric outliers to an auto-resolved arbiter rather than the caller naming one
+             * @default false
+             */
+            auto_outlier: boolean;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -15731,7 +15740,10 @@ export type components = {
              * @default 0
              */
             completed_models: number;
-            /** Conflict Count */
+            /**
+             * Conflict Count
+             * @description Questions the rules could not settle — what the arbiter is asked
+             */
             conflict_count: number;
             /**
              * Current Attempt
@@ -15778,10 +15790,20 @@ export type components = {
              */
             last_error_summary?: string | null;
             /**
+             * Levels
+             * @description Nesting levels the questions span: the root level is asked in one call, each deeper level in parallel calls per array item
+             */
+            levels?: number | null;
+            /**
              * Max Attempts
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Paths
+             * @description Question keys
+             */
+            paths?: string[] | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -21554,7 +21576,7 @@ export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutRespon
 export type WebhookSecretResponse = components['schemas']['WebhookSecretResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
-    serve_index__get: {
+    no_frontend__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -21570,37 +21592,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    serve_spa__path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
