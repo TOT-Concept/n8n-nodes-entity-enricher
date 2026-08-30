@@ -98,6 +98,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/organizations/{org_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Organization Admin
+         * @description Permanently delete an organization with no users left (system admin only).
+         */
+        delete: operations["delete_organization_admin_api_admin_organizations__org_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/organizations/{org_id}/plan": {
         parameters: {
             query?: never;
@@ -138,6 +158,29 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/organizations/batch-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Batch Delete Organizations Admin
+         * @description Permanently delete several empty organizations at once (system admin only).
+         *
+         *     Same rules as the single route, one id at a time; refused ids come back in
+         *     `skipped` with their reason instead of failing the whole call.
+         */
+        post: operations["batch_delete_organizations_admin_api_admin_organizations_batch_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/users": {
         parameters: {
             query?: never;
@@ -171,10 +214,6 @@ export type paths = {
         /**
          * Delete User Admin
          * @description Permanently delete any user and their Firebase account (system admin only).
-         *
-         *     Records and schemas the user created are kept with attribution nulled;
-         *     refresh tokens, API keys and OAuth grants cascade. Firebase deletion is
-         *     best-effort: a leftover Firebase account cannot reach any data.
          */
         delete: operations["delete_user_admin_api_admin_users__user_id__delete"];
         options?: never;
@@ -285,6 +324,30 @@ export type paths = {
          * @description Update any user's role (system admin only).
          */
         patch: operations["update_user_role_admin_api_admin_users__user_id__role_patch"];
+        trace?: never;
+    };
+    "/api/admin/users/batch-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Batch Delete Users Admin
+         * @description Permanently delete several users at once (system admin only).
+         *
+         *     Every id is judged by the same rules as the single-user route; the ones it
+         *     refuses come back in `skipped` with their reason rather than failing the
+         *     whole call, so one protected row in a selection does not cancel the rest.
+         */
+        post: operations["batch_delete_users_admin_api_admin_users_batch_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/attachments": {
@@ -5841,15 +5904,29 @@ export type components = {
              */
             bearer_token?: string | null;
         };
-        /** BatchDeleteRequest */
-        BatchDeleteRequest: {
+        /** BatchDeleteResponse */
+        BatchDeleteResponse: {
+            /** Deleted */
+            deleted: number;
+            /** Requested */
+            requested: number;
+            /** Skipped */
+            skipped: components["schemas"]["BatchDeleteSkip"][];
+        };
+        /**
+         * BatchDeleteSkip
+         * @description One id the batch refused, and why.
+         */
+        BatchDeleteSkip: {
             /**
-             * Hard Delete
-             * @default false
+             * Id
+             * Format: uuid
              */
-            hard_delete: boolean;
-            /** Ids */
-            ids: string[];
+            id: string;
+            /** Label */
+            label?: string | null;
+            /** Reason */
+            reason: string;
         };
         /**
          * BatchEnrichmentJobResponse
@@ -8995,6 +9072,24 @@ export type components = {
             composite_key?: string | null;
         };
         /**
+         * BatchDeleteRequest
+         * @description IDs to delete in one call, capped so a mis-click cannot wipe a page of rows.
+         */
+        enricher__web__routes__admin__BatchDeleteRequest: {
+            /** Ids */
+            ids: string[];
+        };
+        /** BatchDeleteRequest */
+        enricher__web__routes__records__BatchDeleteRequest: {
+            /**
+             * Hard Delete
+             * @default false
+             */
+            hard_delete: boolean;
+            /** Ids */
+            ids: string[];
+        };
+        /**
          * EnrichmentInputContract
          * @description What `entity_data` must carry for this schema to be enrichable.
          */
@@ -9825,14 +9920,15 @@ export type components = {
             } | null;
             /**
              * $Schema
-             * @description JSON Schema version URI
+             * @description JSON Schema dialect URI. Defaults to SCHEMA_DIALECT so a schema built outside the generator — pasted, API- or MCP-supplied — declares the dialect it is read under instead of declaring nothing.
+             * @default https://json-schema.org/draft/2020-12/schema
              */
-            $schema?: string | null;
+            $schema: string;
             /**
              * Expertise Domains
-             * @description Map of expertise key to domain definition with display name and description
+             * @description Map of expertise key to domain definition with display name and description. Empty is legal and means 'no domain routing': an imported schema has none, and the strategy selector reads zero domains as single_pass. Generation always populates it.
              */
-            expertise_domains: {
+            expertise_domains?: {
                 [key: string]: components["schemas"]["ExpertiseDomain"];
             };
             /** @description The root entity definition with its properties */
@@ -9864,14 +9960,15 @@ export type components = {
             } | null;
             /**
              * $Schema
-             * @description JSON Schema version URI
+             * @description JSON Schema dialect URI. Defaults to SCHEMA_DIALECT so a schema built outside the generator — pasted, API- or MCP-supplied — declares the dialect it is read under instead of declaring nothing.
+             * @default https://json-schema.org/draft/2020-12/schema
              */
-            $schema?: string | null;
+            $schema: string;
             /**
              * Expertise Domains
-             * @description Map of expertise key to domain definition with display name and description
+             * @description Map of expertise key to domain definition with display name and description. Empty is legal and means 'no domain routing': an imported schema has none, and the strategy selector reads zero domains as single_pass. Generation always populates it.
              */
-            expertise_domains: {
+            expertise_domains?: {
                 [key: string]: components["schemas"]["ExpertiseDomain"];
             };
             /** @description The root entity definition with its properties */
@@ -12389,6 +12486,17 @@ export type components = {
              * @description Reference to an entity definition in $defs (e.g., '#/$defs/Company') or to a named enum in $enums (e.g., '#/$enums/TowerShape'). The two namespaces are disjoint: a '#/$defs/' ref is a RELATIONSHIP (its target projects as its own table), a '#/$enums/' ref is a closed-set SCALAR (it projects as an ordinary column).
              */
             $ref?: string | null;
+            /**
+             * Additionalproperties
+             * @description True = this object property is FREE-FORM: the enrichment returns whatever JSON the `description` asks for, with no per-key contract, and the projection stores it whole as a JSONB column. For the part of an entity whose shape is genuinely open — a raw payload, a vendor blob, notes whose keys differ per instance.
+             *
+             *     Object properties only, and mutually exclusive with `properties`: a site is either a typed object or a free-form one. JSON Schema itself composes the two ('these keys, plus anything'), but a half-typed site is neither reviewable as a contract nor storable as one column, so this codebase refuses the mix (validate_free_form).
+             *
+             *     The description carries the ENTIRE contract — it is the only thing the model is given — so a free-form property with a vague description returns vague JSON. Identity and shape flags are refused on it (identifying, database_key, semantic_id, unique_group, index, db_type, format, pattern, multilingual): a document nothing indexes cannot be an identity, and last-write-wins replaces it whole — there is no per-key merge.
+             *
+             *     NOTE: it makes strict structured output impossible for the WHOLE schema (agent_factory._output_type_allows_strict) — strict mode rewrites `additionalProperties` to false, which would make the dynamic keys unemittable. Strict is off by default, so this only bites a run that asked for it.
+             */
+            additionalProperties?: boolean | null;
             /** @description Advisory: this property's name, read against its parent, admits more than one meaning (or none at all) — so the enriching model may answer a different question than intended. Written by the ambiguity analyzer post-generation; stripped from every LLM prompt; dropped when the property is renamed, removed, or its description edited. Absent = never analyzed. */
             ambiguity?: components["schemas"]["AmbiguityInfo"] | null;
             /**
@@ -12475,6 +12583,31 @@ export type components = {
              * @description True = this string property IS the language axis of its containing object: each sibling row of the parent array carries one language's values, discriminated by this ISO 639-1 code (language is the DATA, as in per-language description rows or official names). Proposed by the flags step at schema generation and dropped unless every observed sample value is a known language code. Its presence turns the integrated language mechanism OFF for the whole subtree: no property under the same parent may be multilingual (enforced at generation and refused at publish), and the property never gets a closed enum — the language set is a per-request parameter, not a domain fact one sample can close.
              */
             language_discriminator?: boolean | null;
+            /**
+             * Maximum
+             * @description Inclusive upper bound of a numeric property (JSON Schema 'maximum'). See `minimum`.
+             */
+            maximum?: number | null;
+            /**
+             * Maxitems
+             * @description Maximum number of items an array property may hold (JSON Schema 'maxItems'). Array properties only. A cap the enriching model is held to — 'the three largest cities', not 'every city' — so it is a contract, not a truncation: exceeding it fails validation and retries.
+             */
+            maxItems?: number | null;
+            /**
+             * Maxlength
+             * @description Maximum character count of a string property (JSON Schema 'maxLength'). See `minLength`. Distinct from `db_type_length`, which sizes the COLUMN in a consumer database: this one constrains the enriched VALUE and is enforced on the model's output, that one is DDL.
+             */
+            maxLength?: number | null;
+            /**
+             * Minimum
+             * @description Inclusive lower bound of a numeric property (JSON Schema 'minimum'). Enforced by the dynamic output model (Field(ge=…)), so an out-of-range value is a validation error the model retries on rather than a wrong fact written to the record — an age of -3 or a founding year of 190 is the shape of a hallucination, and catching it costs one retry. Numeric properties only (integer/number); a bound on any other type is refused at save. Serialized as a plain int when it has no fractional part (int | float in smart mode), so an integer property's bound stays an integer on the wire.
+             */
+            minimum?: number | null;
+            /**
+             * Minlength
+             * @description Minimum character count of a string property (JSON Schema 'minLength'). String properties only. Mutually exclusive with multilingual — the value there is a language map, not a string.
+             */
+            minLength?: number | null;
             /**
              * Multilingual
              * @description If true, enrichment returns values in all requested languages
@@ -12573,6 +12706,17 @@ export type components = {
              * @description Reference to an entity definition in $defs (e.g., '#/$defs/Company') or to a named enum in $enums (e.g., '#/$enums/TowerShape'). The two namespaces are disjoint: a '#/$defs/' ref is a RELATIONSHIP (its target projects as its own table), a '#/$enums/' ref is a closed-set SCALAR (it projects as an ordinary column).
              */
             $ref?: string | null;
+            /**
+             * Additionalproperties
+             * @description True = this object property is FREE-FORM: the enrichment returns whatever JSON the `description` asks for, with no per-key contract, and the projection stores it whole as a JSONB column. For the part of an entity whose shape is genuinely open — a raw payload, a vendor blob, notes whose keys differ per instance.
+             *
+             *     Object properties only, and mutually exclusive with `properties`: a site is either a typed object or a free-form one. JSON Schema itself composes the two ('these keys, plus anything'), but a half-typed site is neither reviewable as a contract nor storable as one column, so this codebase refuses the mix (validate_free_form).
+             *
+             *     The description carries the ENTIRE contract — it is the only thing the model is given — so a free-form property with a vague description returns vague JSON. Identity and shape flags are refused on it (identifying, database_key, semantic_id, unique_group, index, db_type, format, pattern, multilingual): a document nothing indexes cannot be an identity, and last-write-wins replaces it whole — there is no per-key merge.
+             *
+             *     NOTE: it makes strict structured output impossible for the WHOLE schema (agent_factory._output_type_allows_strict) — strict mode rewrites `additionalProperties` to false, which would make the dynamic keys unemittable. Strict is off by default, so this only bites a run that asked for it.
+             */
+            additionalProperties?: boolean | null;
             /** @description Advisory: this property's name, read against its parent, admits more than one meaning (or none at all) — so the enriching model may answer a different question than intended. Written by the ambiguity analyzer post-generation; stripped from every LLM prompt; dropped when the property is renamed, removed, or its description edited. Absent = never analyzed. */
             ambiguity?: components["schemas"]["AmbiguityInfo"] | null;
             /**
@@ -12659,6 +12803,31 @@ export type components = {
              * @description True = this string property IS the language axis of its containing object: each sibling row of the parent array carries one language's values, discriminated by this ISO 639-1 code (language is the DATA, as in per-language description rows or official names). Proposed by the flags step at schema generation and dropped unless every observed sample value is a known language code. Its presence turns the integrated language mechanism OFF for the whole subtree: no property under the same parent may be multilingual (enforced at generation and refused at publish), and the property never gets a closed enum — the language set is a per-request parameter, not a domain fact one sample can close.
              */
             language_discriminator?: boolean | null;
+            /**
+             * Maximum
+             * @description Inclusive upper bound of a numeric property (JSON Schema 'maximum'). See `minimum`.
+             */
+            maximum?: number | null;
+            /**
+             * Maxitems
+             * @description Maximum number of items an array property may hold (JSON Schema 'maxItems'). Array properties only. A cap the enriching model is held to — 'the three largest cities', not 'every city' — so it is a contract, not a truncation: exceeding it fails validation and retries.
+             */
+            maxItems?: number | null;
+            /**
+             * Maxlength
+             * @description Maximum character count of a string property (JSON Schema 'maxLength'). See `minLength`. Distinct from `db_type_length`, which sizes the COLUMN in a consumer database: this one constrains the enriched VALUE and is enforced on the model's output, that one is DDL.
+             */
+            maxLength?: number | null;
+            /**
+             * Minimum
+             * @description Inclusive lower bound of a numeric property (JSON Schema 'minimum'). Enforced by the dynamic output model (Field(ge=…)), so an out-of-range value is a validation error the model retries on rather than a wrong fact written to the record — an age of -3 or a founding year of 190 is the shape of a hallucination, and catching it costs one retry. Numeric properties only (integer/number); a bound on any other type is refused at save. Serialized as a plain int when it has no fractional part (int | float in smart mode), so an integer property's bound stays an integer on the wire.
+             */
+            minimum?: number | null;
+            /**
+             * Minlength
+             * @description Minimum character count of a string property (JSON Schema 'minLength'). String properties only. Mutually exclusive with multilingual — the value there is a language map, not a string.
+             */
+            minLength?: number | null;
             /**
              * Multilingual
              * @description If true, enrichment returns values in all requested languages
@@ -21680,7 +21849,8 @@ export type AttachmentUploadResponse = components['schemas']['AttachmentUploadRe
 export type AttachmentVerifyRequest = components['schemas']['AttachmentVerifyRequest'];
 export type AttachmentVerifyResponse = components['schemas']['AttachmentVerifyResponse'];
 export type AuthConfig = components['schemas']['AuthConfig'];
-export type BatchDeleteRequest = components['schemas']['BatchDeleteRequest'];
+export type BatchDeleteResponse = components['schemas']['BatchDeleteResponse'];
+export type BatchDeleteSkip = components['schemas']['BatchDeleteSkip'];
 export type BatchEnrichmentJobResponse = components['schemas']['BatchEnrichmentJobResponse'];
 export type BatchEnrichmentRequest = components['schemas']['BatchEnrichmentRequest'];
 export type BatchFetchRequest = components['schemas']['BatchFetchRequest'];
@@ -21793,6 +21963,8 @@ export type DiscoverModelsResponse = components['schemas']['DiscoverModelsRespon
 export type DuplicatePair = components['schemas']['DuplicatePair'];
 export type DuplicatePairList = components['schemas']['DuplicatePairList'];
 export type EmbeddingModelSetting = components['schemas']['EmbeddingModelSetting'];
+export type EnricherWebRoutesAdminBatchDeleteRequest = components['schemas']['enricher__web__routes__admin__BatchDeleteRequest'];
+export type EnricherWebRoutesRecordsBatchDeleteRequest = components['schemas']['enricher__web__routes__records__BatchDeleteRequest'];
 export type EnrichmentInputContract = components['schemas']['EnrichmentInputContract'];
 export type EnrichmentOptionsResponse = components['schemas']['EnrichmentOptionsResponse'];
 export type EnrichmentPromptSummary = components['schemas']['EnrichmentPromptSummary'];
@@ -22245,6 +22417,43 @@ export interface operations {
             };
         };
     };
+    delete_organization_admin_api_admin_organizations__org_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     assign_organization_plan_api_admin_organizations__org_id__plan_patch: {
         parameters: {
             query?: {
@@ -22311,6 +22520,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserWithOrganization"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    batch_delete_organizations_admin_api_admin_organizations_batch_delete_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["enricher__web__routes__admin__BatchDeleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchDeleteResponse"];
                 };
             };
             /** @description Validation Error */
@@ -22581,6 +22829,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserWithOrganization"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    batch_delete_users_admin_api_admin_users_batch_delete_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["enricher__web__routes__admin__BatchDeleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchDeleteResponse"];
                 };
             };
             /** @description Validation Error */
@@ -29271,7 +29558,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["BatchDeleteRequest"];
+                "application/json": components["schemas"]["enricher__web__routes__records__BatchDeleteRequest"];
             };
         };
         responses: {
