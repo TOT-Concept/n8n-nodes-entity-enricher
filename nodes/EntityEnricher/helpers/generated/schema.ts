@@ -11,25 +11,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Serve Index */
-        get: operations["serve_index__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/{path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve Spa */
-        get: operations["serve_spa__path__get"];
+        /** No Frontend */
+        get: operations["no_frontend__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4120,6 +4103,31 @@ export type paths = {
          *     registrations first.
          */
         delete: operations["purge_schema_enrichment_data_api_schema_saved__schema_id__enrichment_data_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schema/saved/{schema_id}/enum-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Enum Candidates
+         * @description Out-of-set values enrichment has returned for each OPEN enum (issue #163).
+         *
+         *     Computed from the schema's recent records at read time — enrichment never
+         *     writes members into the schema, so admitting a candidate (or dismissing it
+         *     into `rejected_values`, or closing the set) is always an editor act going
+         *     through the ordinary schema save.
+         */
+        get: operations["get_enum_candidates_api_schema_saved__schema_id__enum_candidates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -9306,7 +9314,7 @@ export type components = {
             indexes?: components["schemas"]["EntityIndexSpec"][] | null;
             /**
              * Name
-             * @description Display name for this entity type
+             * @description Display name for this entity type. Serialized as `title` — the standard JSON Schema annotation for exactly this, where `name` is not a keyword and a validator would ignore it. Swapped at the boundary rather than by a field alias so an INTERNAL dump keeps the internal spelling whole: code that round-trips a schema through a dict then reads `root['name']` keeps working unchanged.
              */
             name: string;
             /**
@@ -9351,7 +9359,7 @@ export type components = {
             indexes?: components["schemas"]["EntityIndexSpec"][] | null;
             /**
              * Name
-             * @description Display name for this entity type
+             * @description Display name for this entity type. Serialized as `title` — the standard JSON Schema annotation for exactly this, where `name` is not a keyword and a validator would ignore it. Swapped at the boundary rather than by a field alias so an INTERNAL dump keeps the internal spelling whole: code that round-trips a schema through a dict then reads `root['name']` keeps working unchanged.
              */
             name: string;
             /**
@@ -9630,8 +9638,52 @@ export type components = {
             };
         };
         /**
+         * EnumCandidate
+         * @description One out-of-set value enrichment returned for an open enum.
+         */
+        EnumCandidate: {
+            /**
+             * Count
+             * @description Occurrences across the scanned records
+             */
+            count: number;
+            /** Value */
+            value: string;
+        };
+        /**
+         * EnumCandidatesResponse
+         * @description Out-of-set values per OPEN enum, read from the schema's records (#163).
+         *
+         *     Computed at read time — nothing is stored, the records are the evidence.
+         *     Closed enums are absent by construction: their wire Literal makes an
+         *     out-of-set value unrepresentable.
+         */
+        EnumCandidatesResponse: {
+            /**
+             * Enums
+             * @description Enum name → candidate values, most frequent first. An open enum with no candidates maps to an empty list — with records scanned, that is the signal the set may be complete and ready to close.
+             */
+            enums: {
+                [key: string]: components["schemas"]["EnumCandidate"][];
+            };
+            /**
+             * Records Scanned
+             * @description Enrichment records inspected (most recent first, capped). 0 means no evidence either way, not a complete set.
+             */
+            records_scanned: number;
+        };
+        /**
          * EnumDefinition
-         * @description Named closed set of string values, referenced via ``$ref: "#/$enums/Name"``.
+         * @description Named value set, referenced via ``$ref: "#/$enums/Name"``.
+         *
+         *     ``closed`` decides how hard the set binds (issue #163). Open (the default,
+         *     and the only state generation ever emits — samples can prove a set exists
+         *     but never that it is complete): the members are guidance on the wire, the
+         *     property stays a plain string, and out-of-set values enrich normally and
+         *     surface as candidates for the author to admit. Closed (an explicit author
+         *     act in the editor): the members become a wire ``Literal`` that strict-mode
+         *     providers enforce at decode time — the contract that a value outside the
+         *     set is unrepresentable.
          *
          *     Lives in its own top-level ``$enums`` section rather than in ``$defs``
          *     because this codebase reads a ``#/$defs/`` ref as a *relationship* — the
@@ -9645,6 +9697,12 @@ export type components = {
          *     ``type``/``properties``.
          */
         EnumDefinition: {
+            /**
+             * Closed
+             * @description False (default): the set is guidance — enrichment may return a value outside it, and such values surface as candidates in the editor. True: the set is a contract — the wire model is a Literal and a value outside the set is unrepresentable. Closing is an author act, never a generation verdict (issue #163).
+             * @default false
+             */
+            closed: boolean;
             /**
              * Description
              * @description Description of what this enum classifies
@@ -9660,6 +9718,11 @@ export type components = {
              * @description Display name for this enum type
              */
             name: string;
+            /**
+             * Rejected Values
+             * @description Values the author explicitly declined to admit as members. Only meaningful while the enum is open: filters the candidate list so a dismissed value does not resurface on every visit. Not part of the wire vocabulary and never sent to the enriching model.
+             */
+            rejected_values?: string[] | null;
             /**
              * Type
              * @description Always 'string' — enums constrain string-typed properties
@@ -12479,6 +12542,29 @@ export type components = {
         /**
          * PropertySchema
          * @description JSON Schema property with enrichment annotations.
+         *
+         *     **The wire form and this form differ on purpose** (see `_to_wire` /
+         *     `_from_wire`). Conformance is a property of the DOCUMENT — what is stored,
+         *     shown and handed to a validator — while `type` + `nullable` + `multilingual`
+         *     as three orthogonal scalars is the better representation to compute with:
+         *     one comparison instead of a list membership test, at 161 `prop.type == "x"`
+         *     sites and 45 `prop.nullable` ones. Translating once at the boundary keeps
+         *     both, and is why making the document conformant did not become a 350-site
+         *     refactor.
+         *
+         *     Wire → internal, on parse:
+         *
+         *     =========================================  ==================================
+         *     wire                                       internal
+         *     =========================================  ==================================
+         *     ``type: ["string", "null"]``               ``type="string", nullable=True``
+         *     ``anyOf: [X, {"type": "null"}]``           ``X, nullable=True``
+         *     ``$ref: "#/x-localized/LocalizedString"``  ``type="string", multilingual=True``
+         *     ``$ref: "#/x-enums/Shape"``                ``ref="#/$enums/Shape"``
+         *     =========================================  ==================================
+         *
+         *     Both spellings are accepted on input — a hand-written or imported schema may
+         *     use either — but only the conformant one is ever emitted.
          */
         "PropertySchema-Input": {
             /**
@@ -12699,6 +12785,29 @@ export type components = {
         /**
          * PropertySchema
          * @description JSON Schema property with enrichment annotations.
+         *
+         *     **The wire form and this form differ on purpose** (see `_to_wire` /
+         *     `_from_wire`). Conformance is a property of the DOCUMENT — what is stored,
+         *     shown and handed to a validator — while `type` + `nullable` + `multilingual`
+         *     as three orthogonal scalars is the better representation to compute with:
+         *     one comparison instead of a list membership test, at 161 `prop.type == "x"`
+         *     sites and 45 `prop.nullable` ones. Translating once at the boundary keeps
+         *     both, and is why making the document conformant did not become a 350-site
+         *     refactor.
+         *
+         *     Wire → internal, on parse:
+         *
+         *     =========================================  ==================================
+         *     wire                                       internal
+         *     =========================================  ==================================
+         *     ``type: ["string", "null"]``               ``type="string", nullable=True``
+         *     ``anyOf: [X, {"type": "null"}]``           ``X, nullable=True``
+         *     ``$ref: "#/x-localized/LocalizedString"``  ``type="string", multilingual=True``
+         *     ``$ref: "#/x-enums/Shape"``                ``ref="#/$enums/Shape"``
+         *     =========================================  ==================================
+         *
+         *     Both spellings are accepted on input — a hand-written or imported schema may
+         *     use either — but only the conformant one is ever emitted.
          */
         "PropertySchema-Output": {
             /**
@@ -21978,6 +22087,8 @@ export type EntityStateListResponse = components['schemas']['EntityStateListResp
 export type EntityStateRow = components['schemas']['EntityStateRow'];
 export type EntityTypeKeys = components['schemas']['EntityTypeKeys'];
 export type EntityUniqueConflict = components['schemas']['EntityUniqueConflict'];
+export type EnumCandidate = components['schemas']['EnumCandidate'];
+export type EnumCandidatesResponse = components['schemas']['EnumCandidatesResponse'];
 export type EnumDefinition = components['schemas']['EnumDefinition'];
 export type ExpertiseBreakdown = components['schemas']['ExpertiseBreakdown'];
 export type ExpertiseDomain = components['schemas']['ExpertiseDomain'];
@@ -22254,7 +22365,7 @@ export type WebhookTestResponse = components['schemas']['WebhookTestResponse'];
 export type WebhookTypeInfo = components['schemas']['WebhookTypeInfo'];
 export type $defs = Record<string, never>;
 export interface operations {
-    serve_index__get: {
+    no_frontend__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -22270,37 +22381,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    serve_spa__path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -30402,6 +30482,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SchemaEnrichmentDataPurgeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_enum_candidates_api_schema_saved__schema_id__enum_candidates_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnumCandidatesResponse"];
                 };
             };
             /** @description Validation Error */
