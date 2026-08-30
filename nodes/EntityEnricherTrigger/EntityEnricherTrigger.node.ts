@@ -18,6 +18,37 @@ interface DatabaseLink {
 	webhook_url?: string | null;
 }
 
+interface WebhookEndpoint {
+	id: string;
+	url: string;
+	events: string[];
+}
+
+interface EventCatalog {
+	webhooks: Array<{
+		key: string;
+		label: string;
+		types: Array<{ type: string; event: string; description: string }>;
+	}>;
+}
+
+/** The envelope every platform delivery carries (docs/WEBHOOKS.md). */
+interface WebhookBody {
+	event?: string;
+	webhook?: string;
+	type?: string;
+	organization?: IDataObject | null;
+	data?: IDataObject;
+	changes?: IDataObject;
+}
+
+/**
+ * Delta notifications are not part of the org event catalogue: they are
+ * registered on the database LINK by the consuming client, so the node keeps
+ * its own constant for them rather than expecting one from /api/webhooks/events.
+ */
+const DELTA_EVENT = 'delta_available';
+
 /**
  * Which linked schema this trigger subscribes to.
  *
@@ -50,13 +81,16 @@ async function resolveLink(context: IHookFunctions, databaseId: string): Promise
 }
 
 /**
- * Webhook trigger for Entity Enricher schema events and database deltas.
+ * Webhook trigger for Entity Enricher platform events and database deltas.
  *
- * - enrichment_result / rejected_for_database_save: auto-registers a
- *   schema-level event subscription (source 'n8n'); fires once per event.
- * - delta_available: registers itself as the webhook of one linked schema and,
- *   on fire, fetches the next window of deltas with a lease — emit one item per
- *   delta and finish the workflow with the "Acknowledge Deltas" operation.
+ * - Platform events (`<subject>.<type>`, see /api/webhooks/events): auto-registers
+ *   an org-level webhook endpoint (source 'n8n') subscribed to exactly the one
+ *   event this trigger is configured for. Record and schema events accept an
+ *   optional schema narrowing.
+ * - delta_available: unchanged — registers itself as the webhook of one linked
+ *   schema and, on fire, fetches the next window of deltas with a lease. That
+ *   subscription lives on the database link, not on the org's endpoint list,
+ *   because its subscriber is the consuming client rather than the tenant.
  */
 // n8n's scan-community-package forbids usableAsTool on trigger nodes while this
 // lint rule demands it (and the INodeTypeDescription type rejects `false`) —
@@ -122,38 +156,25 @@ export class EntityEnricherTrigger implements INodeType {
 				default: 'apiKey',
 			},
 			{
-				displayName: 'Event',
+				displayName: 'Event Name or ID',
 				name: 'event',
 				type: 'options',
-				noDataExpression: true,
-				options: [
-					{
-						name: 'Enrichment Result',
-						value: 'enrichment_result',
-						description: 'Every completed enrichment of the schema (with or without a database sync)',
-					},
-					{
-						name: 'Rejected for Database Save',
-						value: 'rejected_for_database_save',
-						description: 'Enrichments that failed the database sync admission gate (missing required fields)',
-					},
-					{
-						name: 'Database Deltas Available',
-						value: 'delta_available',
-						description: 'New SQL deltas are ready for a database sync — emits one item per delta, leased for acknowledgement',
-					},
-				],
-				default: 'enrichment_result',
+				// Loaded from /api/webhooks/events so a new platform event needs no
+				// node release; `delta_available` is appended by the loader because
+				// it is the one event that is not in that catalogue.
+				typeOptions: { loadOptionsMethod: 'getEvents' },
+				required: true,
+				default: 'record.created',
+				description: 'Which platform event fires this trigger. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 			},
 			{
 				displayName: 'Schema Name or ID',
 				name: 'schemaId',
 				type: 'options',
 				typeOptions: { loadOptionsMethod: 'getSchemas' },
-				required: true,
 				default: '',
-				description: 'Schema whose events fire this trigger. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
-				displayOptions: { show: { event: ['enrichment_result', 'rejected_for_database_save'] } },
+				description: 'Optional: fire only for this schema. Leave empty to receive the event for every schema in the organization. Only applies to record and schema events. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+				displayOptions: { show: { event: ['record.created', 'schema.updated', 'schema.deleted'] } },
 			},
 			{
 				displayName: 'Database Sync ID',
@@ -190,6 +211,29 @@ export class EntityEnricherTrigger implements INodeType {
 				const response = await apiRequest(this, '/api/schema/saved') as { schemas: SavedSchema[] };
 				return response.schemas.map((s) => ({ name: s.name, value: s.id }));
 			},
+
+			/** The org-scope event catalogue, flattened to one option per event. */
+			async getEvents(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const catalog = await apiRequest(this, '/api/webhooks/events') as EventCatalog;
+				const options: INodePropertyOptions[] = [];
+				for (const webhook of catalog.webhooks) {
+					for (const type of webhook.types) {
+						options.push({
+							name: `${webhook.label}: ${type.type}`,
+							value: type.event,
+							description: type.description,
+						});
+					}
+				}
+				// Not part of the org catalogue: its subscriber is the consuming
+				// client, registered on the database link (see the class docstring).
+				options.push({
+					name: 'Database Sync: Deltas Available',
+					value: DELTA_EVENT,
+					description: 'New SQL deltas are ready for a database sync — emits one item per delta, leased for acknowledgement',
+				});
+				return options;
+			},
 		},
 	};
 
@@ -198,22 +242,22 @@ export class EntityEnricherTrigger implements INodeType {
 			async checkExists(this: IHookFunctions): Promise<boolean> {
 				const event = this.getNodeParameter('event') as string;
 				const webhookUrl = this.getNodeWebhookUrl('default') as string;
-				if (event === 'delta_available') {
+				if (event === DELTA_EVENT) {
 					const databaseId = this.getNodeParameter('databaseSyncId') as string;
 					const link = await resolveLink(this, databaseId);
 					return link.webhook_url === webhookUrl;
 				}
-				const schemaId = this.getNodeParameter('schemaId') as string;
-				const subscriptions = await apiRequest(
-					this, `/api/schemas/${schemaId}/subscriptions`,
-				) as Array<{ url: string }>;
-				return subscriptions.some((sub) => sub.url === webhookUrl);
+				const endpoints = await apiRequest(this, '/api/webhooks') as WebhookEndpoint[];
+				// The URL identifies the endpoint (it is unique per organization), but
+				// the subscription has to match too: re-pointing the same trigger at a
+				// different event leaves a stale endpoint that would keep firing.
+				return endpoints.some((e) => e.url === webhookUrl && e.events.includes(event));
 			},
 
 			async create(this: IHookFunctions): Promise<boolean> {
 				const event = this.getNodeParameter('event') as string;
 				const webhookUrl = this.getNodeWebhookUrl('default') as string;
-				if (event === 'delta_available') {
+				if (event === DELTA_EVENT) {
 					const databaseId = this.getNodeParameter('databaseSyncId') as string;
 					const link = await resolveLink(this, databaseId);
 					await apiRequest(this, `/api/databases/${databaseId}/schemas/${link.saved_schema_id}/webhook`, {
@@ -222,10 +266,19 @@ export class EntityEnricherTrigger implements INodeType {
 					});
 					return true;
 				}
-				const schemaId = this.getNodeParameter('schemaId') as string;
-				await apiRequest(this, `/api/schemas/${schemaId}/subscriptions`, {
+				// One n8n webhook URL is one endpoint subscribed to one event, so the
+				// runtime needs no client-side filtering: whatever arrives is the event
+				// this workflow asked for.
+				const schemaId = this.getNodeParameter('schemaId', '') as string;
+				await apiRequest(this, '/api/webhooks', {
 					method: 'POST',
-					body: { url: webhookUrl, source: 'n8n' },
+					body: {
+						url: webhookUrl,
+						events: [event],
+						saved_schema_id: schemaId || null,
+						description: `n8n: ${this.getWorkflow().name ?? 'workflow'}`,
+						source: 'n8n',
+					},
 				});
 				return true;
 			},
@@ -234,7 +287,7 @@ export class EntityEnricherTrigger implements INodeType {
 				const event = this.getNodeParameter('event') as string;
 				const webhookUrl = this.getNodeWebhookUrl('default') as string;
 				try {
-					if (event === 'delta_available') {
+					if (event === DELTA_EVENT) {
 						const databaseId = this.getNodeParameter('databaseSyncId') as string;
 						const link = await resolveLink(this, databaseId);
 						await apiRequest(this, `/api/databases/${databaseId}/schemas/${link.saved_schema_id}/webhook`, {
@@ -242,15 +295,15 @@ export class EntityEnricherTrigger implements INodeType {
 							body: { webhook_url: null },
 						});
 					} else {
-						const schemaId = this.getNodeParameter('schemaId') as string;
 						const query = new URLSearchParams({ url: webhookUrl });
-						await apiRequest(this, `/api/schemas/${schemaId}/subscriptions?${query.toString()}`, {
+						await apiRequest(this, `/api/webhooks?${query.toString()}`, {
 							method: 'DELETE',
 						});
 					}
 				} catch (error) {
-					// Deregistration is best-effort: the backend tolerates dangling
-					// subscriptions and the URL becomes a 404 in n8n anyway.
+					// Deregistration is best-effort: the backend tolerates a dangling
+					// endpoint (it auto-disables after repeated failures) and the URL
+					// becomes a 404 in n8n anyway.
 					this.logger.warn(
 						`Entity Enricher trigger: webhook deregistration failed: ${(error as Error).message}`,
 					);
@@ -262,15 +315,12 @@ export class EntityEnricherTrigger implements INodeType {
 
 	async webhook(this: IWebhookFunctions): Promise<IWebhookResponseData> {
 		const event = this.getNodeParameter('event') as string;
-		const body = this.getBodyData() as { event?: string; data?: IDataObject };
+		const body = this.getBodyData() as WebhookBody;
 
-		// One endpoint receives typed events — drop the ones this trigger
-		// isn't configured for (e.g. enrichment_result on a rejection trigger).
-		if (event !== 'delta_available' && body.event && body.event !== event) {
-			return { noWebhookResponse: false, workflowData: [] };
-		}
-
-		if (event === 'delta_available') {
+		// No client-side event filtering any more: each endpoint is registered
+		// for exactly one event, so a delivery arriving here is by definition the
+		// one this workflow subscribed to.
+		if (event === DELTA_EVENT) {
 			const fetchOnFire = this.getNodeParameter('fetchOnFire') as boolean;
 			const databaseId = this.getNodeParameter('databaseSyncId') as string;
 			if (fetchOnFire) {
@@ -291,6 +341,20 @@ export class EntityEnricherTrigger implements INodeType {
 			}
 		}
 
-		return { workflowData: [[{ json: (body.data ?? body) as IDataObject }]] };
+		// `changes` matters as much as `data` on an `updated` event — it is what
+		// says WHICH attribute moved — so the item carries the whole envelope
+		// alongside the flattened data fields.
+		return {
+			workflowData: [[{
+				json: {
+					...(body.data ?? {}),
+					event: body.event,
+					webhook: body.webhook,
+					type: body.type,
+					organization: body.organization,
+					...(body.changes ? { changes: body.changes } : {}),
+				} as IDataObject,
+			}]],
+		};
 	}
 }

@@ -11,8 +11,25 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** No Frontend */
-        get: operations["no_frontend__get"];
+        /** Serve Index */
+        get: operations["serve_index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve Spa */
+        get: operations["serve_spa__path__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4450,28 +4467,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/schemas/{schema_id}/subscriptions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Subscriptions */
-        get: operations["list_subscriptions_api_schemas__schema_id__subscriptions_get"];
-        put?: never;
-        /** Create Subscription */
-        post: operations["create_subscription_api_schemas__schema_id__subscriptions_post"];
-        /**
-         * Delete Subscription
-         * @description Delete by id or by exact url (used by connector trigger detach).
-         */
-        delete: operations["delete_subscription_api_schemas__schema_id__subscriptions_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/semantic-concepts": {
         parameters: {
             query?: never;
@@ -5139,6 +5134,171 @@ export type paths = {
          *     error statuses.
          */
         post: operations["poll_device_code_api_tunnel_poll_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Endpoints */
+        get: operations["list_endpoints_api_webhooks_get"];
+        put?: never;
+        /** Create Endpoint */
+        post: operations["create_endpoint_api_webhooks_post"];
+        /**
+         * Delete Endpoint By Url
+         * @description Detach by URL — how a connector removes its own registration when a
+         *     workflow is deactivated and it never stored the endpoint id.
+         */
+        delete: operations["delete_endpoint_by_url_api_webhooks_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/webhooks/{endpoint_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Endpoint */
+        delete: operations["delete_endpoint_api_webhooks__endpoint_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Endpoint */
+        patch: operations["update_endpoint_api_webhooks__endpoint_id__patch"];
+        trace?: never;
+    };
+    "/api/webhooks/{endpoint_id}/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Deliveries */
+        get: operations["list_deliveries_api_webhooks__endpoint_id__deliveries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/webhooks/{endpoint_id}/secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reveal Secret */
+        get: operations["reveal_secret_api_webhooks__endpoint_id__secret_get"];
+        put?: never;
+        /**
+         * Rotate Secret
+         * @description Mint a new signing key. In-flight deliveries keep the old one — they were
+         *     already signed — so a consumer rotates by accepting either for one window.
+         */
+        post: operations["rotate_secret_api_webhooks__endpoint_id__secret_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/webhooks/{endpoint_id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Endpoint
+         * @description Send a synthetic `ping` and wait for the answer.
+         *
+         *     Delivered inline rather than through the outbox because the user is watching;
+         *     it is still logged, and it never counts against the endpoint's health.
+         */
+        post: operations["test_endpoint_api_webhooks__endpoint_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/webhooks/deliveries/{delivery_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Delivery
+         * @description The full stored body — what was actually signed and sent.
+         */
+        get: operations["get_delivery_api_webhooks_deliveries__delivery_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/webhooks/deliveries/{delivery_id}/redeliver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Redeliver
+         * @description Replay a delivery from its stored body, so a consumer that was down when
+         *     the event happened gets the original payload rather than a re-derived one.
+         */
+        post: operations["redeliver_api_webhooks_deliveries__delivery_id__redeliver_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/webhooks/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Event Catalog
+         * @description What this caller may subscribe to. One source for the panel, the
+         *     connectors and the docs — a new event never has to be declared three times.
+         */
+        get: operations["list_event_catalog_api_webhooks_events_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -11507,6 +11667,8 @@ export type components = {
              * Format: date-time
              */
             created_at: string;
+            /** Credit Warning Threshold */
+            credit_warning_threshold?: string | null;
             /** Current Plan Sort Order */
             current_plan_sort_order?: number | null;
             /** Default Embedding Model */
@@ -11674,6 +11836,8 @@ export type components = {
              * @description ISO 3166-1 alpha-2
              */
             country_code?: string | null;
+            /** Credit Warning Threshold */
+            credit_warning_threshold?: number | string | null;
             /** Default Judge Floor */
             default_judge_floor?: number | null;
             default_task_models?: components["schemas"]["TaskModelDefaults"] | null;
@@ -14661,48 +14825,6 @@ export type components = {
             entities_deleted: number;
             /** Records Deleted */
             records_deleted: number;
-        };
-        /** SchemaEventSubscription */
-        SchemaEventSubscription: {
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /**
-             * Saved Schema Id
-             * Format: uuid
-             */
-            saved_schema_id: string;
-            /** Source */
-            source: string;
-            /** Url */
-            url: string;
-        };
-        /** SchemaEventSubscriptionCreateRequest */
-        SchemaEventSubscriptionCreateRequest: {
-            /**
-             * Source
-             * @default manual
-             * @enum {string}
-             */
-            source: "manual" | "n8n" | "make";
-            /** Url */
-            url: string;
-        };
-        /** SchemaEventSubscriptionCreateResponse */
-        SchemaEventSubscriptionCreateResponse: {
-            /**
-             * Secret
-             * @description Shared secret for event signatures — returned once at creation
-             */
-            secret: string;
-            subscription: components["schemas"]["SchemaEventSubscription"];
         };
         /**
          * SchemaExpertiseDetail
@@ -21200,6 +21322,222 @@ export type components = {
             /** Status */
             status: string;
         };
+        /**
+         * WebhookCatalogResponse
+         * @description What this caller may subscribe to, already filtered to their scope.
+         */
+        WebhookCatalogResponse: {
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "organization" | "platform";
+            /**
+             * Type Meanings
+             * @description The six-verb vocabulary and what each verb guarantees about `data`
+             */
+            type_meanings: {
+                [key: string]: string;
+            };
+            /** Webhooks */
+            webhooks: components["schemas"]["WebhookDefinitionInfo"][];
+        };
+        /** WebhookDefinitionInfo */
+        WebhookDefinitionInfo: {
+            /** Description */
+            description: string;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Schema Filterable
+             * @description Can be narrowed to a single saved schema
+             * @default false
+             */
+            schema_filterable: boolean;
+            /** Types */
+            types: components["schemas"]["WebhookTypeInfo"][];
+            /**
+             * Wildcard
+             * @description Subscribe to every allowed type, e.g. 'member.*'
+             */
+            wildcard: string;
+        };
+        /** WebhookDelivery */
+        WebhookDelivery: {
+            /** Attempt */
+            attempt: number;
+            /** Completed At */
+            completed_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /**
+             * Endpoint Id
+             * Format: uuid
+             */
+            endpoint_id: string;
+            /** Error */
+            error?: string | null;
+            /** Event */
+            event: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Next Attempt At */
+            next_attempt_at?: string | null;
+            /** Organization Id */
+            organization_id?: string | null;
+            /**
+             * Payload
+             * @description Only returned on the single-delivery detail route
+             */
+            payload?: {
+                [key: string]: unknown;
+            } | null;
+            /** Response Status */
+            response_status?: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "retrying" | "succeeded" | "failed";
+        };
+        /** WebhookDeliveryList */
+        WebhookDeliveryList: {
+            /** Deliveries */
+            deliveries: components["schemas"]["WebhookDelivery"][];
+            /** Total */
+            total: number;
+        };
+        /** WebhookEndpoint */
+        WebhookEndpoint: {
+            /**
+             * Consecutive Failures
+             * @default 0
+             */
+            consecutive_failures: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description?: string | null;
+            /** Disabled Reason */
+            disabled_reason?: string | null;
+            /** Events */
+            events: string[];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /** Last Delivery At */
+            last_delivery_at?: string | null;
+            /** Last Status */
+            last_status?: number | null;
+            /**
+             * Organization Id
+             * @description NULL = platform endpoint (every organization)
+             */
+            organization_id?: string | null;
+            /** Saved Schema Id */
+            saved_schema_id?: string | null;
+            /** Saved Schema Name */
+            saved_schema_name?: string | null;
+            /**
+             * Source
+             * @default manual
+             * @enum {string}
+             */
+            source: "manual" | "n8n" | "make" | "mcp";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Url */
+            url: string;
+        };
+        /** WebhookEndpointCreateRequest */
+        WebhookEndpointCreateRequest: {
+            /** Description */
+            description?: string | null;
+            /**
+             * Events
+             * @description Event names or `<webhook>.*` wildcards
+             */
+            events?: string[];
+            /**
+             * Platform
+             * @description System admin only: register a platform endpoint spanning every organization instead of one scoped to the caller's org
+             * @default false
+             */
+            platform: boolean;
+            /**
+             * Saved Schema Id
+             * @description Narrows the record.* / schema.* events to one saved schema
+             */
+            saved_schema_id?: string | null;
+            /**
+             * Source
+             * @default manual
+             * @enum {string}
+             */
+            source: "manual" | "n8n" | "make" | "mcp";
+            /**
+             * Url
+             * @description https:// endpoint receiving the POSTs
+             */
+            url: string;
+        };
+        /** WebhookEndpointCreateResponse */
+        WebhookEndpointCreateResponse: {
+            endpoint: components["schemas"]["WebhookEndpoint"];
+            /**
+             * Secret
+             * @description HMAC signing key. Revealable later by an owner.
+             */
+            secret: string;
+        };
+        /**
+         * WebhookEndpointUpdateRequest
+         * @description Partial update — only the fields present are written.
+         */
+        WebhookEndpointUpdateRequest: {
+            /**
+             * Clear Saved Schema
+             * @description Widen back to every schema (saved_schema_id=None is indistinguishable from 'not provided' in a partial update)
+             * @default false
+             */
+            clear_saved_schema: boolean;
+            /** Description */
+            description?: string | null;
+            /** Events */
+            events?: string[] | null;
+            /**
+             * Is Active
+             * @description Re-enabling clears the auto-disable and its failure counter
+             */
+            is_active?: boolean | null;
+            /** Saved Schema Id */
+            saved_schema_id?: string | null;
+            /** Url */
+            url?: string | null;
+        };
         /** WebhookSecretResponse */
         WebhookSecretResponse: {
             /**
@@ -21207,6 +21545,51 @@ export type components = {
              * @description Per-database signing key for webhook payloads (X-EE-Signature)
              */
             webhook_secret?: string | null;
+        };
+        /** WebhookSecretRevealResponse */
+        WebhookSecretRevealResponse: {
+            /** Secret */
+            secret: string | null;
+        };
+        /**
+         * WebhookTestResponse
+         * @description Result of a synthetic `ping` sent to the endpoint, awaited inline.
+         */
+        WebhookTestResponse: {
+            /** Delivered */
+            delivered: boolean;
+            /**
+             * Delivery Id
+             * Format: uuid
+             */
+            delivery_id: string;
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /** Error */
+            error?: string | null;
+            /** Response Status */
+            response_status?: number | null;
+        };
+        /**
+         * WebhookTypeInfo
+         * @description One `<webhook>.<type>` pair as the picker renders it.
+         */
+        WebhookTypeInfo: {
+            /** Description */
+            description: string;
+            /**
+             * Event
+             * @description The full event name, e.g. 'member.updated'
+             */
+            event: string;
+            /**
+             * Platform Only
+             * @description Only a platform (system-admin) endpoint may subscribe to it
+             * @default false
+             */
+            platform_only: boolean;
+            /** Type */
+            type: string;
         };
     };
     responses: never;
@@ -21507,9 +21890,6 @@ export type SavedSchemaResponse = components['schemas']['SavedSchemaResponse'];
 export type SavedSchemaUpdate = components['schemas']['SavedSchemaUpdate'];
 export type SchemaComparisonDetail = components['schemas']['SchemaComparisonDetail'];
 export type SchemaEnrichmentDataPurgeResponse = components['schemas']['SchemaEnrichmentDataPurgeResponse'];
-export type SchemaEventSubscription = components['schemas']['SchemaEventSubscription'];
-export type SchemaEventSubscriptionCreateRequest = components['schemas']['SchemaEventSubscriptionCreateRequest'];
-export type SchemaEventSubscriptionCreateResponse = components['schemas']['SchemaEventSubscriptionCreateResponse'];
 export type SchemaExpertiseDetail = components['schemas']['SchemaExpertiseDetail'];
 export type SchemaGenTaskParams = components['schemas']['SchemaGenTaskParams'];
 export type SchemaPromptRequest = components['schemas']['SchemaPromptRequest'];
@@ -21625,10 +22005,21 @@ export type VatValidationRequest = components['schemas']['VatValidationRequest']
 export type VatValidationResult = components['schemas']['VatValidationResult'];
 export type VerifyCheckoutRequest = components['schemas']['VerifyCheckoutRequest'];
 export type VerifyCheckoutResponse = components['schemas']['VerifyCheckoutResponse'];
+export type WebhookCatalogResponse = components['schemas']['WebhookCatalogResponse'];
+export type WebhookDefinitionInfo = components['schemas']['WebhookDefinitionInfo'];
+export type WebhookDelivery = components['schemas']['WebhookDelivery'];
+export type WebhookDeliveryList = components['schemas']['WebhookDeliveryList'];
+export type WebhookEndpoint = components['schemas']['WebhookEndpoint'];
+export type WebhookEndpointCreateRequest = components['schemas']['WebhookEndpointCreateRequest'];
+export type WebhookEndpointCreateResponse = components['schemas']['WebhookEndpointCreateResponse'];
+export type WebhookEndpointUpdateRequest = components['schemas']['WebhookEndpointUpdateRequest'];
 export type WebhookSecretResponse = components['schemas']['WebhookSecretResponse'];
+export type WebhookSecretRevealResponse = components['schemas']['WebhookSecretRevealResponse'];
+export type WebhookTestResponse = components['schemas']['WebhookTestResponse'];
+export type WebhookTypeInfo = components['schemas']['WebhookTypeInfo'];
 export type $defs = Record<string, never>;
 export interface operations {
-    no_frontend__get: {
+    serve_index__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -21644,6 +22035,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    serve_spa__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -30391,121 +30813,6 @@ export interface operations {
             };
         };
     };
-    list_subscriptions_api_schemas__schema_id__subscriptions_get: {
-        parameters: {
-            query?: {
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path: {
-                schema_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SchemaEventSubscription"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_subscription_api_schemas__schema_id__subscriptions_post: {
-        parameters: {
-            query?: {
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path: {
-                schema_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SchemaEventSubscriptionCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SchemaEventSubscriptionCreateResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_subscription_api_schemas__schema_id__subscriptions_delete: {
-        parameters: {
-            query?: {
-                subscription_id?: string | null;
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-                url?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path: {
-                schema_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     list_concepts_api_semantic_concepts_get: {
         parameters: {
             query?: {
@@ -31638,6 +31945,457 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeviceCodePollResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_endpoints_api_webhooks_get: {
+        parameters: {
+            query?: {
+                platform?: boolean;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookEndpoint"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_endpoint_api_webhooks_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookEndpointCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookEndpointCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_endpoint_by_url_api_webhooks_delete: {
+        parameters: {
+            query: {
+                platform?: boolean;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+                /** @description Exact URL to detach */
+                url: string;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_endpoint_api_webhooks__endpoint_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                endpoint_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_endpoint_api_webhooks__endpoint_id__patch: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                endpoint_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookEndpointUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookEndpoint"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_deliveries_api_webhooks__endpoint_id__deliveries_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                status?: string | null;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                endpoint_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookDeliveryList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reveal_secret_api_webhooks__endpoint_id__secret_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                endpoint_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSecretRevealResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rotate_secret_api_webhooks__endpoint_id__secret_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                endpoint_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSecretRevealResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_endpoint_api_webhooks__endpoint_id__test_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                endpoint_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookTestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_delivery_api_webhooks_deliveries__delivery_id__get: {
+        parameters: {
+            query?: {
+                platform?: boolean;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                delivery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookDelivery"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    redeliver_api_webhooks_deliveries__delivery_id__redeliver_post: {
+        parameters: {
+            query?: {
+                platform?: boolean;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                delivery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookDelivery"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_event_catalog_api_webhooks_events_get: {
+        parameters: {
+            query?: {
+                /** @description System admin: the platform scope */
+                platform?: boolean;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookCatalogResponse"];
                 };
             };
             /** @description Validation Error */

@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Changed — the Trigger node subscribes to any platform event, not just two schema events
+
+The trigger used to offer exactly three choices: *Enrichment Result*, *Rejected for Database Save*, and *Database Deltas Available*. The first two were the only events the platform emitted. It now emits an event for most of what happens in an organization — members joining and changing role, subscription and credit changes, any LLM job finishing, schema publications, database registrations, credential and tunnel changes — and the **Event** dropdown is loaded live from `/api/webhooks/events`, so new events appear without updating the node.
+
+Event names are now `<subject>.<type>` over a small vocabulary: `created`, `updated`, `deleted`, `completed`, `failed`, `threshold`. An `updated` event carries a `changes` map (`{"role": {"from": "operator", "to": "editor"}}`) saying which attribute moved — branch on that instead of on a name.
+
+**Migration.** *Enrichment Result* is now **`record.created`**, and the schema is an *optional* narrowing rather than a required parameter — leave it empty to receive every schema's enrichments. *Rejected for Database Save* is gone: the same `record.created` event carries `database.saved = false` and the missing-field list, so a rejection branch becomes a filter on that field instead of a second trigger (it always delivered a duplicate body alongside the result). *Database Deltas Available* is unchanged.
+
+The emitted item now carries the whole delivery envelope — `event`, `webhook`, `type`, `organization` and `changes` — alongside the flattened `data` fields, where before only `data` was passed through.
+
+### Changed — deliveries are signed with a timestamp, retried, and logged
+
+`X-EE-Signature` is now `t=<unix-seconds>,v1=<hmac>`, an HMAC-SHA256 over `"{timestamp}.{raw body}"` (Stripe-shaped) rather than over the body alone — a captured payload can no longer be replayed. A new `X-EE-Delivery` header carries a delivery id that is **stable across retries**, usable as an idempotency key. Failed deliveries retry three times (+1min, +5min, +30min) and every attempt is visible in the delivery log under Settings › Webhooks in the app, where a delivery can also be replayed by hand. An endpoint that fails 10 deliveries in a row is switched off until re-enabled.
+
+This applies to `delta_available` too — one signature scheme for every POST the platform makes. A consumer verifying the old body-only signature must be updated.
+
 ### Changed — Generate Sample takes one **Request** instead of Entity Type + Fields + Extra Instructions
 
 Generate Sample used to split what you wanted across three parameters: a required **Entity Type**, an optional comma-separated **Fields** list, and free-form **Extra Instructions** appended to the prompt. The API now takes a single free-text `request` — the kind of entity, the properties to include, any size or depth budget, structural preferences — and the node exposes it as one multi-line **Request** field. It is binding for the generation: an explicit budget beats the generator's default exhaustiveness, a requested shape beats its default choice (the split was exactly what let a budget lose to the defaults). The kind of entity is now derived by the model from the request and returned on every output item as `object_type` (the field that used to echo `entity_type`). **Request** is required unless **Attachment IDs** is set — there the document is the request and the text only narrows what to extract, so the old filename-derived placeholder is gone. Since the node runs non-interactively, an ambiguous request is resolved with its most standard reading rather than paused on (the web UI and MCP clients get asked instead).
