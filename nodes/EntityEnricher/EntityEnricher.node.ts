@@ -499,7 +499,7 @@ export class EntityEnricher implements INodeType {
 				typeOptions: { rows: 4 },
 				default: '',
 				placeholder: 'e.g. Pharmaceutical company — include headquarters, therapeutic areas and the main products; keep it under 30 fields',
-				description: 'What the sample should contain, in free text: the kind of entity, the properties to include, size/depth budgets, structural preferences. Binding for the generation. Required unless Attachment IDs is set, where the document is the request and this text only narrows it.',
+				description: 'What the sample should contain, in free text: the kind of entity, the properties to include, size/depth budgets, structural preferences. Binding for the generation. How many samples to produce is Sample Count, never part of this text — each sample is exactly one instance. Required unless Attachment IDs is set, where the document is the request and this text only narrows it.',
 				displayOptions: { show: { resource: ['schema'], operation: ['generateSample'] } },
 			},
 			{

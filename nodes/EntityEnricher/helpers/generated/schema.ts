@@ -7819,6 +7819,33 @@ export type components = {
             status: "pending" | "ok" | "expired" | "cancelled" | "not_found";
         };
         /**
+         * DatabaseMigrationPreview
+         * @description The migration one linked database would be queued by this publish —
+         *     the very statements `reconcile_shape` renders, so what the preview shows
+         *     is what lands in `database_deltas`.
+         */
+        DatabaseMigrationPreview: {
+            /**
+             * Database Id
+             * Format: uuid
+             */
+            database_id: string;
+            /** Database Name */
+            database_name: string;
+            /**
+             * Error
+             * @description Why no migration can be rendered for this database (unsupported transform)
+             */
+            error?: string | null;
+            /** Pk Strategy */
+            pk_strategy: string;
+            /**
+             * Statements
+             * @description Rename SQL, then transform migrations, then additive DDL — in the order the replica will execute them. Empty when the database has nothing to receive (never delivered to, or no drift)
+             */
+            statements?: string[];
+        };
+        /**
          * DatabaseModelClassifyRequest
          * @description Request to run the link-time database-model classification pass.
          *
@@ -9200,6 +9227,11 @@ export type components = {
              */
             property_order?: string[] | null;
             /**
+             * Renamed From
+             * @description Transient rename marker: the `name` this entity type ($def or root) had in the PUBLISHED contract. Same contract as PropertySchema.renamed_from — the name IS the entity type, so the publish renders a RENAME TABLE (plus the dependent join columns named after it) and re-types the stored entities.
+             */
+            renamed_from?: string | null;
+            /**
              * Type
              * @description Always 'object' for entity definitions
              * @default object
@@ -9239,6 +9271,11 @@ export type components = {
              * @description Display order of the keys in `properties` (see PropertySchema.property_order — same contract, entity level).
              */
             property_order?: string[] | null;
+            /**
+             * Renamed From
+             * @description Transient rename marker: the `name` this entity type ($def or root) had in the PUBLISHED contract. Same contract as PropertySchema.renamed_from — the name IS the entity type, so the publish renders a RENAME TABLE (plus the dependent join columns named after it) and re-types the stored entities.
+             */
+            renamed_from?: string | null;
             /**
              * Type
              * @description Always 'object' for entity definitions
@@ -9874,7 +9911,7 @@ export type components = {
             naming_convention: string;
             /**
              * Request
-             * @description What the sample should contain, in free text: the kind of entity (optionally a specific instance), the properties it must include, size/depth budgets, structural preferences. Binding for the generation — it overrides the generator's default choices; only the output contract (JSON-only, naming convention, quantity units, single-language samples) cannot be overridden. When the request is materially ambiguous the job may pause on clarification questions (see auto_answer). Required unless attachment_ids is set, where the attached document is the request and this text only narrows it.
+             * @description What the sample should contain, in free text: the kind of entity (optionally a specific instance), the properties it must include, size/depth budgets, structural preferences. Binding for the generation — it overrides the generator's default choices; only the output contract (JSON-only, naming convention, quantity units, single-language samples, one instance per sample) cannot be overridden. The NUMBER of samples is sample_count, never part of this text: a request for 'three samples' does not produce three — each sample is exactly one instance. When the request is materially ambiguous the job may pause on clarification questions (see auto_answer). Required unless attachment_ids is set, where the attached document is the request and this text only narrows it.
              * @default
              */
             request: string;
@@ -12476,6 +12513,11 @@ export type components = {
              */
             property_order?: string[] | null;
             /**
+             * Renamed From
+             * @description Transient rename marker (docs/ENTITY_LAYER.md → declared renames): the name this property had in the PUBLISHED contract, set by the editor and the property tools when a published schema's property is renamed — and only then; a draft that was never published carries none. Its old PATH is derived structurally (the parent chain's own markers + this name), so renaming an object never touches its members. Set once and kept: a second rename leaves the published name in place; renaming back to it removes the marker. Consumed by the publish, which renders the replica-side RENAME COLUMN / RENAME TABLE, rewrites the stored entity state, and strips the marker from both contents. A marker matching no published property is ignored with a preview warning.
+             */
+            renamed_from?: string | null;
+            /**
              * Semantic Concept Type
              * @description Only on the semantic_id property: overrides the concept type scoping embedding matches (default: the $def/entity name, or the object's JSON path for inline objects). Lets schemas naming the same entity differently share one concept space.
              */
@@ -12654,6 +12696,11 @@ export type components = {
              * @description Display order of the keys in `properties`, set by the schema editor when the user arranges them by hand. JSONB storage re-orders object keys, so the order must ride in an ARRAY (which jsonb preserves) to survive a round-trip. Absent = alphabetical (the canonical order generation produces). Names not listed sort alphabetically after the listed ones; stale names are ignored.
              */
             property_order?: string[] | null;
+            /**
+             * Renamed From
+             * @description Transient rename marker (docs/ENTITY_LAYER.md → declared renames): the name this property had in the PUBLISHED contract, set by the editor and the property tools when a published schema's property is renamed — and only then; a draft that was never published carries none. Its old PATH is derived structurally (the parent chain's own markers + this name), so renaming an object never touches its members. Set once and kept: a second rename leaves the published name in place; renaming back to it removes the marker. Consumed by the publish, which renders the replica-side RENAME COLUMN / RENAME TABLE, rewrites the stored entity state, and strips the marker from both contents. A marker matching no published property is ignored with a preview warning.
+             */
+            renamed_from?: string | null;
             /**
              * Semantic Concept Type
              * @description Only on the semantic_id property: overrides the concept type scoping embedding matches (default: the $def/entity name, or the object's JSON path for inline objects). Lets schemas naming the same entity differently share one concept space.
@@ -14492,12 +14539,12 @@ export type components = {
             commonality_errors: string[];
             /**
              * Errors
-             * @description Fatal field-conformance messages (empty when none).
+             * @description Fatal messages: a sample whose root is a container of instances rather than one instance, and field-conformance failures (empty when none).
              */
             errors: string[];
             /**
              * Ok
-             * @description No fatal site and no commonality failure — generation will not be blocked.
+             * @description No envelope root, no fatal site and no commonality failure — generation will not be blocked.
              */
             ok: boolean;
             /**
@@ -15060,10 +15107,20 @@ export type components = {
              */
             errors?: string[];
             /**
+             * Migration Sql
+             * @description Per linked database: the migration delta this publish would queue
+             */
+            migration_sql?: components["schemas"]["DatabaseMigrationPreview"][];
+            /**
              * Publish State
              * @enum {string}
              */
             publish_state: "draft" | "unpublished" | "in_sync" | "dirty";
+            /**
+             * Renames
+             * @description Declared renames this publish carries (docs/ENTITY_LAYER.md → declared renames), as '<where>: old → new'
+             */
+            renames?: string[];
             /**
              * Requires Confirm
              * @description The diff contains supported transform migrations — publish must be called with confirm_transforms=true
@@ -15081,6 +15138,11 @@ export type components = {
              * @description Default for key_language when requires_key_language: the language the schema itself is written in (generation request language), None when it is unknown. A suggestion only — publish still requires an explicit key_language
              */
             suggested_key_language?: string | null;
+            /**
+             * Warnings
+             * @description Non-blocking notices — a `renamed_from` marker that matches no published property (ignored), a concept type pinned to keep minted semantic ids converging across a rename
+             */
+            warnings?: string[];
         };
         /**
          * SchemaPublishRequest
@@ -20875,7 +20937,7 @@ export type components = {
             naming_convention: string;
             /**
              * Request
-             * @description What the sample should contain, in free text: the kind of entity (optionally a specific instance), the properties it must include, size/depth budgets, structural preferences. Binding for the generation — it overrides the generator's default choices; only the output contract (JSON-only, naming convention, quantity units, single-language samples) cannot be overridden. When the request is materially ambiguous the job may pause on clarification questions (see auto_answer). Required unless attachment_ids is set, where the attached document is the request and this text only narrows it.
+             * @description What the sample should contain, in free text: the kind of entity (optionally a specific instance), the properties it must include, size/depth budgets, structural preferences. Binding for the generation — it overrides the generator's default choices; only the output contract (JSON-only, naming convention, quantity units, single-language samples, one instance per sample) cannot be overridden. The NUMBER of samples is sample_count, never part of this text: a request for 'three samples' does not produce three — each sample is exactly one instance. When the request is materially ambiguous the job may pause on clarification questions (see auto_answer). Required unless attachment_ids is set, where the attached document is the request and this text only narrows it.
              * @default
              */
             request: string;
@@ -21693,6 +21755,7 @@ export type DatabaseCredentialResponse = components['schemas']['DatabaseCredenti
 export type DatabaseCredentialState = components['schemas']['DatabaseCredentialState'];
 export type DatabaseDeviceCodeConfirmRequest = components['schemas']['DatabaseDeviceCodeConfirmRequest'];
 export type DatabaseDevicePollResponse = components['schemas']['DatabaseDevicePollResponse'];
+export type DatabaseMigrationPreview = components['schemas']['DatabaseMigrationPreview'];
 export type DatabaseModelClassifyRequest = components['schemas']['DatabaseModelClassifyRequest'];
 export type DatabasePreflightReport = components['schemas']['DatabasePreflightReport'];
 export type DatabaseSync = components['schemas']['DatabaseSync'];
