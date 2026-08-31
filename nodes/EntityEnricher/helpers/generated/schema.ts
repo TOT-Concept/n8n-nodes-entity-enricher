@@ -11,8 +11,25 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** No Frontend */
-        get: operations["no_frontend__get"];
+        /** Serve Index */
+        get: operations["serve_index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve Spa */
+        get: operations["serve_spa__path__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2963,24 +2980,41 @@ export type paths = {
         get?: never;
         put?: never;
         /**
-         * Sync Prices
-         * @description Sync LLM model pricing from external sources (system admin only).
+         * Start Pricing Sync
+         * @description Start a pricing-sync job from external sources (system admin only).
          *
-         *     This endpoint fetches model pricing data from the selected external registries
-         *     and syncs it with the global catalog. It can:
-         *     - Add new providers
-         *     - Add new models for existing or new providers
-         *     - Update prices for existing models
-         *     - Deactivate source-owned models that no longer appear in that source
+         *     The sync fetches model pricing data from the selected external registries
+         *     and syncs it with the global catalog: add providers/models, update prices,
+         *     deactivate source-owned models that vanished from their source.
+         *     `request.dry_run=True` (default) previews the changes without applying them.
          *
-         *     Args:
-         *         request.dry_run: If True (default), returns preview of changes without applying them.
-         *                         Set to False to actually apply the changes.
-         *
-         *     Returns:
-         *         Summary of changes and detailed list of modifications.
+         *     Runs as a background LLM job — the vendor web-search research pass routinely
+         *     takes minutes, longer than the proxy in front of the API allows an inline
+         *     response. Follow progress via `GET /api/llm/stream/{job_id}` (one
+         *     `model_started`/`model_completed` per scraper source); the terminal
+         *     `completed` event's `result` is the `PricingSyncResponse`.
          */
-        post: operations["sync_prices_api_pricing_sync_post"];
+        post: operations["start_pricing_sync_api_pricing_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pricing/sync/result-schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pricing-sync result type reference
+         * @description Schema-only endpoint documenting the payload carried by the pricing-sync job's terminal `completed` SSE event. Exists solely to keep `PricingSyncResponse` in the OpenAPI schema for client code generation (same pattern as `GET /api/llm/sse-events-schema`); not intended for runtime use.
+         */
+        get: operations["pricing_sync_result_schema_api_pricing_sync_result_schema_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3823,6 +3857,54 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/schema/annotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Content Annotation
+         * @description Content mode: annotate a schema document that is not saved yet.
+         *
+         *     The import flow's half of the feature — a pasted schema whose repeating
+         *     items carry no identifying member cannot even pass the save gate, so the
+         *     pass must run BEFORE the first save. The job returns the annotated
+         *     content; the caller saves it (generation's own generate-then-save shape).
+         */
+        post: operations["start_content_annotation_api_schema_annotate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schema/annotation-scope": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get Content Annotation Scope
+         * @description Content-mode scope: what the pass would fill on a not-yet-saved schema.
+         *
+         *     Deterministic (no LLM) — the paste-schema panel calls this to decide
+         *     whether Import should offer the completion pass.
+         */
+        post: operations["get_content_annotation_scope_api_schema_annotation_scope_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schema/generate/stream": {
         parameters: {
             query?: never;
@@ -3999,6 +4081,52 @@ export type paths = {
          * @description Same parent-anchored count as the sample route, but on a LIVE schema: the user's descriptions are handed to the analyzer and judged — one that merely restates the name adds nothing and the property is read as if it had none — so the remedy here is a description pinning ONE meaning rather than a rename that would break the data contract. Verdicts are written onto the properties (`ambiguity`), together with the identity-scoping verdicts of the relationship sites, and the updated schema is persisted and returned.
          */
         post: operations["analyze_saved_schema_ambiguity_api_schema_saved__schema_id__analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schema/saved/{schema_id}/annotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Schema Annotation
+         * @description Start the annotation pass on a saved schema; stream via the job SSE.
+         *
+         *     The filled annotations land in the schema's working copy behind the
+         *     content-hash guard, like the database-model classification pass.
+         */
+        post: operations["start_schema_annotation_api_schema_saved__schema_id__annotate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schema/saved/{schema_id}/annotation-scope": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Annotation Scope
+         * @description What the annotation pass would fill — empty means fully annotated.
+         *
+         *     Deterministic (no LLM): the editor polls this to decide whether to show
+         *     the "complete this schema" affordance after an import or a manual edit.
+         */
+        get: operations["get_annotation_scope_api_schema_saved__schema_id__annotation_scope_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -12353,6 +12481,27 @@ export type components = {
             source: string;
         };
         /**
+         * PricingSyncJobResponse
+         * @description Acknowledgement that a pricing-sync job was started.
+         *
+         *     The sync runs as a background LLM job (the web-search research pass
+         *     routinely exceeds proxy timeouts when run inline): follow it via
+         *     `GET /api/llm/stream/{job_id}` — one `model_started`/`model_completed`
+         *     pair per scraper source — and read the final `PricingSyncResponse` from
+         *     the terminal `completed` event's `result`.
+         */
+        PricingSyncJobResponse: {
+            /** Job Id */
+            job_id: string;
+            /** Message */
+            message: string;
+            /**
+             * Total Sources
+             * @description Number of scraper sources the job will sync
+             */
+            total_sources: number;
+        };
+        /**
          * PricingSyncRequest
          * @description Request for pricing sync
          */
@@ -15123,6 +15272,86 @@ export type components = {
             schema_content?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
             /** Tags */
             tags?: string[] | null;
+        };
+        /**
+         * SchemaAnnotateRequest
+         * @description Run the annotation pass on a saved schema (imported or hand-edited).
+         *
+         *     An LLM job re-running the staged-generation steps over exactly the parts
+         *     of the schema that were never annotated — missing descriptions/examples,
+         *     unjudged behavioral flags, absent expertise domains/assignments, a missing
+         *     entity map — and filling ONLY those (existing values are never
+         *     overwritten; a second run is a no-op). No samples are involved: the steps
+         *     read the schema's declared structure, so the evidence-gated judgments
+         *     (enums, discreteness, key collisions) do not run.
+         */
+        SchemaAnnotateRequest: {
+            /**
+             * Generate Semantic Ids
+             * @description Also inject a semantic_id property into each keyed object that lacks one (stable-keyed relationship targets excepted) and choose its identity participants — same rule as generation's checkbox.
+             * @default false
+             */
+            generate_semantic_ids: boolean;
+            /**
+             * Model
+             * @description Model composite key. 'auto' (default) resolves to the org's schema-generation default (pinned model, else best benchmark score).
+             * @default auto
+             */
+            model: string;
+            /** @description Content mode (POST /api/schema/annotate only): the schema document to annotate — either spelling, the model validator translates the conformant wire form. The job returns the annotated content without persisting anything — the import flow saves it afterwards, which is what lets a pasted schema whose repeating items carry no identifying member pass the save gate: the pass chooses the keys before the first save. */
+            schema_content?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
+        };
+        /**
+         * SchemaAnnotationScopeRequest
+         * @description Content-mode scope check: what would the annotation pass fill on this
+         *     (not yet saved) schema document?
+         */
+        SchemaAnnotationScopeRequest: {
+            /** @description The schema document, in either spelling */
+            schema_content: components["schemas"]["GeneratedJsonSchema-Input"];
+        };
+        /**
+         * SchemaAnnotationScopeResponse
+         * @description What the annotation pass would fill — empty everywhere means the schema
+         *     is fully annotated. Computed deterministically (no LLM, no ledger: the
+         *     absence of the annotation IS the scope).
+         */
+        SchemaAnnotationScopeResponse: {
+            /**
+             * Doc Paths
+             * @description Properties missing a description or their examples
+             */
+            doc_paths: string[];
+            /**
+             * Entity Paths
+             * @description $defs entities with an empty description
+             */
+            entity_paths: string[];
+            /**
+             * Expertise Paths
+             * @description Properties with no expertise assignment
+             */
+            expertise_paths: string[];
+            /**
+             * Flag Paths
+             * @description Properties whose behavioral flags were never judged
+             */
+            flag_paths: string[];
+            /**
+             * Needs Domains
+             * @description No expertise domains declared at all
+             */
+            needs_domains: boolean;
+            /**
+             * Needs Regions
+             * @description No entity map — regions and identity are unestablished
+             */
+            needs_regions: boolean;
+            /**
+             * Property Count
+             * @description Distinct properties any concern would touch — the badge count
+             */
+            property_count: number;
         };
         /**
          * SchemaComparisonDetail
@@ -22166,6 +22395,7 @@ export type PerformanceStatsByPropertyCount = components['schemas']['Performance
 export type PerformanceStatsResponse = components['schemas']['PerformanceStatsResponse'];
 export type PlansWithContext = components['schemas']['PlansWithContext'];
 export type PricingSourceInfo = components['schemas']['PricingSourceInfo'];
+export type PricingSyncJobResponse = components['schemas']['PricingSyncJobResponse'];
 export type PricingSyncRequest = components['schemas']['PricingSyncRequest'];
 export type PricingSyncResponse = components['schemas']['PricingSyncResponse'];
 export type PricingSyncSummary = components['schemas']['PricingSyncSummary'];
@@ -22234,6 +22464,9 @@ export type SavedSchemaListItem = components['schemas']['SavedSchemaListItem'];
 export type SavedSchemaListResponse = components['schemas']['SavedSchemaListResponse'];
 export type SavedSchemaResponse = components['schemas']['SavedSchemaResponse'];
 export type SavedSchemaUpdate = components['schemas']['SavedSchemaUpdate'];
+export type SchemaAnnotateRequest = components['schemas']['SchemaAnnotateRequest'];
+export type SchemaAnnotationScopeRequest = components['schemas']['SchemaAnnotationScopeRequest'];
+export type SchemaAnnotationScopeResponse = components['schemas']['SchemaAnnotationScopeResponse'];
 export type SchemaComparisonDetail = components['schemas']['SchemaComparisonDetail'];
 export type SchemaEnrichmentDataPurgeResponse = components['schemas']['SchemaEnrichmentDataPurgeResponse'];
 export type SchemaExpertiseDetail = components['schemas']['SchemaExpertiseDetail'];
@@ -22365,7 +22598,7 @@ export type WebhookTestResponse = components['schemas']['WebhookTestResponse'];
 export type WebhookTypeInfo = components['schemas']['WebhookTypeInfo'];
 export type $defs = Record<string, never>;
 export interface operations {
-    no_frontend__get: {
+    serve_index__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -22381,6 +22614,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    serve_spa__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -28409,7 +28673,7 @@ export interface operations {
             };
         };
     };
-    sync_prices_api_pricing_sync_post: {
+    start_pricing_sync_api_pricing_sync_post: {
         parameters: {
             query?: {
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
@@ -28427,6 +28691,41 @@ export interface operations {
                 "application/json": components["schemas"]["PricingSyncRequest"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PricingSyncJobResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pricing_sync_result_schema_api_pricing_sync_result_schema_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -29908,6 +30207,85 @@ export interface operations {
             };
         };
     };
+    start_content_annotation_api_schema_annotate_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchemaAnnotateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamGenerateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_content_annotation_scope_api_schema_annotation_scope_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SchemaAnnotationScopeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaAnnotationScopeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     start_schema_generation_stream_api_schema_generate_stream_post: {
         parameters: {
             query?: {
@@ -30327,6 +30705,85 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AmbiguityCheckResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_schema_annotation_api_schema_saved__schema_id__annotate_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SchemaAnnotateRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamGenerateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_annotation_scope_api_schema_saved__schema_id__annotation_scope_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchemaAnnotationScopeResponse"];
                 };
             };
             /** @description Validation Error */

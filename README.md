@@ -5,7 +5,7 @@
 
 An [n8n](https://n8n.io/) community node that integrates with [Entity Enricher](https://entityenricher.ai) — a multi-model LLM enrichment platform with schema-driven structured output, multilingual support, and automated fusion.
 
-![Single entity enrichment workflow](https://entityenricher.ai/docs/demo-single-enrichment-n8n-connector.gif)
+![Single entity enrichment workflow](https://entityenricher.ai/docs/n8n/demo-single-enrichment.gif)
 
 The package ships **two nodes** covering the whole loop, not just the enrichment call:
 
@@ -116,7 +116,7 @@ Enrich a single entity against a schema with one or more LLM models.
 
 **Configuration:**
 
-![Node configuration for single enrichment](https://entityenricher.ai/docs/N8NConnectorEnrichment-light.png)
+![Node configuration for single enrichment](https://entityenricher.ai/docs/n8n/enrich-entity-node-light.png)
 
 ### Simple and advanced operations
 
@@ -184,7 +184,7 @@ Enrich all input items in a single batch with parallel execution and per-provide
 
 Each input item is treated as one entity. The node outputs one item per entity with the enrichment result, making it easy to chain with database upserts or further processing.
 
-![Batch enrichment configuration](https://entityenricher.ai/docs/N8NConnectorBatchEnrich-light.png)
+![Batch enrichment configuration](https://entityenricher.ai/docs/n8n/batch-enrich-node-light.png)
 
 Example workflow: [`02-batch-enrich.json`](examples/02-batch-enrich.json).
 
