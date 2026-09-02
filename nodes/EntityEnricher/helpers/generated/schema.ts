@@ -11,25 +11,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Serve Index */
-        get: operations["serve_index__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/{path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve Spa */
-        get: operations["serve_spa__path__get"];
+        /** No Frontend */
+        get: operations["no_frontend__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4554,7 +4537,7 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/schema/scoping-split": {
+    "/api/schema/unify-proposal/resolve": {
         parameters: {
             query?: never;
             header?: never;
@@ -4564,10 +4547,17 @@ export type paths = {
         get?: never;
         put?: never;
         /**
-         * Split a relationship site's entity facts into a subobject
-         * @description Applies the structural remedy an `identity_scoping` annotation proposes: the related entity's own facts move into their own subobject, the per-parent facts stay on the item. Deterministic, free and stateless — the same rewrite sample generation applies, exposed so a caller holding an already-approved sample can take the remedy and regenerate. Nothing is saved: feed the returned samples back into schema generation.
+         * Resolve Unify Proposal
+         * @description Resolve one cross-site unification proposal (issue #181).
+         *
+         *     Accepting rewrites the loser's site to `$ref` the winner's `$def` under
+         *     the model-supplied (or caller-adjusted) field map — the only place a
+         *     proposal ever changes the schema, shared by the editor and the MCP tool.
+         *     Dismissing marks it declined so no pass re-asks. Saved mode persists
+         *     through the ordinary save gate; content mode returns the rewritten
+         *     document and persists nothing.
          */
-        post: operations["split_scoping_site_api_schema_scoping_split_post"];
+        post: operations["resolve_unify_proposal_api_schema_unify_proposal_resolve_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8491,7 +8481,7 @@ export type components = {
             identity_underidentifies?: components["schemas"]["IdentityUnderidentifiesWarning"][];
             /**
              * Key Collisions
-             * @description List items that resolved to an identity an earlier sibling already claimed; only the first was written (no silent last-write-wins row, no duplicate link rows)
+             * @description List items that resolved to an identity a later sibling also claimed; only the LAST claimant was written (issue #177), each earlier one is reported here with its kind — 'duplicate' (a harmless repeat) or 'conflicting' (values lost). Persisted on the record as `db_sync_collisions`
              */
             key_collisions?: components["schemas"]["EntityKeyCollision"][];
             /**
@@ -9552,11 +9542,19 @@ export type components = {
          * @description Two objects of one list claiming the same identity within one enrichment.
          *
          *     The database key IS the row, so the projection can only hold one of them:
-         *     the first occurrence is kept and the later one dropped. Reported rather
-         *     than applied silently — a collision usually means the model fabricated the
-         *     same id for two different things, or the stamped key is not discriminating.
+         *     the LAST occurrence is written and every earlier one dropped — the same
+         *     last-write-wins the entity layer applies between enrichments (issue #177).
+         *     Reported rather than applied silently, and classified: a `duplicate` is one
+         *     thing listed twice (nothing was lost), a `conflicting` collision is two items
+         *     that disagree outside the key — the model fabricated one id for two things,
+         *     or the stamped key misses a discriminating property (a region, a year).
          */
         EntityKeyCollision: {
+            /**
+             * Differing Fields
+             * @description Properties both items answered with different values (empty on a 'duplicate'). One-sided nulls are not counted — only the dropped item's answer to a question the kept one also answered is lost
+             */
+            differing_fields?: string[];
             /**
              * Dropped
              * @description …of the item dropped; the differing fields are the disagreement
@@ -9574,8 +9572,19 @@ export type components = {
                 [key: string]: string;
             };
             /**
+             * Kept Path
+             * @description Schema path of the sibling written in its place (the last claimant)
+             */
+            kept_path: string;
+            /**
+             * Kind
+             * @description 'duplicate' when every value both items answered agrees (a harmless repeat); 'conflicting' when some non-key value differs — that value is lost, and the key may need a discriminating property
+             * @enum {string}
+             */
+            kind: "duplicate" | "conflicting";
+            /**
              * Path
-             * @description Schema path of the dropped item, e.g. 'publishers[1]'
+             * @description Schema path of the dropped item, e.g. 'publishers[0]'
              */
             path: string;
         };
@@ -9584,6 +9593,11 @@ export type components = {
          * @description The region registry. Membership lives on the properties, not here.
          */
         EntityMap: {
+            /**
+             * Proposals
+             * @description Cross-site unifications the model asserted but the field surfaces cannot prove — pending user decisions, never applied automatically (issue #181).
+             */
+            proposals?: components["schemas"]["UnifyProposal"][];
             /**
              * Regions
              * @description Region id → region. Always contains the root region.
@@ -9722,6 +9736,11 @@ export type components = {
              * @description Owning entity type when this type is a weak entity (owned relationship site); its rows are identified by the owner's keys plus database_keys. A 1-1-owned type with a non-nullable semantic_id keeps that column as its database key (source 'semantic_id') so the row's identity column is indexed; a 1-1-owned type without one is identified by the owner alone (database_keys is empty, source 'owner'). An array-owned type with no scalar keys of its own but a promoted 1-1 reference keys on (owner, reference) — the junction-with-attributes grain (database_keys is empty, source 'reference'); one whose only identity material sits in an OWNED 1-1 target that flattens into its row borrows that target's own designation as dotted keys (source 'owned_identity')
              */
             owned_by?: string | null;
+            /**
+             * Owner Keys
+             * @description Owned types only: the owner-copy columns that LEAD the row identity in the shipped constraint (`_(owner_table)_(key)`, e.g. `_video_game_console_id`) — the full key the replica enforces is owner_keys + database_keys, never database_keys alone (issue #177)
+             */
+            owner_keys?: string[];
             /**
              * Path
              * @description Schema path of the entity type ('' for the root object)
@@ -14466,6 +14485,11 @@ export type components = {
             /** Databases */
             databases?: components["schemas"]["RecordSyncDatabaseState"][];
             /**
+             * Gate Collisions
+             * @description Sibling list items this write DROPPED because a later item of the same list claimed their identity (issue #177, last wins). Stored on the record (`db_sync_collisions`) — the reason a 'partial' record is partial, once the response is gone. A 'conflicting' entry lost values: the stamped key needs a discriminating property, or the model repeated one thing with noisy values; a 'duplicate' lost nothing
+             */
+            gate_collisions?: components["schemas"]["EntityKeyCollision"][];
+            /**
              * Gate Conflicts
              * @description Cross-parent overwrites this record's write inflicted on SHARED rows (issue #149): values another parent's enrichment had stored, rewritten by this one — reported, never blocked, because last write wins is the contract. Stored on the record (`db_sync_conflicts`) since the flap they evidence spans several enrichments. The usual fix is marking the relationship owned (`shared: false`); an `all_fields_disagreed` entry points at the identity instead (a namesake object, not an update)
              */
@@ -15697,72 +15721,6 @@ export type components = {
             schema_id: string;
             /** Schema Name */
             schema_name: string;
-        };
-        /**
-         * ScopingSplitRequest
-         * @description Apply one identity-scoping verdict to a sample set (issue #116).
-         *
-         *     The site is addressed by its FIELD SET, not by a path: one schema site can
-         *     be reached at several places in a sample (a shape reused at two sites is
-         *     one `$defs` entity), and splitting only one of them would leave the samples
-         *     describing two different shapes. Every site whose members match is split.
-         */
-        ScopingSplitRequest: {
-            /**
-             * Entity Fields
-             * @description Item fields that are facts about the related entity itself.
-             */
-            entity_fields: string[];
-            /**
-             * Entity Name
-             * @description snake_case name of the subobject the entity fields move into. When the item already carries that object, name it here too.
-             */
-            entity_name: string;
-            /**
-             * Entity Samples
-             * @description The samples to restructure — every one is rewritten identically.
-             */
-            entity_samples: {
-                [key: string]: unknown;
-            }[];
-            /**
-             * Fields
-             * @description The site's full member names, exactly as the `identity_scoping` annotation recorded them (its `fields` fingerprint).
-             */
-            fields: string[];
-            /**
-             * Path
-             * @description Optional dotted SAMPLE path restricting the split to one site when the same shape occurs at several.
-             */
-            path?: string | null;
-        };
-        /**
-         * ScopingSplitResponse
-         * @description The restructured samples, plus what the split actually did.
-         */
-        ScopingSplitResponse: {
-            /**
-             * Applied
-             * @description False when the site could not be split (see `reason`).
-             */
-            applied: boolean;
-            /**
-             * Entity Samples
-             * @description The samples after the split — unchanged when it did not apply.
-             */
-            entity_samples: {
-                [key: string]: unknown;
-            }[];
-            /**
-             * Paths
-             * @description Sample paths that were split (several when the shape is reused).
-             */
-            paths?: string[];
-            /**
-             * Reason
-             * @description Why nothing was applied, when applied=false.
-             */
-            reason?: string | null;
         };
         /**
          * ScoreBenchmarkJobResponse
@@ -21686,6 +21644,127 @@ export type components = {
             updated_at: string;
         };
         /**
+         * UnifyProposal
+         * @description A cross-site identity the model asserted but the field surfaces cannot
+         *     prove — never applied, always decided by the user (issue #181).
+         *
+         *     Two regions whose sites share NO property names may still be one thing
+         *     (a `chip_supplier` spelled `supplier_name`/`supplier_country` beside a
+         *     `manufacturer` spelled `company_name`/`country` — issue #174). Applying
+         *     such a merge automatically forces `_relax_partial_coverage` to demote the
+         *     winner's identifying properties, so the pipeline records the claim here
+         *     instead: the regions stay separate, each keeping its own identity, and the
+         *     editor turns the proposal into a one-click unification whose rename map
+         *     was supplied by the model (a field correspondence is a name-meaning
+         *     judgment code never makes).
+         */
+        UnifyProposal: {
+            /**
+             * Field Map
+             * @description Loser field name → winner field name, model-supplied. Fields absent here stay site-local; an empty map leaves the pairing entirely to the user.
+             */
+            field_map?: {
+                [key: string]: string;
+            };
+            /**
+             * Id
+             * @description Stable id: 'unify:<loser_region>|<winner_region>'
+             */
+            id: string;
+            /**
+             * Loser Region
+             * @description Region id of the site proposed for unification
+             */
+            loser_region: string;
+            /**
+             * Loser Site
+             * @description Schema path of the loser's site, anchoring the editor chip
+             * @default
+             */
+            loser_site: string;
+            /**
+             * Reason
+             * @description Why the two regions were judged one thing, in one sentence
+             * @default
+             */
+            reason: string;
+            /**
+             * Status
+             * @description pending = awaiting the user's decision; dismissed = declined, kept so the pass never re-asks. Acceptance leaves no status — it rewrites the schema and removes the proposal.
+             * @default pending
+             * @enum {string}
+             */
+            status: "pending" | "dismissed";
+            /**
+             * Winner Region
+             * @description Region id the loser's site would join on acceptance
+             */
+            winner_region: string;
+        };
+        /**
+         * UnifyResolveRequest
+         * @description Resolve one cross-site unification proposal (issue #181).
+         *
+         *     Saved mode (`schema_id`) edits the stored working copy; content mode
+         *     (`schema_content`) rewrites the supplied document and persists nothing —
+         *     the editor saves the returned content itself. Exactly one must be given.
+         */
+        UnifyResolveRequest: {
+            /**
+             * Action
+             * @description accept = rewrite the loser's site to reference the winner's $def; dismiss = keep the regions separate and never re-ask
+             * @enum {string}
+             */
+            action: "accept" | "dismiss";
+            /**
+             * Dry Run
+             * @description Saved mode: report the rewrite without persisting it
+             * @default false
+             */
+            dry_run: boolean;
+            /**
+             * Field Map
+             * @description Override of the proposal's loser→winner field correspondence (accept only) — the editor's adjusted mapping
+             */
+            field_map?: {
+                [key: string]: string;
+            } | null;
+            /**
+             * Proposal Id
+             * @description UnifyProposal id from x-entityMap
+             */
+            proposal_id: string;
+            /** @description Content mode */
+            schema_content?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
+            /**
+             * Schema Id
+             * @description Saved mode
+             */
+            schema_id?: string | null;
+        };
+        /** UnifyResolveResponse */
+        UnifyResolveResponse: {
+            /**
+             * Applied
+             * @description Whether the stored schema was updated (saved mode)
+             */
+            applied: boolean;
+            /** Notes */
+            notes?: string[];
+            /**
+             * Schema Content
+             * @description The resolved document, conformant wire form
+             */
+            schema_content: {
+                [key: string]: unknown;
+            };
+            /**
+             * Success
+             * @default true
+             */
+            success: boolean;
+        };
+        /**
          * UserApprovalRequest
          * @description Request to approve or reject a pending user.
          */
@@ -22483,8 +22562,6 @@ export type SchemaPublishPreviewResponse = components['schemas']['SchemaPublishP
 export type SchemaPublishRequest = components['schemas']['SchemaPublishRequest'];
 export type SchemaPublishResponse = components['schemas']['SchemaPublishResponse'];
 export type SchemaSemanticUsage = components['schemas']['SchemaSemanticUsage'];
-export type ScopingSplitRequest = components['schemas']['ScopingSplitRequest'];
-export type ScopingSplitResponse = components['schemas']['ScopingSplitResponse'];
 export type ScoreBenchmarkJobResponse = components['schemas']['ScoreBenchmarkJobResponse'];
 export type ScoreBenchmarkRequest = components['schemas']['ScoreBenchmarkRequest'];
 export type SemanticConceptDetail = components['schemas']['SemanticConceptDetail'];
@@ -22573,6 +22650,9 @@ export type TunnelAccessTokenResponse = components['schemas']['TunnelAccessToken
 export type TunnelCredentialCreate = components['schemas']['TunnelCredentialCreate'];
 export type TunnelCredentialCreateResponse = components['schemas']['TunnelCredentialCreateResponse'];
 export type TunnelCredentialResponse = components['schemas']['TunnelCredentialResponse'];
+export type UnifyProposal = components['schemas']['UnifyProposal'];
+export type UnifyResolveRequest = components['schemas']['UnifyResolveRequest'];
+export type UnifyResolveResponse = components['schemas']['UnifyResolveResponse'];
 export type UserApprovalRequest = components['schemas']['UserApprovalRequest'];
 export type UserProfileUpdate = components['schemas']['UserProfileUpdate'];
 export type UserResponse = components['schemas']['UserResponse'];
@@ -22598,7 +22678,7 @@ export type WebhookTestResponse = components['schemas']['WebhookTestResponse'];
 export type WebhookTypeInfo = components['schemas']['WebhookTypeInfo'];
 export type $defs = Record<string, never>;
 export interface operations {
-    serve_index__get: {
+    no_frontend__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -22614,37 +22694,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    serve_spa__path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -31505,7 +31554,7 @@ export interface operations {
             };
         };
     };
-    split_scoping_site_api_schema_scoping_split_post: {
+    resolve_unify_proposal_api_schema_unify_proposal_resolve_post: {
         parameters: {
             query?: {
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
@@ -31520,7 +31569,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ScopingSplitRequest"];
+                "application/json": components["schemas"]["UnifyResolveRequest"];
             };
         };
         responses: {
@@ -31530,7 +31579,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ScopingSplitResponse"];
+                    "application/json": components["schemas"]["UnifyResolveResponse"];
                 };
             };
             /** @description Validation Error */
