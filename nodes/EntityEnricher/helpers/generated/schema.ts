@@ -6605,7 +6605,7 @@ export type components = {
              */
             skip_incapable_models: boolean;
             /** Strategy */
-            strategy: string;
+            strategy?: string | null;
             /**
              * Updated At
              * Format: date-time
@@ -6693,7 +6693,7 @@ export type components = {
              */
             skip_incapable_models: boolean;
             /** Strategy */
-            strategy: string;
+            strategy?: string | null;
             /**
              * Updated At
              * Format: date-time
@@ -9512,13 +9512,15 @@ export type components = {
          *     `properties` is the ordered column list of one multi-column btree on the
          *     entity's table — ordered like the query it serves (equality/facet columns
          *     first, the range-or-sort column last; PostgreSQL 18 skip scan lets a
-         *     well-ordered composite also serve trailing-column queries). Members are
-         *     dot paths relative to the entity: a direct property (`status`) or a path
-         *     into an owned flattened 1-1 object (`engine.thrust_kn`) — anything that
-         *     lands on the entity's own physical row. Order is part of the index
-         *     identity: reordering ships as DROP + CREATE. Ships under index class
-         *     'explicit' (each registration's index_scalars policy decides), never
-         *     migration-grade.
+         *     well-ordered composite also serve a FILTER on a trailing column, while a
+         *     sort on it alone stays the column's own single btree). Members are dot
+         *     paths relative to the entity: a direct property (`status`) or a path into
+         *     an owned flattened 1-1 object (`engine.thrust_kn`) — anything that lands
+         *     on the entity's own physical row, multilingual included (the shape then
+         *     ships once per language the database has received, as an expression
+         *     composite). Order is part of the index identity: reordering ships as
+         *     DROP + CREATE. Ships under index class 'explicit' (each registration's
+         *     index_scalars policy decides), never migration-grade.
          */
         EntityIndexSpec: {
             /**
@@ -25506,6 +25508,8 @@ export interface operations {
                 offset?: number;
                 /** @description Target organization (admin only) */
                 organization_id?: string | null;
+                sort_by?: string;
+                sort_order?: string;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
                 type?: string | null;
@@ -31715,6 +31719,8 @@ export interface operations {
                 entity_type?: string | null;
                 limit?: number;
                 offset?: number;
+                sort_by?: string;
+                sort_order?: string;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
