@@ -11,10 +11,67 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** No Frontend */
-        get: operations["no_frontend__get"];
+        /** Serve Index */
+        get: operations["serve_index__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve Spa */
+        get: operations["serve_spa__path__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/act-as/{org_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Act As Organization
+         * @description Mint a session scoped to `org_id` for the calling system admin.
+         */
+        post: operations["act_as_organization_api_admin_act_as__org_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/act-as/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop Acting
+         * @description Return to the admin's home organization with an ordinary session.
+         */
+        post: operations["stop_acting_api_admin_act_as_stop_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -59,6 +116,166 @@ export type paths = {
          * @description Update a single policy row (mode / is_enabled / label / requires_capability).
          */
         patch: operations["update_attachment_policy_api_admin_attachment_policies__mime_type__patch"];
+        trace?: never;
+    };
+    "/api/admin/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Admin Audit
+         * @description The system-admin audit trail, newest first.
+         */
+        get: operations["list_admin_audit_api_admin_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/demo/bootstrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bootstrap
+         * @description Create (once) the demo profile, plan and organization, and point the settings at them.
+         *
+         *     Idempotent: every piece is looked up by name before being created, and an
+         *     organization already named in the settings is kept.
+         */
+        post: operations["bootstrap_api_admin_demo_bootstrap_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/demo/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Results */
+        get: operations["list_results_api_admin_demo_results_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/demo/results/{result_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore Result */
+        post: operations["restore_result_api_admin_demo_results__result_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/demo/results/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete Results
+         * @description Soft-delete published results; a later run of the same entity recreates its page.
+         */
+        post: operations["delete_results_api_admin_demo_results_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/demo/schemas/{slug}/document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attach Document
+         * @description Make the schema run on this document (stored as an attachment of the demo organization),
+         *     and run it now: the landing replays the result, visitors never run the document themselves.
+         */
+        post: operations["attach_document_api_admin_demo_schemas__slug__document_post"];
+        /**
+         * Detach Document
+         * @description Forget the schema's document: the landing takes typed text for it again.
+         */
+        delete: operations["detach_document_api_admin_demo_schemas__slug__document_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/demo/schemas/{slug}/document/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Document
+         * @description Run the schema's document again (after a schema change, or a failed run); the new result replaces the replay.
+         */
+        post: operations["run_document_api_admin_demo_schemas__slug__document_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/demo/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings */
+        get: operations["get_settings_api_admin_demo_settings_get"];
+        /** Update Settings */
+        put: operations["update_settings_api_admin_demo_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/admin/organizations": {
@@ -2225,6 +2442,166 @@ export type paths = {
          * @description The webhook signing key of one linked schema — viewable anytime by owners.
          */
         get: operations["get_database_webhook_secret_api_databases__database_id__webhook_secret_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/demo/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Config
+         * @description What the landing page needs before any interaction.
+         */
+        get: operations["get_config_api_demo_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/demo/documents/{schema_slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Document
+         * @description The schema's fixed source document, inline (the Source step shows it, a click opens it).
+         */
+        get: operations["get_document_api_demo_documents__schema_slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/demo/results/{schema_slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Results
+         * @description Published results of one schema (sitemap, listings).
+         */
+        get: operations["list_results_api_demo_results__schema_slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/demo/results/{schema_slug}/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Result
+         * @description A published result: final JSON, replay timeline, relational map and the run's deltas.
+         */
+        get: operations["get_result_api_demo_results__schema_slug___slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/demo/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Demo
+         * @description Replay a cached entity, or start one forced multi-expertise run.
+         */
+        post: operations["run_demo_api_demo_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/demo/run-outcome/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Run Outcome
+         * @description Where the finished run landed (its public slug), once persisted.
+         */
+        get: operations["run_outcome_api_demo_run_outcome__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/demo/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Session
+         * @description Exchange a Turnstile token for a demo session (bypassed on local deployments).
+         */
+        post: operations["create_session_api_demo_session_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/demo/stream/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream Demo Job
+         * @description The run's SSE stream (same envelope as /api/llm/stream/{job_id}).
+         */
+        get: operations["stream_demo_job_api_demo_stream__job_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5551,6 +5928,41 @@ export type components = {
             /** Slug */
             slug?: string | null;
         };
+        /**
+         * ActAsResponse
+         * @description Tokens scoped to another organization (POST /api/admin/act-as/{org_id}) or back home (/stop).
+         */
+        ActAsResponse: {
+            /** Access Token */
+            access_token: string;
+            acting_as?: components["schemas"]["ActingAsInfo"] | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            organization: components["schemas"]["OrganizationResponse"];
+            /** Refresh Token */
+            refresh_token: string;
+        };
+        /**
+         * ActingAsInfo
+         * @description Carried on `/me` and the act-as response while a system admin works in another org.
+         */
+        ActingAsInfo: {
+            /**
+             * Home Organization Id
+             * Format: uuid
+             */
+            home_organization_id: string;
+            /**
+             * Target Organization Id
+             * Format: uuid
+             */
+            target_organization_id: string;
+            /** Target Organization Name */
+            target_organization_name: string;
+        };
         /** AllocateCreditsRequest */
         AllocateCreditsRequest: {
             /** Amount */
@@ -6801,6 +7213,11 @@ export type components = {
             low_balance_threshold?: number | string | null;
             /** Vat Id */
             vat_id?: string | null;
+        };
+        /** Body_attach_document_api_admin_demo_schemas__slug__document_post */
+        Body_attach_document_api_admin_demo_schemas__slug__document_post: {
+            /** File */
+            file: string;
         };
         /** Body_upload_attachments_api_attachments_post */
         Body_upload_attachments_api_attachments_post: {
@@ -8185,8 +8602,18 @@ export type components = {
             propagate_not_null: boolean;
             /** Purge Entity State */
             purge_entity_state: boolean;
+            /**
+             * Purge Entity State Delay Days
+             * @description Days a delivered entity stays untouched before purge (None = at full delivery)
+             */
+            purge_entity_state_delay_days?: number | null;
             /** Purge On Ack */
             purge_on_ack: boolean;
+            /**
+             * Purge On Ack Delay Days
+             * @description Days acknowledged deltas are kept before purge (None = at acknowledgement)
+             */
+            purge_on_ack_delay_days?: number | null;
             /**
              * Quarantined Deltas
              * @description Deltas set aside after the consumer's database refused their batch (docs/ENTITY_LAYER.md → Quarantine): the feed keeps flowing past them, but they need a reinject or a delete
@@ -8307,11 +8734,21 @@ export type components = {
              */
             purge_entity_state: boolean;
             /**
+             * Purge Entity State Delay Days
+             * @description Grace period for purge_entity_state: a fully-delivered entity row is kept until it has gone this many days without an update, then the hourly purge deletes it. None = deleted as soon as every database of the schema acknowledged it. Ignored while purge_entity_state is off
+             */
+            purge_entity_state_delay_days?: number | null;
+            /**
              * Purge On Ack
              * @description Delete delivered delta copies once acknowledged
              * @default false
              */
             purge_on_ack: boolean;
+            /**
+             * Purge On Ack Delay Days
+             * @description Grace period for purge_on_ack: acknowledged delta copies are kept this many days (aged from acknowledgement) before the hourly purge deletes them. None = deleted at acknowledgement. Bounded by the plan's max_delta_retention_days ceiling. Ignored while purge_on_ack is off
+             */
+            purge_on_ack_delay_days?: number | null;
             /**
              * Target Host
              * @description Sync host (id or name) that provisions this registration. Omitted: auto-assigned when exactly one eligible host is connected, else the registration is created unassigned (the response lists connected_hosts to pick from; assign later via PATCH).
@@ -8551,8 +8988,12 @@ export type components = {
             propagate_not_null?: boolean | null;
             /** Purge Entity State */
             purge_entity_state?: boolean | null;
+            /** Purge Entity State Delay Days */
+            purge_entity_state_delay_days?: number | null;
             /** Purge On Ack */
             purge_on_ack?: boolean | null;
+            /** Purge On Ack Delay Days */
+            purge_on_ack_delay_days?: number | null;
             /**
              * Target Host
              * @description Sync host (id or name) to assign. Present-with-null clears the assignment; absent leaves it untouched.
@@ -8935,6 +9376,602 @@ export type components = {
              * @default 0
              */
             schema_delta_count: number;
+        };
+        /** DemoBootstrapResponse */
+        DemoBootstrapResponse: {
+            /** Created */
+            created: boolean;
+            /**
+             * Feature Profile Id
+             * Format: uuid
+             */
+            feature_profile_id: string;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /**
+             * Plan Id
+             * Format: uuid
+             */
+            plan_id: string;
+        };
+        /** DemoConfigResponse */
+        DemoConfigResponse: {
+            /** Daily Ip Cap */
+            daily_ip_cap: number;
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Output Language Map
+             * @description UI locale → enrichment output language (only the pairs that differ)
+             */
+            output_language_map: {
+                [key: string]: string;
+            };
+            /** Paused */
+            paused: boolean;
+            /** Paused Reason */
+            paused_reason: string | null;
+            /** Schemas */
+            schemas: components["schemas"]["DemoSchemaPublic"][];
+            /** Turnstile Site Key */
+            turnstile_site_key: string | null;
+        };
+        /** DemoDeltaRow */
+        DemoDeltaRow: {
+            /** Entity Id */
+            entity_id?: string | null;
+            /** Entity Type */
+            entity_type: string | null;
+            /**
+             * First Seen
+             * @description True when this run created the entity, False when an earlier run already wrote it (this run updated it), None for DDL rows or a purged entity
+             */
+            first_seen?: boolean | null;
+            /** Id */
+            id: number;
+            /** Kind */
+            kind: string;
+            /** Op */
+            op: string;
+            /**
+             * Payload
+             * @description The delta's payload as queued: for data rows `{entity_type, revision, row}`, the entity state the SQL writes
+             */
+            payload?: {
+                [key: string]: unknown;
+            };
+            /** Revision */
+            revision?: number | null;
+            /** Sql */
+            sql: string;
+        };
+        /**
+         * DemoDocumentPublic
+         * @description A schema's fixed source document, served at GET /api/demo/documents/{schema}.
+         */
+        DemoDocumentPublic: {
+            /** File Name */
+            file_name: string;
+            /** Media Type */
+            media_type: string;
+            /**
+             * Result Slug
+             * @description Its published result, replayed when the schema is opened; None until the run succeeded
+             */
+            result_slug?: string | null;
+            /** Size Bytes */
+            size_bytes: number;
+        };
+        /**
+         * DemoDocumentRun
+         * @description The document run this process started (or is running) for a schema.
+         */
+        DemoDocumentRun: {
+            /** Error */
+            error?: string | null;
+            /** Job Id */
+            job_id: string;
+            /** Result Slug */
+            result_slug?: string | null;
+            /**
+             * State
+             * @description running | completed | refused | failed
+             */
+            state: string;
+        };
+        /**
+         * DemoEntityRow
+         * @description One row of the database after the run: the root entity's whole graph.
+         *
+         *     `status` says what this run did to it — `new` (created), `updated` (an
+         *     earlier run already knew it) or `unchanged` (already converged: the run
+         *     returned the same state and nothing was queued). Written rows carry the
+         *     state and SQL of their delta; unchanged rows carry their stored state.
+         */
+        DemoEntityRow: {
+            /**
+             * Delta Id
+             * @description The run's delta that wrote the row, None when unchanged
+             */
+            delta_id?: number | null;
+            /**
+             * Depth
+             * @description Link distance from the root entity (0 = the root)
+             * @default 0
+             */
+            depth: number;
+            /**
+             * Entity Id
+             * Format: uuid
+             */
+            entity_id: string;
+            /** Entity Type */
+            entity_type: string;
+            /**
+             * Payload
+             * @description The row state (the delta's `row`, or the stored state)
+             */
+            payload?: {
+                [key: string]: unknown;
+            };
+            /** Revision */
+            revision?: number | null;
+            /**
+             * Sql
+             * @description The delta's SQL when this run wrote the row
+             */
+            sql?: string | null;
+            /**
+             * Status
+             * @description new | updated | unchanged
+             */
+            status: string;
+            /**
+             * Table
+             * @description Physical table of the published model the row lands on
+             */
+            table: string;
+        };
+        /** DemoExpert */
+        DemoExpert: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * DemoOutlineNode
+         * @description One property of the published schema, in `property_order`, refs resolved.
+         *
+         *     The frontend renders the JSON skeleton from this at 0 s, and groups the
+         *     keys by `expertise` so each expert's arrival fills its own lines.
+         */
+        DemoOutlineNode: {
+            /** Expertise */
+            expertise?: string | null;
+            /**
+             * Identifying
+             * @default false
+             */
+            identifying: boolean;
+            items?: components["schemas"]["DemoOutlineNode"] | null;
+            /**
+             * Multilingual
+             * @default false
+             */
+            multilingual: boolean;
+            /** Name */
+            name: string;
+            /** Properties */
+            properties?: components["schemas"]["DemoOutlineNode"][] | null;
+            /**
+             * Semantic Id
+             * @default false
+             */
+            semantic_id: boolean;
+            /** Type */
+            type: string;
+        };
+        /**
+         * DemoPresentation
+         * @description Admin overrides of one discovered schema's presentation, keyed by its slug.
+         *
+         *     Every field is optional: an absent one falls back to the value derived from
+         *     the schema itself (icon by name, ghost example from its sample, chips from
+         *     its most-viewed results). Keyed by slug, not schema id, so replacing a schema
+         *     by another of the same name keeps its curation.
+         */
+        DemoPresentation: {
+            /**
+             * Chips
+             * @description Example entities under the input
+             */
+            chips?: string[] | null;
+            /**
+             * Document Attachment Id
+             * @description The schema's fixed source document (an attachment of the demo organization): the schema then runs on that document, once, never on typed text
+             */
+            document_attachment_id?: string | null;
+            /**
+             * Ghost Example
+             * @description Example instance shown as ghost text
+             */
+            ghost_example?: string | null;
+            /**
+             * Icon
+             * @description Frontend icon name
+             */
+            icon?: string | null;
+            /** Sort Order */
+            sort_order?: number | null;
+        };
+        /** DemoResultAdminRow */
+        DemoResultAdminRow: {
+            /**
+             * Classification Status
+             * @description Pre-flight verdict: match / unknown / ambiguous / mismatch
+             */
+            classification_status?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Deleted At */
+            deleted_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Input Text */
+            input_text: string;
+            /** Label */
+            label: string;
+            /** Outcome */
+            outcome: string;
+            /** Published */
+            published: boolean;
+            /** Record Id */
+            record_id: string | null;
+            /** Schema Slug */
+            schema_slug: string | null;
+            /** Semantic Id */
+            semantic_id: string | null;
+            /** Slug */
+            slug: string;
+            /** View Count */
+            view_count: number;
+        };
+        /** DemoResultResponse */
+        DemoResultResponse: {
+            /** Canonical Slug */
+            canonical_slug: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Deltas
+             * @description What the run queued — the ee-database transcript
+             */
+            deltas: components["schemas"]["DemoDeltaRow"][];
+            /**
+             * Entity Rows
+             * @description The database after the run: the root entity's graph, each row badged new / updated / unchanged
+             */
+            entity_rows?: components["schemas"]["DemoEntityRow"][];
+            /** Experts */
+            experts: components["schemas"]["DemoExpert"][];
+            /** Final Output */
+            final_output: {
+                [key: string]: unknown;
+            };
+            /** Input Text */
+            input_text: string;
+            /** Label */
+            label: string;
+            /** Languages */
+            languages: string[];
+            /** Model */
+            model: string | null;
+            outline: components["schemas"]["DemoOutlineNode"];
+            relational_map: components["schemas"]["RelationalMapResponse"] | null;
+            /** Schema Label */
+            schema_label: string;
+            /** Schema Slug */
+            schema_slug: string;
+            semantic_stats: components["schemas"]["DemoSemanticStats"];
+            /** Slug */
+            slug: string;
+            /** Timeline */
+            timeline: components["schemas"]["DemoTimelineEvent"][];
+            /** View Count */
+            view_count: number;
+        };
+        /** DemoResultsAdminListResponse */
+        DemoResultsAdminListResponse: {
+            /** Results */
+            results: components["schemas"]["DemoResultAdminRow"][];
+            /** Total */
+            total: number;
+        };
+        /** DemoResultsBatchDelete */
+        DemoResultsBatchDelete: {
+            /** Ids */
+            ids: string[];
+        };
+        /** DemoResultsBatchDeleteResponse */
+        DemoResultsBatchDeleteResponse: {
+            /** Deleted */
+            deleted: number;
+            /** Requested */
+            requested: number;
+        };
+        /** DemoResultsListResponse */
+        DemoResultsListResponse: {
+            /** Results */
+            results: components["schemas"]["DemoResultSummary"][];
+            /** Schema Slug */
+            schema_slug: string;
+            /** Total */
+            total: number;
+        };
+        /** DemoResultSummary */
+        DemoResultSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Label */
+            label: string;
+            /** Slug */
+            slug: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * DemoRunOutcome
+         * @description What `/run-outcome` answers once the run's row is written.
+         */
+        DemoRunOutcome: {
+            /** Canonical Slug */
+            canonical_slug?: string | null;
+            /** Classification */
+            classification?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Duplicate
+             * @default false
+             */
+            duplicate: boolean;
+            /**
+             * Outcome
+             * @description completed | refused | failed
+             */
+            outcome: string;
+            /** Result Slug */
+            result_slug?: string | null;
+        };
+        /** DemoRunRequest */
+        DemoRunRequest: {
+            /**
+             * Language
+             * @description Visitor UI locale
+             */
+            language?: string | null;
+            /** Schema */
+            schema: string;
+            /** Text */
+            text: string;
+        };
+        /** DemoRunResponse */
+        DemoRunResponse: {
+            /** Cached */
+            cached: boolean;
+            /** Classification */
+            classification?: {
+                [key: string]: unknown;
+            } | null;
+            /** Job Id */
+            job_id?: string | null;
+            /**
+             * Refused
+             * @default false
+             */
+            refused: boolean;
+            /** Result Slug */
+            result_slug?: string | null;
+            /** Stream Token */
+            stream_token?: string | null;
+        };
+        /**
+         * DemoSchemaAdminRow
+         * @description One schema of the demo organization as the admin page sees it: eligibility and presentation.
+         */
+        DemoSchemaAdminRow: {
+            /**
+             * Chips
+             * @description Effective chips (override or the most-viewed results)
+             */
+            chips: string[];
+            /** Chips Default */
+            chips_default: string[];
+            /** @description The fixed source document, when the schema has one */
+            document?: components["schemas"]["DemoDocumentPublic"] | null;
+            /** @description The last document run this process knows of */
+            document_run?: components["schemas"]["DemoDocumentRun"] | null;
+            /** Eligible */
+            eligible: boolean;
+            /** Ghost Default */
+            ghost_default: string;
+            /**
+             * Ghost Example
+             * @description Effective ghost example (override or the sample's identity)
+             */
+            ghost_example: string;
+            /**
+             * Icon
+             * @description Effective icon (override or derived)
+             */
+            icon: string;
+            /** Icon Default */
+            icon_default: string;
+            /** Name */
+            name: string;
+            /** @description What the settings store for this slug */
+            override?: components["schemas"]["DemoPresentation"];
+            /**
+             * Reason
+             * @description Why it is not offered: not_published / no_root_identity / not_linked / input_contract
+             */
+            reason?: string | null;
+            /**
+             * Reason Detail
+             * @description The gate's own message when it has one (input contract)
+             */
+            reason_detail?: string | null;
+            /**
+             * Schema Id
+             * Format: uuid
+             */
+            schema_id: string;
+            /** Slug */
+            slug: string;
+            /** Sort Order */
+            sort_order: number;
+        };
+        /**
+         * DemoSchemaPublic
+         * @description One schema the landing page offers.
+         */
+        DemoSchemaPublic: {
+            /** Chips */
+            chips: string[];
+            /** @description Set, the schema runs on this document only: no input, its result replays when opened */
+            document?: components["schemas"]["DemoDocumentPublic"] | null;
+            /** Experts */
+            experts: components["schemas"]["DemoExpert"][];
+            /** Ghost Example */
+            ghost_example: string;
+            /** Icon */
+            icon: string;
+            /** Label */
+            label: string;
+            outline: components["schemas"]["DemoOutlineNode"];
+            /** Slug */
+            slug: string;
+        };
+        /** DemoSemanticStats */
+        DemoSemanticStats: {
+            /**
+             * Minted
+             * @default 0
+             */
+            minted: number;
+            /**
+             * Reused
+             * @default 0
+             */
+            reused: number;
+        };
+        /** DemoSessionRequest */
+        DemoSessionRequest: {
+            /** Turnstile Token */
+            turnstile_token?: string | null;
+        };
+        /** DemoSessionResponse */
+        DemoSessionResponse: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Session Token */
+            session_token: string;
+        };
+        /**
+         * DemoSettingsResponse
+         * @description What the admin page reads — never the Turnstile secret.
+         */
+        DemoSettingsResponse: {
+            /** Classification Model */
+            classification_model: string | null;
+            /** Credit Balance */
+            credit_balance: number;
+            /** Daily Ip Cap */
+            daily_ip_cap: number;
+            /** Enabled */
+            enabled: boolean;
+            /** Enrichment Model */
+            enrichment_model: string | null;
+            /** Organization Id */
+            organization_id: string | null;
+            /** Organization Name */
+            organization_name: string | null;
+            /**
+             * Paused Reason
+             * @description Why visitors cannot run right now: disabled, unconfigured, insufficient_credits, prompt_limit_reached
+             */
+            paused_reason?: string | null;
+            /**
+             * Schemas
+             * @description Every schema of the demo organization, eligible or not
+             */
+            schemas: components["schemas"]["DemoSchemaAdminRow"][];
+            /** Session Ttl Minutes */
+            session_ttl_minutes: number;
+            /** Turnstile Secret Set */
+            turnstile_secret_set: boolean;
+            /** Turnstile Site Key */
+            turnstile_site_key: string | null;
+        };
+        /**
+         * DemoSettingsUpdate
+         * @description PUT body: every field optional; an empty secret string clears it.
+         */
+        DemoSettingsUpdate: {
+            /** Classification Model */
+            classification_model?: string | null;
+            /** Daily Ip Cap */
+            daily_ip_cap?: number | null;
+            /** Enabled */
+            enabled?: boolean | null;
+            /** Enrichment Model */
+            enrichment_model?: string | null;
+            /** Organization Id */
+            organization_id?: string | null;
+            /**
+             * Presentation
+             * @description Replaces the whole override map
+             */
+            presentation?: {
+                [key: string]: components["schemas"]["DemoPresentation"];
+            } | null;
+            /** Session Ttl Minutes */
+            session_ttl_minutes?: number | null;
+            /** Turnstile Secret Key */
+            turnstile_secret_key?: string | null;
+            /** Turnstile Site Key */
+            turnstile_site_key?: string | null;
+        };
+        /** DemoTimelineEvent */
+        DemoTimelineEvent: {
+            /** Event */
+            event: {
+                [key: string]: unknown;
+            };
+            /** T Ms */
+            t_ms: number;
         };
         /** DeviceCodeConfirmRequest */
         DeviceCodeConfirmRequest: {
@@ -21839,6 +22876,8 @@ export type components = {
          * @description User info + chunk manifest, returned from GET /auth/me.
          */
         UserSessionResponse: {
+            /** @description Set while a system admin acts in another organization (banner + return) */
+            acting_as?: components["schemas"]["ActingAsInfo"] | null;
             /** Auth Provider */
             auth_provider?: string | null;
             /** Avatar Url */
@@ -22249,6 +23288,8 @@ export type components = {
     pathItems: never;
 };
 export type AccountTypeChangeRequest = components['schemas']['AccountTypeChangeRequest'];
+export type ActAsResponse = components['schemas']['ActAsResponse'];
+export type ActingAsInfo = components['schemas']['ActingAsInfo'];
 export type AllocateCreditsRequest = components['schemas']['AllocateCreditsRequest'];
 export type AmbiguityCheckResponse = components['schemas']['AmbiguityCheckResponse'];
 export type AmbiguityFinding = components['schemas']['AmbiguityFinding'];
@@ -22287,6 +23328,7 @@ export type BenchmarkScoreWeightsByType = components['schemas']['BenchmarkScoreW
 export type BillingOverview = components['schemas']['BillingOverview'];
 export type BillingPortalResponse = components['schemas']['BillingPortalResponse'];
 export type BillingSettingsUpdate = components['schemas']['BillingSettingsUpdate'];
+export type BodyAttachDocumentApiAdminDemoSchemasSlugDocumentPost = components['schemas']['Body_attach_document_api_admin_demo_schemas__slug__document_post'];
 export type BodyUploadAttachmentsApiAttachmentsPost = components['schemas']['Body_upload_attachments_api_attachments_post'];
 export type BulkDeleteRequest = components['schemas']['BulkDeleteRequest'];
 export type BulkDeleteResult = components['schemas']['BulkDeleteResult'];
@@ -22370,6 +23412,33 @@ export type DeltaAckResponse = components['schemas']['DeltaAckResponse'];
 export type DeltaBatchResponse = components['schemas']['DeltaBatchResponse'];
 export type DeltaRow = components['schemas']['DeltaRow'];
 export type DeltaSummaryResponse = components['schemas']['DeltaSummaryResponse'];
+export type DemoBootstrapResponse = components['schemas']['DemoBootstrapResponse'];
+export type DemoConfigResponse = components['schemas']['DemoConfigResponse'];
+export type DemoDeltaRow = components['schemas']['DemoDeltaRow'];
+export type DemoDocumentPublic = components['schemas']['DemoDocumentPublic'];
+export type DemoDocumentRun = components['schemas']['DemoDocumentRun'];
+export type DemoEntityRow = components['schemas']['DemoEntityRow'];
+export type DemoExpert = components['schemas']['DemoExpert'];
+export type DemoOutlineNode = components['schemas']['DemoOutlineNode'];
+export type DemoPresentation = components['schemas']['DemoPresentation'];
+export type DemoResultAdminRow = components['schemas']['DemoResultAdminRow'];
+export type DemoResultResponse = components['schemas']['DemoResultResponse'];
+export type DemoResultsAdminListResponse = components['schemas']['DemoResultsAdminListResponse'];
+export type DemoResultsBatchDelete = components['schemas']['DemoResultsBatchDelete'];
+export type DemoResultsBatchDeleteResponse = components['schemas']['DemoResultsBatchDeleteResponse'];
+export type DemoResultsListResponse = components['schemas']['DemoResultsListResponse'];
+export type DemoResultSummary = components['schemas']['DemoResultSummary'];
+export type DemoRunOutcome = components['schemas']['DemoRunOutcome'];
+export type DemoRunRequest = components['schemas']['DemoRunRequest'];
+export type DemoRunResponse = components['schemas']['DemoRunResponse'];
+export type DemoSchemaAdminRow = components['schemas']['DemoSchemaAdminRow'];
+export type DemoSchemaPublic = components['schemas']['DemoSchemaPublic'];
+export type DemoSemanticStats = components['schemas']['DemoSemanticStats'];
+export type DemoSessionRequest = components['schemas']['DemoSessionRequest'];
+export type DemoSessionResponse = components['schemas']['DemoSessionResponse'];
+export type DemoSettingsResponse = components['schemas']['DemoSettingsResponse'];
+export type DemoSettingsUpdate = components['schemas']['DemoSettingsUpdate'];
+export type DemoTimelineEvent = components['schemas']['DemoTimelineEvent'];
 export type DeviceCodeConfirmRequest = components['schemas']['DeviceCodeConfirmRequest'];
 export type DeviceCodePollRequest = components['schemas']['DeviceCodePollRequest'];
 export type DeviceCodePollResponse = components['schemas']['DeviceCodePollResponse'];
@@ -22680,7 +23749,7 @@ export type WebhookTestResponse = components['schemas']['WebhookTestResponse'];
 export type WebhookTypeInfo = components['schemas']['WebhookTypeInfo'];
 export type $defs = Record<string, never>;
 export interface operations {
-    no_frontend__get: {
+    serve_index__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -22696,6 +23765,109 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    serve_spa__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    act_as_organization_api_admin_act_as__org_id__post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActAsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stop_acting_api_admin_act_as_stop_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActAsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -22763,6 +23935,382 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AttachmentFormatPolicy"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_admin_audit_api_admin_audit_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bootstrap_api_admin_demo_bootstrap_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoBootstrapResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_results_api_admin_demo_results_get: {
+        parameters: {
+            query?: {
+                include_deleted?: boolean;
+                limit?: number;
+                offset?: number;
+                schema_slug?: string | null;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoResultsAdminListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_result_api_admin_demo_results__result_id__restore_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                result_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_results_api_admin_demo_results_delete_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemoResultsBatchDelete"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoResultsBatchDeleteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attach_document_api_admin_demo_schemas__slug__document_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_attach_document_api_admin_demo_schemas__slug__document_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoSettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detach_document_api_admin_demo_schemas__slug__document_delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoSettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_document_api_admin_demo_schemas__slug__document_run_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoSettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_settings_api_admin_demo_settings_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoSettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_settings_api_admin_demo_settings_put: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemoSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoSettingsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -27140,6 +28688,266 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WebhookSecretResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_config_api_demo_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoConfigResponse"];
+                };
+            };
+        };
+    };
+    get_document_api_demo_documents__schema_slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                schema_slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_results_api_demo_results__schema_slug__get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                schema_slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoResultsListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_result_api_demo_results__schema_slug___slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                schema_slug: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_demo_api_demo_run_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Accept-Language"?: string | null;
+                "X-Demo-Session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemoRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoRunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_outcome_api_demo_run_outcome__job_id__get: {
+        parameters: {
+            query?: {
+                token?: string | null;
+            };
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoRunOutcome"];
+                };
+            };
+            /** @description Not persisted yet */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_session_api_demo_session_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemoSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stream_demo_job_api_demo_stream__job_id__get: {
+        parameters: {
+            query?: {
+                /** @description Stream token from POST /run */
+                token?: string | null;
+            };
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
