@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 5.0.0 (2026-09-07)
+
+### Changed — new logo
+
+The node icons (`entity-enricher.svg` / `entity-enricher-dark.svg`, one per editor theme) carry the new Entity Enricher logo.
 
 ### Changed — the Trigger node subscribes to any platform event, not just two schema events
 
@@ -17,6 +21,12 @@ The emitted item now carries the whole delivery envelope — `event`, `webhook`,
 `X-EE-Signature` is now `t=<unix-seconds>,v1=<hmac>`, an HMAC-SHA256 over `"{timestamp}.{raw body}"` (Stripe-shaped) rather than over the body alone — a captured payload can no longer be replayed. A new `X-EE-Delivery` header carries a delivery id that is **stable across retries**, usable as an idempotency key. Failed deliveries retry three times (+1min, +5min, +30min) and every attempt is visible in the delivery log under Settings › Webhooks in the app, where a delivery can also be replayed by hand. An endpoint that fails 10 deliveries in a row is switched off until re-enabled.
 
 This applies to `delta_available` too — one signature scheme for every POST the platform makes. A consumer verifying the old body-only signature must be updated.
+
+### Changed — regenerated API types
+
+Regenerated from the backend OpenAPI schema: enum-candidate scan and the `closed` enum flag, value constraints and the conformant schema wire form, schema-annotation endpoints, `key_collisions` entries carrying `kept_path`, `kind` and `differing_fields`, the resolve-unify-proposal route, and the optional benchmark strategy field.
+
+## 4.0.0 (2026-08-29)
 
 ### Changed — Generate Sample takes one **Request** instead of Entity Type + Fields + Extra Instructions
 

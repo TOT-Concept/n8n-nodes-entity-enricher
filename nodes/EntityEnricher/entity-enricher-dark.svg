@@ -1,77 +1,105 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 0 44 44" fill="none">
-  <!-- Solid filled E with rounded corners (r=2.5) -->
-  <path
-     d="m 13.502588,5.4703646 h 14.711397 q 1.886076,0 1.886076,1.5182349 v 0.7591174 q 0,1.5182351 -1.886076,1.5182351 H 16.520311 q -1.508861,0 -1.508861,1.518235 v 7.591174 q 0,1.518235 1.508861,1.518235 h 8.675951 q 1.886076,0 1.886076,1.518235 v 0.759117 q 0,1.518235 -1.886076,1.518235 h -8.675951 q -1.508861,0 -1.508861,1.518235 v 8.350291 q 0,1.518237 1.508861,1.518237 h 13.202535 q 1.886076,0 1.886076,1.518235 v 0.759117 q 0,1.518235 -1.886076,1.518235 H 13.502588 q -3.017722,0 -3.017722,-3.03647 V 8.5068348 q 0,-3.0364702 3.017722,-3.0364702 z"
-     fill="#c87d2a"
-     style="stroke-width:0.75677;fill:#f0963a;fill-opacity:1" />
-  <!-- Three enrichment dots -->
-  <ellipse
-     cx="37.191383"
-     cy="2.9360781"
-     fill="#c87d2a"
-     opacity="0.55"
-     rx="2.6432626"
-     ry="2.8499801"
-     style="stroke-width:0.686169" />
-  <ellipse
-     cx="2.8210738"
-     cy="3.0891042"
-     fill="#c87d2a"
-     opacity="0.55"
-     rx="2.6432626"
-     ry="2.8499801"
-     style="stroke-width:0.686169" />
-  <ellipse
-     cx="39.128803"
-     cy="21.715084"
-     fill="#c87d2a"
-     opacity="0.75"
-     rx="2.6432626"
-     ry="2.8499801"
-     style="stroke-width:0.686169" />
-  <ellipse
-     cx="37.761215"
-     cy="41.063919"
-     fill="#c87d2a"
-     rx="2.6432626"
-     ry="2.8499801"
-     style="fill:#c87d2a;fill-opacity:0.69685;stroke-width:0.686169" />
-  <ellipse
-     cx="2.7696869"
-     cy="40.191875"
-     fill="#c87d2a"
-     rx="2.6432626"
-     ry="2.8499801"
-     style="fill:#c87d2a;fill-opacity:0.57874;stroke-width:0.686169" />
-  <!-- Connector lines -->
-  <path
-     d="M 30.521323,6.1023645 34.086158,4.5555293"
-     stroke="#c87d2a"
-     stroke-width="1.7814"
-     stroke-linecap="round"
-     opacity="0.45" />
-  <path
-     d="M 6.0401667,4.5477884 10.454574,6.3458987"
-     stroke="#c87d2a"
-     stroke-width="2.09892"
-     stroke-linecap="round"
-     opacity="0.45" />
-  <path
-     d="m 27.782621,21.800351 h 8.108465"
-     stroke="#c87d2a"
-     stroke-width="1.80136"
-     stroke-linecap="round"
-     opacity="0.65" />
-  <path
-     d="m 32.262025,38.346058 2.360565,1.008404"
-     stroke="#c87d2a"
-     stroke-width="1.80136"
-     stroke-linecap="round"
-     opacity="0.65" />
-  <path
-     d="M 5.9368601,39.215974 10.178894,37.691765"
-     stroke="#c87d2a"
-     stroke-width="1.6778"
-     stroke-linecap="round"
-     opacity="0.65" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="gsolo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFC15A"/>
+      <stop offset=".48" stop-color="#FF8A20"/>
+      <stop offset="1" stop-color="#EB570C"/>
+    </linearGradient>
+    <linearGradient id="hsolo" x2="0" y2="1">
+      <stop stop-color="white" stop-opacity=".275"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="csolo">
+      <rect x=".5" y=".5" width="99" height="99" rx="22"/>
+    </clipPath>
+  </defs>
+  <rect x=".5" y=".5" width="99" height="99" rx="22" fill="url(#gsolo)" stroke="#B95316"/>
+  <path d="M0 0H100V30Q48 51 0 39Z" fill="url(#hsolo)" clip-path="url(#csolo)"/>
+  <defs>
+    <filter id="fsolo" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0" result="sum0"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="0.23" result="e1"/>
+      <feComposite in="sum0" in2="e1" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum1"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="0.46" result="e2"/>
+      <feComposite in="sum1" in2="e2" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum2"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="0.6900000000000001" result="e3"/>
+      <feComposite in="sum2" in2="e3" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum3"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="0.92" result="e4"/>
+      <feComposite in="sum3" in2="e4" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum4"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="1.1500000000000001" result="e5"/>
+      <feComposite in="sum4" in2="e5" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum5"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="1.3800000000000001" result="e6"/>
+      <feComposite in="sum5" in2="e6" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum6"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="1.61" result="e7"/>
+      <feComposite in="sum6" in2="e7" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum7"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="1.84" result="e8"/>
+      <feComposite in="sum7" in2="e8" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum8"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="2.0700000000000003" result="e9"/>
+      <feComposite in="sum8" in2="e9" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum9"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="2.3000000000000003" result="e10"/>
+      <feComposite in="sum9" in2="e10" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum10"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="2.5300000000000002" result="e11"/>
+      <feComposite in="sum10" in2="e11" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum11"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="2.7600000000000002" result="e12"/>
+      <feComposite in="sum11" in2="e12" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum12"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="2.99" result="e13"/>
+      <feComposite in="sum12" in2="e13" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum13"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="3.22" result="e14"/>
+      <feComposite in="sum13" in2="e14" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum14"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="3.45" result="e15"/>
+      <feComposite in="sum14" in2="e15" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum15"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="3.68" result="e16"/>
+      <feComposite in="sum15" in2="e16" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum16"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="3.91" result="e17"/>
+      <feComposite in="sum16" in2="e17" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum17"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="4.140000000000001" result="e18"/>
+      <feComposite in="sum17" in2="e18" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum18"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="4.37" result="e19"/>
+      <feComposite in="sum18" in2="e19" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum19"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="4.6000000000000005" result="e20"/>
+      <feComposite in="sum19" in2="e20" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum20"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="4.83" result="e21"/>
+      <feComposite in="sum20" in2="e21" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum21"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="5.0600000000000005" result="e22"/>
+      <feComposite in="sum21" in2="e22" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum22"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="5.29" result="e23"/>
+      <feComposite in="sum22" in2="e23" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum23"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="5.5200000000000005" result="e24"/>
+      <feComposite in="sum23" in2="e24" operator="arithmetic" k1="0" k2="1" k3=".0416667" k4="0" result="sum24"/>
+      <feGaussianBlur in="sum24" stdDeviation=".32" result="height"/>
+      <feDiffuseLighting in="height" surfaceScale="-9" diffuseConstant=".75" lighting-color="#535D68" result="lighting">
+        <feDistantLight azimuth="225" elevation="50"/>
+      </feDiffuseLighting>
+      <feComposite in="lighting" in2="SourceAlpha" operator="in" result="surface"/>
+      <feFlood flood-color="#070A0F" flood-opacity=".58" result="shadeColor"/>
+      <feComposite in="shadeColor" in2="height" operator="in" result="occlusion"/>
+      <feOffset in="SourceAlpha" dx=".25" dy=".35" result="down"/>
+      <feComposite in="SourceAlpha" in2="down" operator="out" result="upper"/>
+      <feFlood flood-color="#101319" flood-opacity=".65"/>
+      <feComposite in2="upper" operator="in" result="topedge"/>
+      <feOffset in="SourceAlpha" dx="-.25" dy="-.35" result="up"/>
+      <feComposite in="SourceAlpha" in2="up" operator="out" result="lower"/>
+      <feFlood flood-color="#69717A" flood-opacity=".5"/>
+      <feComposite in2="lower" operator="in" result="bottomedge"/>
+      <feMerge>
+        <feMergeNode in="surface"/>
+        <feMergeNode in="occlusion"/>
+        <feMergeNode in="topedge"/>
+        <feMergeNode in="bottomedge"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g data-logo-mark="true" filter="url(#fsolo)" fill="#191919">
+    <path d="M32 29L22 20" fill="none" stroke="#191919" stroke-width="3.6" stroke-linecap="round"/>
+    <path d="M65 29L78 20" fill="none" stroke="#191919" stroke-width="3.6" stroke-linecap="round"/>
+    <path d="M60 50L81 50" fill="none" stroke="#191919" stroke-width="3.6" stroke-linecap="round"/>
+    <path d="M32 71L22 80" fill="none" stroke="#191919" stroke-width="3.6" stroke-linecap="round"/>
+    <path d="M65 71L78 80" fill="none" stroke="#191919" stroke-width="3.6" stroke-linecap="round"/>
+    <path d="M32 24H66Q69 24 69 27V32Q69 35 66 35H40V44H60Q63 44 63 47V52Q63 55 60 55H40V65H66Q69 65 69 68V73Q69 76 66 76H32Q29 76 29 73V27Q29 24 32 24Z"/>
+    <circle cx="22" cy="20" r="4.5"/>
+    <circle cx="78" cy="20" r="4.5"/>
+    <circle cx="81" cy="50" r="4.5"/>
+    <circle cx="22" cy="80" r="4.5"/>
+    <circle cx="78" cy="80" r="4.5"/>
+  </g>
 </svg>
