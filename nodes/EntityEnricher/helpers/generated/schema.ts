@@ -11,25 +11,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Serve Index */
-        get: operations["serve_index__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/{path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve Spa */
-        get: operations["serve_spa__path__get"];
+        /** No Frontend */
+        get: operations["no_frontend__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3590,7 +3573,10 @@ export type paths = {
         };
         /**
          * Export Config
-         * @description Export providers, models, and (admin only) canonical specs as JSON.
+         * @description Export providers, models, and (admin only) model specs as JSON.
+         *
+         *     Keys are sorted alphabetically at every level so the file is stable across
+         *     releases and readable in a diff.
          *
          *     Each provider/model is tagged with a portable `scope` ("global" or
          *     "organization") instead of a concrete org UUID, so an "organization"-scoped
@@ -5595,6 +5581,29 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/support/chat/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stream Support Chat
+         * @description Relay one authenticated product question while keeping Hermes private from the browser.
+         *
+         *     Attachments are resolved here, org-scoped, and forwarded as inline content only —
+         *     the relay and Hermes never receive an attachment id, path or URL.
+         */
+        post: operations["stream_support_chat_api_support_chat_stream_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tunnel/cancel/{user_code}": {
         parameters: {
             query?: never;
@@ -7418,6 +7427,8 @@ export type components = {
          * @description One model row that the cleanup would (or did) delete.
          */
         CleanupDeactivatedModelInfo: {
+            /** Canonical Key */
+            canonical_key?: string | null;
             /** Deactivated At */
             deactivated_at?: string | null;
             /** Deactivation Reason */
@@ -7438,8 +7449,6 @@ export type components = {
              * @default 0
              */
             record_count: number;
-            /** Spec Id */
-            spec_id?: number | null;
         };
         /**
          * CleanupDeactivatedRequest
@@ -7502,15 +7511,15 @@ export type components = {
         };
         /**
          * CleanupSpecInfo
-         * @description A canonical spec that would (or did) get removed as orphaned.
+         * @description A `llm_specs` row that would (or did) get removed as orphaned.
          */
         CleanupSpecInfo: {
             /** Canonical Key */
             canonical_key: string;
-            /** Display Name */
-            display_name?: string | null;
             /** Id */
             id: number;
+            /** Source */
+            source: string;
         };
         /**
          * CommonTypeCompare
@@ -7947,7 +7956,7 @@ export type components = {
             specs?: components["schemas"]["SpecExport"][];
             /**
              * Version
-             * @default 3.0
+             * @default 4.0
              */
             version: string;
         };
@@ -12154,6 +12163,9 @@ export type components = {
         /**
          * ModelCreate
          * @description Request model for creating a new LLM model.
+         *
+         *     The `LLMSpecFields` part is written to `llm_specs` under the model's own
+         *     source (`manual`), not to the `llm_models` row.
          */
         ModelCreate: {
             /** Benchmark Coding */
@@ -12205,85 +12217,40 @@ export type components = {
             output_price_per_million?: number | null;
             /** Output Reasoning Token Price Per Million */
             output_reasoning_token_price_per_million?: number | null;
-            /**
-             * Requires Streaming
-             * @default false
-             */
-            requires_streaming: boolean;
+            /** Requires Streaming */
+            requires_streaming?: boolean | null;
             /** Rpm */
             rpm?: number | null;
             /** Supported Reasoning Efforts */
             supported_reasoning_efforts?: string[] | null;
-            /**
-             * Supports Audio Input
-             * @default false
-             */
-            supports_audio_input: boolean;
-            /**
-             * Supports Audio Output
-             * @default false
-             */
-            supports_audio_output: boolean;
-            /**
-             * Supports Embeddings
-             * @default false
-             */
-            supports_embeddings: boolean;
-            /**
-             * Supports Pdf Input
-             * @default false
-             */
-            supports_pdf_input: boolean;
-            /**
-             * Supports Prompt Caching
-             * @default false
-             */
-            supports_prompt_caching: boolean;
-            /**
-             * Supports Reasoning
-             * @default false
-             */
-            supports_reasoning: boolean;
-            /**
-             * Supports Reasoning Effort
-             * @default false
-             */
-            supports_reasoning_effort: boolean;
-            /**
-             * Supports Response Schema
-             * @default false
-             */
-            supports_response_schema: boolean;
-            /**
-             * Supports Strict Structured Output
-             * @default false
-             */
-            supports_strict_structured_output: boolean;
-            /**
-             * Supports Tool Calls
-             * @default false
-             */
-            supports_tool_calls: boolean;
-            /**
-             * Supports Tool Choice
-             * @default false
-             */
-            supports_tool_choice: boolean;
-            /**
-             * Supports Video Input
-             * @default false
-             */
-            supports_video_input: boolean;
-            /**
-             * Supports Vision
-             * @default false
-             */
-            supports_vision: boolean;
-            /**
-             * Supports Web Search
-             * @default false
-             */
-            supports_web_search: boolean;
+            /** Supports Audio Input */
+            supports_audio_input?: boolean | null;
+            /** Supports Audio Output */
+            supports_audio_output?: boolean | null;
+            /** Supports Embeddings */
+            supports_embeddings?: boolean | null;
+            /** Supports Pdf Input */
+            supports_pdf_input?: boolean | null;
+            /** Supports Prompt Caching */
+            supports_prompt_caching?: boolean | null;
+            /** Supports Reasoning */
+            supports_reasoning?: boolean | null;
+            /** Supports Reasoning Effort */
+            supports_reasoning_effort?: boolean | null;
+            /** Supports Response Schema */
+            supports_response_schema?: boolean | null;
+            /** Supports Strict Structured Output */
+            supports_strict_structured_output?: boolean | null;
+            /** Supports Tool Calls */
+            supports_tool_calls?: boolean | null;
+            /** Supports Tool Choice */
+            supports_tool_choice?: boolean | null;
+            /** Supports Video Input */
+            supports_video_input?: boolean | null;
+            /** Supports Vision */
+            supports_vision?: boolean | null;
+            /** Supports Web Search */
+            supports_web_search?: boolean | null;
             /** Time To First Answer Token Ms */
             time_to_first_answer_token_ms?: number | null;
             /** Time To First Token Ms */
@@ -12315,18 +12282,6 @@ export type components = {
          *     round-trips with its original reason instead of a generic re-stamp on import.
          */
         ModelExport: {
-            /** Benchmark Coding */
-            benchmark_coding?: number | null;
-            /** Benchmark Intelligence */
-            benchmark_intelligence?: number | null;
-            /** Benchmark Intelligence Reasoning */
-            benchmark_intelligence_reasoning?: number | null;
-            /** Benchmark Math */
-            benchmark_math?: number | null;
-            /** Benchmarks Extra */
-            benchmarks_extra?: {
-                [key: string]: number;
-            } | null;
             /** Cache Creation Price Per Million 1Hr */
             cache_creation_price_per_million_1hr?: number | null;
             /** Cache Read Price Per Million */
@@ -12346,8 +12301,6 @@ export type components = {
              * @description Human-readable model name
              */
             display_name?: string | null;
-            /** Embedding Dimensions */
-            embedding_dimensions?: number | null;
             /** Input Price Per Million */
             input_price_per_million?: number | null;
             /** Is Active */
@@ -12365,11 +12318,8 @@ export type components = {
             output_price_per_million?: number | null;
             /** Output Reasoning Token Price Per Million */
             output_reasoning_token_price_per_million?: number | null;
-            /**
-             * Requires Streaming
-             * @default false
-             */
-            requires_streaming: boolean;
+            /** Requires Streaming */
+            requires_streaming?: boolean | null;
             /** Rpm */
             rpm?: number | null;
             /**
@@ -12384,76 +12334,32 @@ export type components = {
             source_identifier?: string | null;
             /** Supported Reasoning Efforts */
             supported_reasoning_efforts?: string[] | null;
-            /**
-             * Supports Audio Input
-             * @default false
-             */
-            supports_audio_input: boolean;
-            /**
-             * Supports Audio Output
-             * @default false
-             */
-            supports_audio_output: boolean;
-            /**
-             * Supports Embeddings
-             * @default false
-             */
-            supports_embeddings: boolean;
-            /**
-             * Supports Pdf Input
-             * @default false
-             */
-            supports_pdf_input: boolean;
-            /**
-             * Supports Prompt Caching
-             * @default false
-             */
-            supports_prompt_caching: boolean;
-            /**
-             * Supports Reasoning
-             * @default false
-             */
-            supports_reasoning: boolean;
-            /**
-             * Supports Reasoning Effort
-             * @default false
-             */
-            supports_reasoning_effort: boolean;
-            /**
-             * Supports Response Schema
-             * @default false
-             */
-            supports_response_schema: boolean;
-            /**
-             * Supports Strict Structured Output
-             * @default false
-             */
-            supports_strict_structured_output: boolean;
-            /**
-             * Supports Tool Calls
-             * @default false
-             */
-            supports_tool_calls: boolean;
-            /**
-             * Supports Tool Choice
-             * @default false
-             */
-            supports_tool_choice: boolean;
-            /**
-             * Supports Video Input
-             * @default false
-             */
-            supports_video_input: boolean;
-            /**
-             * Supports Vision
-             * @default false
-             */
-            supports_vision: boolean;
-            /**
-             * Supports Web Search
-             * @default false
-             */
-            supports_web_search: boolean;
+            /** Supports Audio Input */
+            supports_audio_input?: boolean | null;
+            /** Supports Audio Output */
+            supports_audio_output?: boolean | null;
+            /** Supports Pdf Input */
+            supports_pdf_input?: boolean | null;
+            /** Supports Prompt Caching */
+            supports_prompt_caching?: boolean | null;
+            /** Supports Reasoning */
+            supports_reasoning?: boolean | null;
+            /** Supports Reasoning Effort */
+            supports_reasoning_effort?: boolean | null;
+            /** Supports Response Schema */
+            supports_response_schema?: boolean | null;
+            /** Supports Strict Structured Output */
+            supports_strict_structured_output?: boolean | null;
+            /** Supports Tool Calls */
+            supports_tool_calls?: boolean | null;
+            /** Supports Tool Choice */
+            supports_tool_choice?: boolean | null;
+            /** Supports Video Input */
+            supports_video_input?: boolean | null;
+            /** Supports Vision */
+            supports_vision?: boolean | null;
+            /** Supports Web Search */
+            supports_web_search?: boolean | null;
             /** Time To First Answer Token Ms */
             time_to_first_answer_token_ms?: number | null;
             /** Time To First Token Ms */
@@ -12564,7 +12470,8 @@ export type components = {
         };
         /**
          * ModelResponse
-         * @description Response model for an LLM model.
+         * @description Response model for an LLM model (resolved view: overrides, source fusion,
+         *     spec attachment and vendor fill already applied).
          */
         ModelResponse: {
             /**
@@ -12591,6 +12498,11 @@ export type components = {
             cache_read_price_per_million?: number | null;
             /** Cache Write Price Per Million */
             cache_write_price_per_million?: number | null;
+            /**
+             * Canonical Key
+             * @description Cross-provider model identity from `canonical_model_key(model, provider)`. Rows with the same (provider_id, canonical_key) are the same underlying model — used to collapse alias/snapshot duplicates in selection lists (e.g. benchmarks) and to attach the `llm_specs` rows.
+             */
+            canonical_key?: string | null;
             /** Context Length */
             context_length?: number | null;
             /**
@@ -12670,11 +12582,8 @@ export type components = {
             provider_id: number;
             /** Provider Name */
             provider_name: string;
-            /**
-             * Requires Streaming
-             * @default false
-             */
-            requires_streaming: boolean;
+            /** Requires Streaming */
+            requires_streaming?: boolean | null;
             /** Rpm */
             rpm?: number | null;
             /**
@@ -12699,83 +12608,36 @@ export type components = {
              * @description Raw (pre-override) values of every base row that shares this model's composite key in the same scope — including this row itself. NULL when only one base row exists. Frontend surfaces an inline badge + tooltip when non-empty so admins can compare what each source actually published without admin/org overrides obscuring the disagreement.
              */
             source_rows_raw?: components["schemas"]["SourceRowRaw"][] | null;
-            /**
-             * Spec Id
-             * @description FK to llm_specs (canonical cross-provider model identity). Rows with the same (provider_id, spec_id) are the same underlying model — used to collapse alias/snapshot duplicates in selection lists (e.g. benchmarks).
-             */
-            spec_id?: number | null;
             /** Supported Reasoning Efforts */
             supported_reasoning_efforts?: string[] | null;
-            /**
-             * Supports Audio Input
-             * @default false
-             */
-            supports_audio_input: boolean;
-            /**
-             * Supports Audio Output
-             * @default false
-             */
-            supports_audio_output: boolean;
-            /**
-             * Supports Embeddings
-             * @default false
-             */
-            supports_embeddings: boolean;
-            /**
-             * Supports Pdf Input
-             * @default false
-             */
-            supports_pdf_input: boolean;
-            /**
-             * Supports Prompt Caching
-             * @default false
-             */
-            supports_prompt_caching: boolean;
-            /**
-             * Supports Reasoning
-             * @default false
-             */
-            supports_reasoning: boolean;
-            /**
-             * Supports Reasoning Effort
-             * @default false
-             */
-            supports_reasoning_effort: boolean;
-            /**
-             * Supports Response Schema
-             * @default false
-             */
-            supports_response_schema: boolean;
-            /**
-             * Supports Strict Structured Output
-             * @default false
-             */
-            supports_strict_structured_output: boolean;
-            /**
-             * Supports Tool Calls
-             * @default false
-             */
-            supports_tool_calls: boolean;
-            /**
-             * Supports Tool Choice
-             * @default false
-             */
-            supports_tool_choice: boolean;
-            /**
-             * Supports Video Input
-             * @default false
-             */
-            supports_video_input: boolean;
-            /**
-             * Supports Vision
-             * @default false
-             */
-            supports_vision: boolean;
-            /**
-             * Supports Web Search
-             * @default false
-             */
-            supports_web_search: boolean;
+            /** Supports Audio Input */
+            supports_audio_input?: boolean | null;
+            /** Supports Audio Output */
+            supports_audio_output?: boolean | null;
+            /** Supports Embeddings */
+            supports_embeddings?: boolean | null;
+            /** Supports Pdf Input */
+            supports_pdf_input?: boolean | null;
+            /** Supports Prompt Caching */
+            supports_prompt_caching?: boolean | null;
+            /** Supports Reasoning */
+            supports_reasoning?: boolean | null;
+            /** Supports Reasoning Effort */
+            supports_reasoning_effort?: boolean | null;
+            /** Supports Response Schema */
+            supports_response_schema?: boolean | null;
+            /** Supports Strict Structured Output */
+            supports_strict_structured_output?: boolean | null;
+            /** Supports Tool Calls */
+            supports_tool_calls?: boolean | null;
+            /** Supports Tool Choice */
+            supports_tool_choice?: boolean | null;
+            /** Supports Video Input */
+            supports_video_input?: boolean | null;
+            /** Supports Vision */
+            supports_vision?: boolean | null;
+            /** Supports Web Search */
+            supports_web_search?: boolean | null;
             /** Time To First Answer Token Ms */
             time_to_first_answer_token_ms?: number | null;
             /** Time To First Token Ms */
@@ -12810,6 +12672,10 @@ export type components = {
         /**
          * ModelUpdate
          * @description Request model for updating an LLM model.
+         *
+         *     A changed `LLMSpecFields` value lands on the `manual` spec row of the
+         *     model's canonical key (system admins, or an org-scoped model) — never on an
+         *     override row, because the fact is not per-provider.
          */
         ModelUpdate: {
             /** Benchmark Coding */
@@ -17196,71 +17062,30 @@ export type components = {
             output_price_per_million?: number | null;
             /** Source */
             source: string;
-            /**
-             * Supports Audio Input
-             * @default false
-             */
-            supports_audio_input: boolean;
-            /**
-             * Supports Audio Output
-             * @default false
-             */
-            supports_audio_output: boolean;
-            /**
-             * Supports Embeddings
-             * @default false
-             */
-            supports_embeddings: boolean;
-            /**
-             * Supports Pdf Input
-             * @default false
-             */
-            supports_pdf_input: boolean;
-            /**
-             * Supports Prompt Caching
-             * @default false
-             */
-            supports_prompt_caching: boolean;
-            /**
-             * Supports Reasoning
-             * @default false
-             */
-            supports_reasoning: boolean;
-            /**
-             * Supports Response Schema
-             * @default false
-             */
-            supports_response_schema: boolean;
-            /**
-             * Supports Strict Structured Output
-             * @default false
-             */
-            supports_strict_structured_output: boolean;
-            /**
-             * Supports Tool Calls
-             * @default false
-             */
-            supports_tool_calls: boolean;
-            /**
-             * Supports Tool Choice
-             * @default false
-             */
-            supports_tool_choice: boolean;
-            /**
-             * Supports Video Input
-             * @default false
-             */
-            supports_video_input: boolean;
-            /**
-             * Supports Vision
-             * @default false
-             */
-            supports_vision: boolean;
-            /**
-             * Supports Web Search
-             * @default false
-             */
-            supports_web_search: boolean;
+            /** Supports Audio Input */
+            supports_audio_input?: boolean | null;
+            /** Supports Audio Output */
+            supports_audio_output?: boolean | null;
+            /** Supports Pdf Input */
+            supports_pdf_input?: boolean | null;
+            /** Supports Prompt Caching */
+            supports_prompt_caching?: boolean | null;
+            /** Supports Reasoning */
+            supports_reasoning?: boolean | null;
+            /** Supports Response Schema */
+            supports_response_schema?: boolean | null;
+            /** Supports Strict Structured Output */
+            supports_strict_structured_output?: boolean | null;
+            /** Supports Tool Calls */
+            supports_tool_calls?: boolean | null;
+            /** Supports Tool Choice */
+            supports_tool_choice?: boolean | null;
+            /** Supports Video Input */
+            supports_video_input?: boolean | null;
+            /** Supports Vision */
+            supports_vision?: boolean | null;
+            /** Supports Web Search */
+            supports_web_search?: boolean | null;
         };
         /**
          * SourceSyncSummary
@@ -17273,10 +17098,14 @@ export type components = {
         };
         /**
          * SpecExport
-         * @description Export format for a single `llm_specs` row (canonical cross-provider spec).
+         * @description Export format for one `llm_specs` row: the weights-intrinsic facts one
+         *     sync source (or a manual edit) stated for a canonical model.
          */
         SpecExport: {
-            /** Authority Provider */
+            /**
+             * Authority Provider
+             * @description Provider whose entry supplied this source's values (the vendor when present)
+             */
             authority_provider?: string | null;
             /** Benchmark Coding */
             benchmark_coding?: number | null;
@@ -17292,49 +17121,12 @@ export type components = {
             } | null;
             /** Canonical Key */
             canonical_key: string;
-            /** Deprecation Date */
-            deprecation_date?: string | null;
-            /** Display Name */
-            display_name?: string | null;
             /** Embedding Dimensions */
             embedding_dimensions?: number | null;
-            /** Supported Reasoning Efforts */
-            supported_reasoning_efforts?: string[] | null;
-            /**
-             * Supports Audio Input
-             * @default false
-             */
-            supports_audio_input: boolean;
-            /**
-             * Supports Audio Output
-             * @default false
-             */
-            supports_audio_output: boolean;
-            /**
-             * Supports Embeddings
-             * @default false
-             */
-            supports_embeddings: boolean;
-            /**
-             * Supports Reasoning
-             * @default false
-             */
-            supports_reasoning: boolean;
-            /**
-             * Supports Tool Calls
-             * @default false
-             */
-            supports_tool_calls: boolean;
-            /**
-             * Supports Video Input
-             * @default false
-             */
-            supports_video_input: boolean;
-            /**
-             * Supports Vision
-             * @default false
-             */
-            supports_vision: boolean;
+            /** Source */
+            source: string;
+            /** Supports Embeddings */
+            supports_embeddings?: boolean | null;
         };
         /**
          * SSEArbitrationCompleted
@@ -22245,6 +22037,28 @@ export type components = {
             sort_order: number;
         };
         /**
+         * SupportChatRequest
+         * @description A product-support question from an authenticated Entity Enricher user.
+         *
+         *     Attachments are ordinary uploads (``POST /api/attachments``) referenced by id;
+         *     the backend resolves them itself and forwards only inline content to the relay,
+         *     never an id, a path or a URL. ``page`` is the SPA route the user is on — a path
+         *     only, so Rupert can answer in the context of the screen being looked at.
+         */
+        SupportChatRequest: {
+            /** Attachment Ids */
+            attachment_ids?: string[];
+            /** Conversation Id */
+            conversation_id: string;
+            /**
+             * Message
+             * @default
+             */
+            message: string;
+            /** Page */
+            page?: string | null;
+        };
+        /**
          * SyncEnrichRequest
          * @description Request body for synchronous single-entity enrichment.
          */
@@ -23707,6 +23521,7 @@ export type SubscriptionPlan = components['schemas']['SubscriptionPlan'];
 export type SubscriptionPlanAdmin = components['schemas']['SubscriptionPlanAdmin'];
 export type SubscriptionPlanInput = components['schemas']['SubscriptionPlanInput'];
 export type SubscriptionPlanWithLimits = components['schemas']['SubscriptionPlanWithLimits'];
+export type SupportChatRequest = components['schemas']['SupportChatRequest'];
 export type SyncEnrichRequest = components['schemas']['SyncEnrichRequest'];
 export type SyncGenerateRequest = components['schemas']['SyncGenerateRequest'];
 export type SyncGenerateSampleRequest = components['schemas']['SyncGenerateSampleRequest'];
@@ -23749,7 +23564,7 @@ export type WebhookTestResponse = components['schemas']['WebhookTestResponse'];
 export type WebhookTypeInfo = components['schemas']['WebhookTypeInfo'];
 export type $defs = Record<string, never>;
 export interface operations {
-    serve_index__get: {
+    no_frontend__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -23765,37 +23580,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    serve_spa__path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -34564,6 +34348,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StreamEnrichResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stream_support_chat_api_support_chat_stream_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                "Accept-Language"?: string | null;
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupportChatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
