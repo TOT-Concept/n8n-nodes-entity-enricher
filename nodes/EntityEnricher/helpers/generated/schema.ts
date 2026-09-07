@@ -2840,6 +2840,45 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/global-keys/{key_id}/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Global Key Limits
+         * @description The rate-limit rules the gate holds for one global key (header / manual /
+         *     learned), with this process's live window usage.
+         */
+        get: operations["get_global_key_limits_api_global_keys__key_id__limits_get"];
+        /** Set Global Key Limit */
+        put: operations["set_global_key_limit_api_global_keys__key_id__limits_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/global-keys/{key_id}/limits/{rule_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Global Key Limit */
+        delete: operations["delete_global_key_limit_api_global_keys__key_id__limits__rule_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/global-keys/test-all": {
         parameters: {
             query?: never;
@@ -3169,6 +3208,50 @@ export type paths = {
          */
         post: operations["check_org_key_health_api_org_keys__key_id__health_check_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/org-keys/{key_id}/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Org Key Limits
+         * @description The rate-limit rules the gate holds for one organization key: what the
+         *     provider stated (header), what an owner typed (manual), what was learned
+         *     from 429s (learned) — with this process's live window usage.
+         */
+        get: operations["get_org_key_limits_api_org_keys__key_id__limits_get"];
+        /**
+         * Set Org Key Limit
+         * @description Type a rule for a provider that states no limits (model = None applies
+         *     to every model on the key).
+         */
+        put: operations["set_org_key_limit_api_org_keys__key_id__limits_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/org-keys/{key_id}/limits/{rule_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Org Key Limit */
+        delete: operations["delete_org_key_limit_api_org_keys__key_id__limits__rule_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -11932,6 +12015,30 @@ export type components = {
             user: components["schemas"]["UserResponse"];
         };
         /**
+         * ManualLimitRequest
+         * @description An owner-typed rule for a provider that states no limits.
+         */
+        ManualLimitRequest: {
+            /**
+             * Kind
+             * @default requests
+             * @enum {string}
+             */
+            kind: "requests" | "tokens";
+            /** Limit */
+            limit: number;
+            /**
+             * Model
+             * @description Model id; None = key-scoped (every model on the key)
+             */
+            model?: string | null;
+            /**
+             * Window Seconds
+             * @default 60
+             */
+            window_seconds: number;
+        };
+        /**
          * MigrationCollisionPair
          * @description Two concepts that are distinct today but would converge under the target model.
          */
@@ -12520,7 +12627,7 @@ export type components = {
              * @description Why the model was deactivated. Persists even after reactivation via toggle/edit so admins can spot zombie rows (is_active=true with a stale reason). NULL means the model has never been auto-deactivated.
              * @enum {unknown}
              */
-            deactivation_reason?: "model_not_found" | "unsupported" | "sync_removed" | "validation_failed" | "manual" | "tunnel_offline" | "benchmark_failed" | "user" | null;
+            deactivation_reason?: "model_not_found" | "unsupported" | "sync_removed" | "validation_failed" | "no_pricing" | "manual" | "tunnel_offline" | "benchmark_failed" | "user" | null;
             /** Deprecation Date */
             deprecation_date?: string | null;
             /**
@@ -14139,6 +14246,11 @@ export type components = {
             /** Display Name */
             display_name: string;
             /**
+             * Max Concurrent Calls
+             * @description Hard cap on in-flight calls per key; None = derived by the rate gate
+             */
+            max_concurrent_calls?: number | null;
+            /**
              * Name
              * @description Unique provider slug (lowercase, no spaces)
              */
@@ -14153,11 +14265,6 @@ export type components = {
              * @description Provider type: 'azure', 'ollama', or None for standard
              */
             provider_type?: string | null;
-            /**
-             * Rate Limit Override
-             * @description Max concurrent requests
-             */
-            rate_limit_override?: number | null;
             /**
              * Request Extra Body
              * @description Provider-specific params merged into every request's extra_body (e.g. {"enable_thinking": false} for Qwen/DashScope). Admin/owner only.
@@ -14183,14 +14290,14 @@ export type components = {
             api_version: string | null;
             /** Display Name */
             display_name: string;
+            /** Max Concurrent Calls */
+            max_concurrent_calls: number | null;
             /** Models */
             models?: components["schemas"]["ModelExport"][];
             /** Name */
             name: string;
             /** Provider Type */
             provider_type: string | null;
-            /** Rate Limit Override */
-            rate_limit_override: number | null;
             /** Request Extra Body */
             request_extra_body?: {
                 [key: string]: unknown;
@@ -14231,6 +14338,75 @@ export type components = {
              * @description ID of the provider to add key for
              */
             provider_id: number;
+        };
+        /** ProviderKeyLimitResponse */
+        ProviderKeyLimitResponse: {
+            /**
+             * Ceiling
+             * @description Learned rules: growth cap
+             */
+            ceiling?: number | null;
+            /**
+             * Concurrency Cap
+             * @description Live: effective in-flight cap (configured or derived)
+             */
+            concurrency_cap?: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * In Flight
+             * @description Live: calls currently in flight
+             */
+            in_flight?: number | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "requests" | "tokens" | "input_tokens" | "output_tokens";
+            /** Limit */
+            limit: number;
+            /**
+             * Model
+             * @description None for a key-scoped rule
+             */
+            model?: string | null;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "model" | "key";
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "header" | "manual" | "learned";
+            /**
+             * Used In Window
+             * @description Live: amount consumed in the current window (this process)
+             */
+            used_in_window?: number | null;
+            /** Window Seconds */
+            window_seconds: number;
+        };
+        /** ProviderKeyLimitsResponse */
+        ProviderKeyLimitsResponse: {
+            /**
+             * Key Id
+             * Format: uuid
+             */
+            key_id: string;
+            /** Provider Name */
+            provider_name: string;
+            /** Rules */
+            rules: components["schemas"]["ProviderKeyLimitResponse"][];
         };
         /**
          * ProviderKeyResponse
@@ -14419,6 +14595,11 @@ export type components = {
              */
             is_forkable: boolean;
             /**
+             * Max Concurrent Calls
+             * @description Hard cap on in-flight calls per key; None = derived by the rate gate
+             */
+            max_concurrent_calls: number | null;
+            /**
              * Model Count
              * @description Number of models under this provider
              */
@@ -14447,16 +14628,6 @@ export type components = {
             organization_id?: string | null;
             /** Provider Type */
             provider_type: string | null;
-            /**
-             * Rate Limit
-             * @description Effective rate limit (override or default)
-             */
-            rate_limit: number;
-            /**
-             * Rate Limit Override
-             * @description Override value if set
-             */
-            rate_limit_override: number | null;
             /**
              * Request Extra Body
              * @description Provider-specific params merged into every request's extra_body
@@ -14496,6 +14667,8 @@ export type components = {
             api_version?: string | null;
             /** Display Name */
             display_name?: string | null;
+            /** Max Concurrent Calls */
+            max_concurrent_calls?: number | null;
             /**
              * Name
              * @description Provider slug used in API calls (lowercase, no spaces)
@@ -14503,8 +14676,6 @@ export type components = {
             name?: string | null;
             /** Provider Type */
             provider_type?: string | null;
-            /** Rate Limit Override */
-            rate_limit_override?: number | null;
             /**
              * Request Extra Body
              * @description Provider-specific params merged into every request's extra_body (e.g. {"enable_thinking": false} for Qwen/DashScope). Send {} or null to clear.
@@ -23321,6 +23492,7 @@ export type LinkWebhookRequest = components['schemas']['LinkWebhookRequest'];
 export type LlmModel = components['schemas']['LLMModel'];
 export type LoginRequest = components['schemas']['LoginRequest'];
 export type LoginResponse = components['schemas']['LoginResponse'];
+export type ManualLimitRequest = components['schemas']['ManualLimitRequest'];
 export type MigrationCollisionPair = components['schemas']['MigrationCollisionPair'];
 export type MigrationPreviewResponse = components['schemas']['MigrationPreviewResponse'];
 export type MigrationStartRequest = components['schemas']['MigrationStartRequest'];
@@ -23373,6 +23545,8 @@ export type ProviderChange = components['schemas']['ProviderChange'];
 export type ProviderCreate = components['schemas']['ProviderCreate'];
 export type ProviderExport = components['schemas']['ProviderExport'];
 export type ProviderKeyCreate = components['schemas']['ProviderKeyCreate'];
+export type ProviderKeyLimitResponse = components['schemas']['ProviderKeyLimitResponse'];
+export type ProviderKeyLimitsResponse = components['schemas']['ProviderKeyLimitsResponse'];
 export type ProviderKeyResponse = components['schemas']['ProviderKeyResponse'];
 export type ProviderKeyUpdate = components['schemas']['ProviderKeyUpdate'];
 export type ProviderResponse = components['schemas']['ProviderResponse'];
@@ -29230,6 +29404,120 @@ export interface operations {
             };
         };
     };
+    get_global_key_limits_api_global_keys__key_id__limits_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                key_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderKeyLimitsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_global_key_limit_api_global_keys__key_id__limits_put: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                key_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualLimitRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderKeyLimitResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_global_key_limit_api_global_keys__key_id__limits__rule_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                key_id: string;
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     test_all_global_keys_api_global_keys_test_all_post: {
         parameters: {
             query?: {
@@ -29978,6 +30266,120 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["KeyHealthCheckResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_org_key_limits_api_org_keys__key_id__limits_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                key_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderKeyLimitsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_org_key_limit_api_org_keys__key_id__limits_put: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                key_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualLimitRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderKeyLimitResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_org_key_limit_api_org_keys__key_id__limits__rule_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                key_id: string;
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
