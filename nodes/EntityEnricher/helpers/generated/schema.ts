@@ -121,6 +121,107 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/cron": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cron Settings
+         * @description Every scheduled job: its schedule, its flags, its next fire times and its runs.
+         */
+        get: operations["get_cron_settings_api_admin_cron_get"];
+        /**
+         * Update Cron Settings
+         * @description The settings that belong to no single job — today, the time zone.
+         *
+         *     Its own route rather than a field on the per-job patch: a zone change moves
+         *     every schedule, and an audit row saying it changed under one job's name would
+         *     simply be false.
+         */
+        put: operations["update_cron_settings_api_admin_cron_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/cron/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Cron Job
+         * @description Patch one job. `cron: null` resets it to the schedule declared in code.
+         *
+         *     The expression is checked before anything is written, so a typo leaves the
+         *     stored settings exactly as they were.
+         */
+        put: operations["update_cron_job_api_admin_cron__job_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/cron/{job_id}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Cron Job
+         * @description Run a job now, through the very same runner the schedule uses.
+         *
+         *     Same advisory lock, same run row, same `maintenance.*` webhook. The row is
+         *     created before this responds, so the page can poll it immediately; the body
+         *     then runs on its own task. A run already in flight is refused with 409 rather
+         *     than silently discarded.
+         *
+         *     `enabled` is deliberately not consulted — running a paused job by hand is how
+         *     it is tested. The confirmation the UI shows before a destructive job is an
+         *     affordance of that page, not a guarantee of this endpoint, which is why every
+         *     manual run is audited with its actor and its dry-run flag.
+         */
+        post: operations["run_cron_job_api_admin_cron__job_id__run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/cron/{job_id}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Cron Runs
+         * @description This job's history, newest first, capped at `runs_kept` rows in the table.
+         */
+        get: operations["list_cron_runs_api_admin_cron__job_id__runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/demo/bootstrap": {
         parameters: {
             query?: never;
@@ -131,13 +232,96 @@ export type paths = {
         get?: never;
         put?: never;
         /**
-         * Bootstrap
+         * Bootstrap Demo
          * @description Create (once) the demo profile, plan and organization, and point the settings at them.
          *
          *     Idempotent: every piece is looked up by name before being created, and an
-         *     organization already named in the settings is kept.
+         *     organization already named in the settings is kept. The startup seed runs
+         *     the same service on a local deployment (services/demo/bootstrap.py).
          */
-        post: operations["bootstrap_api_admin_demo_bootstrap_post"];
+        post: operations["bootstrap_demo_api_admin_demo_bootstrap_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/demo/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Resources
+         * @description Every resource folder of the package against the live demo organization.
+         */
+        get: operations["list_resources_api_admin_demo_resources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/demo/resources/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply Resources
+         * @description Create the missing resources and update the outdated ones (`force` also overwrites
+         *     `local_edits` / `diverged`); `dry_run` only reports. Document runs start afterwards.
+         */
+        post: operations["apply_resources_api_admin_demo_resources_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/demo/resources/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Resources
+         * @description The live demo organization as resource folders, zipped (`<slug>/schema.json`, `demo.json`, document).
+         */
+        get: operations["export_resources_api_admin_demo_resources_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/demo/resources/export-to-repo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export Resources To Repo
+         * @description Local deployments only: write the live organization over `backend/enricher/resources/demo/`
+         *     in place, so the next commit carries it. A folder for a schema the organization no longer has is removed.
+         */
+        post: operations["export_resources_to_repo_api_admin_demo_resources_export_to_repo_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4369,7 +4553,7 @@ export type paths = {
         put?: never;
         /**
          * Synchronous schema generation
-         * @description Blocks until schema generation finishes and returns the generated schema. Designed for non-streaming clients such as the MCP server, Make.com, Zapier, or curl. Rejects the samples with 400 `sample_commonality_failed` (mixed entity types) or `sample_field_conformance_failed` (array items sharing no field) before any spend — POST /api/schema/samples/conformance reports both without generating. Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the offending property and `retryable: true`), 500 `schema_generation_empty` (no result), else 502 `schema_generation_failed`.
+         * @description Blocks until schema generation finishes and returns the generated schema. Designed for non-streaming clients such as the MCP server, Make.com, Zapier, or curl. Rejects the samples with 400 `sample_commonality_failed` (mixed entity types) or `sample_field_conformance_failed` (array items sharing no field) before any spend — POST /api/schema/samples/conformance reports both without generating. Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 502 `provider_credits_exhausted`, 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the offending property and `retryable: true`), 500 `schema_generation_empty` (no result), else 502 `schema_generation_failed`.
          */
         post: operations["generate_schema_sync_api_schema_generate_sync_post"];
         delete?: never;
@@ -4411,7 +4595,7 @@ export type paths = {
         put?: never;
         /**
          * Synchronous sample generation
-         * @description Blocks until sample generation finishes and returns the generated sample(s). Designed for non-streaming clients such as Make.com, Zapier, or curl — always runs with auto_answer=true (the generator is told not to ask about an ambiguous request, and any attachment-planner clarification questions resolve to the planner's defaults rather than pausing, since a blocking call can't wait for a live answer). Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the offending property and `retryable: true`), 500 `sample_generation_empty` (no result), else 502 `sample_generation_failed`.
+         * @description Blocks until sample generation finishes and returns the generated sample(s). Designed for non-streaming clients such as Make.com, Zapier, or curl — always runs with auto_answer=true (the generator is told not to ask about an ambiguous request, and any attachment-planner clarification questions resolve to the planner's defaults rather than pausing, since a blocking call can't wait for a live answer). Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 502 `provider_credits_exhausted` (the provider account behind the key is out of credit), 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the offending property and `retryable: true`), 500 `sample_generation_empty` (no result), else 502 `sample_generation_failed`.
          */
         post: operations["generate_sample_sync_api_schema_sample_generate_sync_post"];
         delete?: never;
@@ -4783,7 +4967,8 @@ export type paths = {
          *
          *     Failures follow the same typed contract as every other blocking endpoint in
          *     this family (422 `model_retired` / `context_length_exceeded`, 429
-         *     `rate_limited`, 504 `provider_timeout`, 502 `model_output_invalid`): a
+         *     `rate_limited`, 502 `provider_credits_exhausted`, 504 `provider_timeout`,
+         *     502 `model_output_invalid`): a
          *     provider rate-limit used to surface here as an untyped 500, so a caller
          *     could not tell a retryable condition from a bug.
          */
@@ -5114,7 +5299,7 @@ export type paths = {
          * @description Filtered, sorted page of the organization's semantic concepts.
          *
          *     `concept_types` is repeatable: the page's type filter selects several slices at
-         *     once, and every browse surface (list, export, duplicates) reads the same filter.
+         *     once, and every browse surface (list, export, review) reads the same filter.
          */
         get: operations["list_concepts_api_semantic_concepts_get"];
         put?: never;
@@ -5630,7 +5815,7 @@ export type paths = {
         put?: never;
         /**
          * Synchronous single-entity enrichment
-         * @description Blocks until the enrichment job finishes and returns the final fused (or best single-model) result. Designed for non-streaming clients such as Make.com, Zapier, or curl. Returns HTTP 422 with classification context if the entity is rejected by pre-flight classification, 504 on timeout, and a typed failure otherwise: 422 `model_retired` (provider retired the model — reselect and retry) or `context_length_exceeded`, 429 `rate_limited`, 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the model, the offending property and `retryable: true`), else 502 `enrichment_failed`.
+         * @description Blocks until the enrichment job finishes and returns the final fused (or best single-model) result. Designed for non-streaming clients such as Make.com, Zapier, or curl. Returns HTTP 422 with classification context if the entity is rejected by pre-flight classification, 504 on timeout, and a typed failure otherwise: 422 `model_retired` (provider retired the model — reselect and retry) or `context_length_exceeded`, 429 `rate_limited`, 502 `provider_credits_exhausted` (the provider account behind the key is out of credit — no retry helps until it is topped up), 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the model, the offending property and `retryable: true`), else 502 `enrichment_failed`.
          */
         post: operations["enrich_sync_api_single_enrich_sync_post"];
         delete?: never;
@@ -8326,6 +8511,164 @@ export type components = {
             /** Transactions */
             transactions: components["schemas"]["CreditTransaction"][];
         };
+        /** CronJobInfo */
+        CronJobInfo: {
+            /**
+             * Cron
+             * @description The expression in force, defaulted from the registry
+             */
+            cron: string;
+            /**
+             * Cron Default
+             * @description What the registry declares; the Reset target
+             */
+            cron_default: string;
+            /** @description The run in flight, if any */
+            current_run?: components["schemas"]["CronRun"] | null;
+            /** Description */
+            description: string;
+            /** Dry Run */
+            dry_run: boolean;
+            /** Enabled */
+            enabled: boolean;
+            /** Id */
+            id: string;
+            /** @description The newest finished run, whatever its outcome */
+            last_run?: components["schemas"]["CronRun"] | null;
+            /**
+             * Next Runs
+             * @description The next fire times in the configured zone; empty when disabled
+             */
+            next_runs?: string[];
+            /**
+             * Option Fields
+             * @description Which `options` fields this job reads; the rest are not rendered
+             */
+            option_fields: string[];
+            options: components["schemas"]["CronJobOptions"];
+        };
+        /**
+         * CronJobOptions
+         * @description The knobs a job body takes beyond `dry_run`.
+         *
+         *     One optional field per job that has any — a job simply never reads the others.
+         *     `registry.option_fields` says which ones a given job actually uses.
+         */
+        CronJobOptions: {
+            /**
+             * Max Benchmark Models
+             * @description model_refresh: models benchmarked per scenario and run; null = no cap
+             */
+            max_benchmark_models?: number | null;
+        };
+        /**
+         * CronJobUpdate
+         * @description `PUT /api/admin/cron/{job_id}` — a patch; only the fields sent are applied.
+         *
+         *     `cron: null` is meaningful and resets the job to the registry's own schedule,
+         *     which is why the route reads `model_dump(exclude_unset=True)` rather than
+         *     treating None as absence.
+         */
+        CronJobUpdate: {
+            /** Cron */
+            cron?: string | null;
+            /** Dry Run */
+            dry_run?: boolean | null;
+            /** Enabled */
+            enabled?: boolean | null;
+            options?: components["schemas"]["CronJobOptions"] | null;
+        };
+        /**
+         * CronRun
+         * @description One `cron_runs` row.
+         */
+        CronRun: {
+            /** Counts */
+            counts?: {
+                [key: string]: number;
+            };
+            /** Dry Run */
+            dry_run: boolean;
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /** Error */
+            error?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id: number;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Report
+             * @description What the counts cannot say — which models, which scenarios, what failed
+             */
+            report?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "running" | "succeeded" | "failed" | "skipped";
+            /**
+             * Trigger
+             * @enum {string}
+             */
+            trigger: "scheduled" | "manual";
+            /** Triggered By */
+            triggered_by?: string | null;
+            /** Triggered By Email */
+            triggered_by_email?: string | null;
+        };
+        /**
+         * CronRunRequest
+         * @description `POST /api/admin/cron/{job_id}/run` — an empty body runs the job as configured.
+         */
+        CronRunRequest: {
+            /**
+             * Dry Run
+             * @description Override the job's stored flag for this run only (the UI's Preview)
+             */
+            dry_run?: boolean | null;
+        };
+        /** CronRunsPage */
+        CronRunsPage: {
+            /** Runs */
+            runs: components["schemas"]["CronRun"][];
+            /** Total */
+            total: number;
+        };
+        /** CronSettingsResponse */
+        CronSettingsResponse: {
+            /** Jobs */
+            jobs: components["schemas"]["CronJobInfo"][];
+            /**
+             * Runs Kept
+             * @description Runs retained per job before the oldest are pruned
+             */
+            runs_kept: number;
+            /**
+             * Scheduler Running
+             * @description False when this process failed to start its scheduler: settings are stored, but nothing here will fire them
+             */
+            scheduler_running: boolean;
+            /** Timezone */
+            timezone: string;
+        };
+        /**
+         * CronSettingsUpdate
+         * @description `PUT /api/admin/cron` — the settings that belong to no single job.
+         */
+        CronSettingsUpdate: {
+            /** Timezone */
+            timezone: string;
+        };
         /**
          * CustomPromptRequest
          * @description Request for custom prompt execution.
@@ -8858,7 +9201,7 @@ export type components = {
             classification_job_id?: string | null;
             /**
              * Classification Skipped
-             * @description Why no classification job runs — 'up_to_date' (the ledger already covers every property), 'already_running', or a quota/credit reason. The link still succeeded: the deterministic key ladder stamped the schema, and the pass can be re-run anytime from the Model tab (POST /api/schema/saved/{id}/classify-database-model).
+             * @description Why no classification job runs — 'up_to_date' (the ledger already covers every property), 'already_running', 'no_default_model' / 'no_capable_default_model' (no pinned default and no scoring-source benchmark to pick one from: pass a model to the classify endpoint), or a quota/credit reason. The link still succeeded: the deterministic key ladder stamped the schema, and the pass can be re-run anytime from the Model tab (POST /api/schema/saved/{id}/classify-database-model).
              */
             classification_skipped?: string | null;
             /**
@@ -8894,7 +9237,7 @@ export type components = {
             classification_job_id?: string | null;
             /**
              * Classification Skipped
-             * @description Why no classification job runs — 'up_to_date' (the ledger already covers every property), 'already_running', or a quota/credit reason. The link still succeeded: the deterministic key ladder stamped the schema, and the pass can be re-run anytime from the Model tab (POST /api/schema/saved/{id}/classify-database-model).
+             * @description Why no classification job runs — 'up_to_date' (the ledger already covers every property), 'already_running', 'no_default_model' / 'no_capable_default_model' (no pinned default and no scoring-source benchmark to pick one from: pass a model to the classify endpoint), or a quota/credit reason. The link still succeeded: the deterministic key ladder stamped the schema, and the pass can be re-run anytime from the Model tab (POST /api/schema/saved/{id}/classify-database-model).
              */
             classification_skipped?: string | null;
             database: components["schemas"]["DatabaseSync"];
@@ -9634,6 +9977,13 @@ export type components = {
             /** Name */
             name: string;
         };
+        /** DemoExportToRepoResponse */
+        DemoExportToRepoResponse: {
+            /** Removed */
+            removed: string[];
+            /** Written */
+            written: string[];
+        };
         /**
          * DemoOutlineNode
          * @description One property of the published schema, in `property_order`, refs resolved.
@@ -9699,6 +10049,66 @@ export type components = {
             icon?: string | null;
             /** Sort Order */
             sort_order?: number | null;
+        };
+        /** DemoResourcesResponse */
+        DemoResourcesResponse: {
+            /**
+             * Auto Update
+             * @description Whether this deployment applies outdated resources at startup (local deployments)
+             */
+            auto_update: boolean;
+            /**
+             * Can Write Repo
+             * @description Whether the export may write the resource folder in place (local deployments)
+             */
+            can_write_repo: boolean;
+            /** Resources */
+            resources: components["schemas"]["DemoResourceStatus"][];
+        };
+        /**
+         * DemoResourceStatus
+         * @description One resource folder against the live demo organization.
+         *
+         *     - `missing`: no schema of that name in the demo organization (the seed creates it)
+         *     - `in_sync`: the live contract, registration and document match the resource
+         *     - `outdated`: the resource changed since the last seed and nothing touched the live schema since (updated
+         *       automatically on a local deployment, by the admin elsewhere)
+         *     - `local_edits`: the live schema changed since the last seed — applying overwrites those edits
+         *     - `diverged`: the live schema differs and was never seeded from a resource
+         *     - `error`: the folder does not load
+         */
+        DemoResourceStatus: {
+            /**
+             * Detail
+             * @description What differs, or the loading error
+             */
+            detail?: string | null;
+            /**
+             * Document
+             * @description The resource's document file name
+             */
+            document?: string | null;
+            /**
+             * Document Pending
+             * @description The document run could not start yet (no model, no quota)
+             * @default false
+             */
+            document_pending: boolean;
+            /** Name */
+            name: string;
+            /** Resource Fingerprint */
+            resource_fingerprint?: string | null;
+            /** Schema Id */
+            schema_id?: string | null;
+            /** Seeded At */
+            seeded_at?: string | null;
+            /** Slug */
+            slug: string;
+            /**
+             * State
+             * @description missing | in_sync | outdated | local_edits | diverged | error
+             */
+            state: string;
         };
         /** DemoResultAdminRow */
         DemoResultAdminRow: {
@@ -9962,6 +10372,47 @@ export type components = {
             outline: components["schemas"]["DemoOutlineNode"];
             /** Slug */
             slug: string;
+        };
+        /** DemoSeedApplyRequest */
+        DemoSeedApplyRequest: {
+            /**
+             * Dry Run
+             * @description Report what would happen without writing
+             * @default false
+             */
+            dry_run: boolean;
+            /**
+             * Force
+             * @description Also overwrite `local_edits` and `diverged` schemas
+             * @default false
+             */
+            force: boolean;
+            /**
+             * Slugs
+             * @description Resources to apply; None = every one that needs it
+             */
+            slugs?: string[] | null;
+        };
+        /** DemoSeedItem */
+        DemoSeedItem: {
+            /**
+             * Action
+             * @description create | update | skip | error
+             */
+            action: string;
+            /** Detail */
+            detail?: string | null;
+            /** Slug */
+            slug: string;
+            /** State */
+            state: string;
+        };
+        /** DemoSeedReport */
+        DemoSeedReport: {
+            /** Dry Run */
+            dry_run: boolean;
+            /** Items */
+            items: components["schemas"]["DemoSeedItem"][];
         };
         /** DemoSemanticStats */
         DemoSemanticStats: {
@@ -10864,12 +11315,12 @@ export type components = {
             entity_type: string;
             /**
              * Owned By
-             * @description Owning entity type when this type is a weak entity (owned relationship site); its rows are identified by the owner's keys plus database_keys. A 1-1-owned type with a non-nullable semantic_id keeps that column as its database key (source 'semantic_id') so the row's identity column is indexed; a 1-1-owned type without one is identified by the owner alone (database_keys is empty, source 'owner'). An array-owned type with no scalar keys of its own but a promoted 1-1 reference keys on (owner, reference) — the junction-with-attributes grain (database_keys is empty, source 'reference'); one whose only identity material sits in an OWNED 1-1 target that flattens into its row borrows that target's own designation as dotted keys (source 'owned_identity')
+             * @description Owning entity type when this type is a weak entity (owned relationship site); its rows are identified by the owner's keys plus database_keys. A 1-1-owned type with a non-nullable semantic_id keeps that column as its database key (source 'semantic_id') so the row's identity column is indexed; a 1-1-owned type without one is identified by the owner alone (database_keys is empty, source 'owner'). An array-owned type with a promoted 1-1 reference keys on (owner, reference) — the junction-with-attributes grain (reference_keys names the columns; source 'reference' when it has no scalar key of its own, a scalar key on it being a discriminator that extends the tuple); one whose only identity material sits in an OWNED 1-1 target that flattens into its row borrows that target's own designation as dotted keys (source 'owned_identity')
              */
             owned_by?: string | null;
             /**
              * Owner Keys
-             * @description Owned types only: the owner-copy columns that LEAD the row identity in the shipped constraint (`_(owner_table)_(key)`, e.g. `_video_game_console_id`) — the full key the replica enforces is owner_keys + database_keys, never database_keys alone (issue #177)
+             * @description Owned types only: the owner-copy columns that LEAD the row identity in the shipped constraint (`_(owner_table)_(key)`, e.g. `_video_game_console_id`) — the full key the replica enforces is owner_keys + database_keys + reference_keys, never database_keys alone (issues #177, #199)
              */
             owner_keys?: string[];
             /**
@@ -10877,6 +11328,11 @@ export type components = {
              * @description Schema path of the entity type ('' for the root object)
              */
             path: string;
+            /**
+             * Reference Keys
+             * @description Array-owned types carrying a promoted 1-1 reference (the junction grain, issues #130/#133/#199): the reference columns that CLOSE the row identity — natural FK copies of the target's keys (`<prop>_<key>`) under natural, the `<prop>_id` columns under surrogate. Rows are identified by (owner, reference[, database_keys]): a database_key on such a type is a discriminator EXTENDING the reference identity (the same referenced thing twice under one owner — a role, a seat), never a replacement for it
+             */
+            reference_keys?: string[];
             /**
              * Source
              * @enum {string}
@@ -11591,6 +12047,24 @@ export type components = {
             semantic_id?: string | null;
         };
         /**
+         * IgnoredKeyword
+         * @description One keyword the parser dropped from a posted document (issue #198).
+         */
+        IgnoredKeyword: {
+            /**
+             * Hint
+             * @description Why it was dropped and where it belongs — e.g. a property flag placed on an object names the property level it is read at.
+             */
+            hint: string;
+            /** Keyword */
+            keyword: string;
+            /**
+             * Path
+             * @description Property-tool path of the node that carried the keyword: '' for the document root, dot-separated property paths with `[]` entering an array item, `$defs.Type` / `$enums.Name` for named definitions.
+             */
+            path: string;
+        };
+        /**
          * ImportBenchmarkResultsRequest
          * @description Bulk-import portable results onto an existing scenario (upsert per model key).
          */
@@ -12206,6 +12680,11 @@ export type components = {
              * @description Provider name (DB format)
              */
             provider_name: string;
+            /**
+             * Reason
+             * @description Deactivation reason persisted on the row ('deactivate' only)
+             */
+            reason?: string | null;
             /**
              * Source
              * @description Scraper source that produced this change
@@ -16291,6 +16770,11 @@ export type components = {
              */
             ambiguity_check_enabled: boolean;
             /**
+             * Applied Repairs
+             * @description Write responses only (save / full-content update): what the save gate changed or dropped without refusing — flag conflicts normalized, unknown keywords dropped (see ignored_keywords). Absent on reads.
+             */
+            applied_repairs?: string[] | null;
+            /**
              * Created At
              * Format: date-time
              */
@@ -16312,6 +16796,11 @@ export type components = {
              * Format: uuid
              */
             id: string;
+            /**
+             * Ignored Keywords
+             * @description Write responses only: every keyword of the posted schema_content the parser dropped, with the node path and a hint saying where it is read (issue #198). A conformant reader ignores unknown keywords rather than refusing them, so a property flag placed on a $defs entity lands here instead of in a 400 — diff nothing, read this.
+             */
+            ignored_keywords?: components["schemas"]["IgnoredKeyword"][] | null;
             /** @description What an enrichment request must supply for this schema — the three gates that reject a request before any LLM spend. Derived from the contract enrichment actually runs against (published when linked, else the working copy), so a caller can build a valid entity_data up front instead of discovering each gate through an HTTP 400. */
             readonly input_contract: components["schemas"]["EnrichmentInputContract"];
             /** Is Pinned */
@@ -17119,7 +17608,7 @@ export type components = {
             database?: components["schemas"]["DatabaseSyncOutcome"] | null;
             /**
              * Error Code
-             * @description Typed failure code when success=false — e.g. 'model_retired' (provider retired the model, now deactivated), 'rate_limited', 'context_length_exceeded', 'provider_timeout'. Absent on success.
+             * @description Typed failure code when success=false — e.g. 'model_retired' (provider retired the model, now deactivated), 'rate_limited', 'provider_credits_exhausted' (the provider account behind the key is out of credit), 'context_length_exceeded', 'provider_timeout'. Absent on success.
              */
             error_code?: string | null;
             /** Error Message */
@@ -23363,6 +23852,14 @@ export type CreditCheckoutRequest = components['schemas']['CreditCheckoutRequest
 export type CreditPack = components['schemas']['CreditPack'];
 export type CreditTransaction = components['schemas']['CreditTransaction'];
 export type CreditTransactionList = components['schemas']['CreditTransactionList'];
+export type CronJobInfo = components['schemas']['CronJobInfo'];
+export type CronJobOptions = components['schemas']['CronJobOptions'];
+export type CronJobUpdate = components['schemas']['CronJobUpdate'];
+export type CronRun = components['schemas']['CronRun'];
+export type CronRunRequest = components['schemas']['CronRunRequest'];
+export type CronRunsPage = components['schemas']['CronRunsPage'];
+export type CronSettingsResponse = components['schemas']['CronSettingsResponse'];
+export type CronSettingsUpdate = components['schemas']['CronSettingsUpdate'];
 export type CustomPromptRequest = components['schemas']['CustomPromptRequest'];
 export type CustomPromptResponse = components['schemas']['CustomPromptResponse'];
 export type DatabaseAccessTokenResponse = components['schemas']['DatabaseAccessTokenResponse'];
@@ -23404,8 +23901,11 @@ export type DemoDocumentPublic = components['schemas']['DemoDocumentPublic'];
 export type DemoDocumentRun = components['schemas']['DemoDocumentRun'];
 export type DemoEntityRow = components['schemas']['DemoEntityRow'];
 export type DemoExpert = components['schemas']['DemoExpert'];
+export type DemoExportToRepoResponse = components['schemas']['DemoExportToRepoResponse'];
 export type DemoOutlineNode = components['schemas']['DemoOutlineNode'];
 export type DemoPresentation = components['schemas']['DemoPresentation'];
+export type DemoResourcesResponse = components['schemas']['DemoResourcesResponse'];
+export type DemoResourceStatus = components['schemas']['DemoResourceStatus'];
 export type DemoResultAdminRow = components['schemas']['DemoResultAdminRow'];
 export type DemoResultResponse = components['schemas']['DemoResultResponse'];
 export type DemoResultsAdminListResponse = components['schemas']['DemoResultsAdminListResponse'];
@@ -23418,6 +23918,9 @@ export type DemoRunRequest = components['schemas']['DemoRunRequest'];
 export type DemoRunResponse = components['schemas']['DemoRunResponse'];
 export type DemoSchemaAdminRow = components['schemas']['DemoSchemaAdminRow'];
 export type DemoSchemaPublic = components['schemas']['DemoSchemaPublic'];
+export type DemoSeedApplyRequest = components['schemas']['DemoSeedApplyRequest'];
+export type DemoSeedItem = components['schemas']['DemoSeedItem'];
+export type DemoSeedReport = components['schemas']['DemoSeedReport'];
 export type DemoSemanticStats = components['schemas']['DemoSemanticStats'];
 export type DemoSessionRequest = components['schemas']['DemoSessionRequest'];
 export type DemoSessionResponse = components['schemas']['DemoSessionResponse'];
@@ -23473,6 +23976,7 @@ export type HttpValidationError = components['schemas']['HTTPValidationError'];
 export type IdentityScopingFinding = components['schemas']['IdentityScopingFinding'];
 export type IdentityScopingInfo = components['schemas']['IdentityScopingInfo'];
 export type IdentityUnderidentifiesWarning = components['schemas']['IdentityUnderidentifiesWarning'];
+export type IgnoredKeyword = components['schemas']['IgnoredKeyword'];
 export type ImportBenchmarkResultsRequest = components['schemas']['ImportBenchmarkResultsRequest'];
 export type ImportBenchmarkResultsResponse = components['schemas']['ImportBenchmarkResultsResponse'];
 export type ImportedBenchmarkResult = components['schemas']['ImportedBenchmarkResult'];
@@ -23943,7 +24447,202 @@ export interface operations {
             };
         };
     };
-    bootstrap_api_admin_demo_bootstrap_post: {
+    get_cron_settings_api_admin_cron_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CronSettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_cron_settings_api_admin_cron_put: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CronSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CronSettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_cron_job_api_admin_cron__job_id__put: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CronJobUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CronSettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_cron_job_api_admin_cron__job_id__run_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CronRunRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CronRun"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_cron_runs_api_admin_cron__job_id__runs_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CronRunsPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bootstrap_demo_api_admin_demo_bootstrap_post: {
         parameters: {
             query?: {
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
@@ -23965,6 +24664,150 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DemoBootstrapResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_resources_api_admin_demo_resources_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoResourcesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_resources_api_admin_demo_resources_apply_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemoSeedApplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoSeedReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_resources_api_admin_demo_resources_export_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_resources_to_repo_api_admin_demo_resources_export_to_repo_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoExportToRepoResponse"];
                 };
             };
             /** @description Validation Error */
