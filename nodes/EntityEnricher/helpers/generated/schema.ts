@@ -17802,6 +17802,11 @@ export type components = {
              * @default false
              */
             auto_outlier: boolean;
+            /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
             /** Cache Read Tokens */
             cache_read_tokens?: number | null;
             /**
@@ -17829,8 +17834,18 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default arbitration_completed
@@ -17865,6 +17880,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -17922,6 +17942,11 @@ export type components = {
              */
             auto_outlier: boolean;
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -17944,6 +17969,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default arbitration_started
@@ -17971,6 +18006,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -18031,6 +18071,11 @@ export type components = {
          */
         SSEAttachmentCoherence: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -18048,6 +18093,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default attachment_coherence
@@ -18080,6 +18135,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -18159,6 +18219,11 @@ export type components = {
          */
         SSEAttempt: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -18176,6 +18241,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default attempt
@@ -18203,6 +18278,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -18255,6 +18335,11 @@ export type components = {
          */
         SSEBatchCompleted: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -18272,6 +18357,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default batch_completed
@@ -18299,6 +18394,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -18352,6 +18452,11 @@ export type components = {
          */
         SSEBatchStarted: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -18369,6 +18474,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default batch_started
@@ -18396,6 +18511,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -18440,6 +18560,11 @@ export type components = {
          * @description Emitted when pre-flight classification finishes.
          */
         SSEClassificationCompleted: {
+            /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
             /** @description Classification result (None if failed) */
             classification?: components["schemas"]["ClassificationContext"] | null;
             /**
@@ -18465,8 +18590,18 @@ export type components = {
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default classification_completed
@@ -18494,6 +18629,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -18545,6 +18685,11 @@ export type components = {
          * @description Emitted when classification detects a warning (mismatch, unknown, or ambiguous) and pauses for user decision.
          */
         SSEClassificationMismatchPause: {
+            /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
             classification: components["schemas"]["ClassificationContext"];
             /**
              * Completed Entities
@@ -18564,6 +18709,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default classification_mismatch_pause
@@ -18591,6 +18746,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -18639,6 +18799,11 @@ export type components = {
          */
         SSEClassificationMismatchTimeout: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -18656,6 +18821,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default classification_mismatch_timeout
@@ -18683,6 +18858,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -18730,6 +18910,11 @@ export type components = {
          */
         SSEClassificationStarted: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -18752,6 +18937,16 @@ export type components = {
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default classification_started
@@ -18779,6 +18974,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -18831,6 +19031,11 @@ export type components = {
             /** Agreed Fields */
             agreed_fields: number;
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -18850,6 +19055,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default conflicts_detected
@@ -18877,6 +19092,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -18926,6 +19146,11 @@ export type components = {
          */
         SSEDatabaseRejected: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -18949,6 +19174,16 @@ export type components = {
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default database_rejected
@@ -18976,6 +19211,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -19031,6 +19271,11 @@ export type components = {
          */
         SSEDatabaseSaved: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -19054,6 +19299,16 @@ export type components = {
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default database_saved
@@ -19081,6 +19336,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -19131,6 +19391,11 @@ export type components = {
          */
         SSEEntityCompleted: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -19154,6 +19419,16 @@ export type components = {
             entity_label: string;
             /** Error */
             error?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default entity_completed
@@ -19181,6 +19456,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -19247,6 +19527,11 @@ export type components = {
          */
         SSEEntitySkipped: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Code
              * @enum {string}
              */
@@ -19274,6 +19559,16 @@ export type components = {
             /** Entity Label */
             entity_label: string;
             /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
+            /**
              * Event
              * @default entity_skipped
              * @constant
@@ -19300,6 +19595,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -19345,6 +19645,11 @@ export type components = {
          */
         SSEEntityStarted: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -19366,6 +19671,16 @@ export type components = {
             entity_index: number;
             /** Entity Label */
             entity_label: string;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default entity_started
@@ -19393,6 +19708,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -19439,6 +19759,11 @@ export type components = {
          */
         SSEExpertiseCompleted: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -19465,8 +19790,18 @@ export type components = {
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default expertise_completed
@@ -19507,6 +19842,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -19569,6 +19909,11 @@ export type components = {
          */
         SSEExpertiseStarted: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -19588,6 +19933,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default expertise_started
@@ -19619,6 +19974,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -19668,6 +20028,11 @@ export type components = {
          */
         SSEFusionCompleted: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -19695,8 +20060,18 @@ export type components = {
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default fusion_completed
@@ -19726,6 +20101,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -19790,6 +20170,11 @@ export type components = {
             /** Arbitration Model */
             arbitration_model?: string | null;
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -19812,6 +20197,16 @@ export type components = {
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default fusion_started
@@ -19839,6 +20234,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -19889,6 +20289,11 @@ export type components = {
          */
         SSEHeartbeat: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -19906,6 +20311,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default heartbeat
@@ -19933,6 +20348,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -19978,6 +20398,11 @@ export type components = {
          */
         SSEJobCancelled: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -19995,6 +20420,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default cancelled
@@ -20022,6 +20457,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -20073,6 +20513,11 @@ export type components = {
          */
         SSEJobCompleted: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -20090,6 +20535,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default completed
@@ -20117,6 +20572,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -20171,6 +20631,11 @@ export type components = {
          */
         SSEJobFailed: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -20188,6 +20653,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default failed
@@ -20215,6 +20690,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -20267,6 +20747,11 @@ export type components = {
          */
         SSEJobPaused: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -20284,6 +20769,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default paused
@@ -20311,6 +20806,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -20356,6 +20856,11 @@ export type components = {
          */
         SSEJobPending: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -20373,6 +20878,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default pending
@@ -20400,6 +20915,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -20445,6 +20965,11 @@ export type components = {
          */
         SSEJobRunning: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -20462,6 +20987,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default running
@@ -20489,6 +21024,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -20539,6 +21079,11 @@ export type components = {
          */
         SSEModelAutoSelected: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -20556,6 +21101,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default model_auto_selected
@@ -20583,6 +21138,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -20663,6 +21223,11 @@ export type components = {
          */
         SSEModelCompleted: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Cancelled
              * @default false
              */
@@ -20692,8 +21257,18 @@ export type components = {
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default model_completed
@@ -20725,6 +21300,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -20801,6 +21381,11 @@ export type components = {
          */
         SSEModelsSkipped: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -20818,6 +21403,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default models_skipped
@@ -20845,6 +21440,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -20892,6 +21492,11 @@ export type components = {
          */
         SSEModelStarted: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -20914,6 +21519,16 @@ export type components = {
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default model_started
@@ -20941,6 +21556,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -20991,6 +21611,11 @@ export type components = {
          */
         SSEResumed: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -21008,6 +21633,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default resumed
@@ -21035,6 +21670,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -21085,6 +21725,11 @@ export type components = {
          */
         SSESampleClarificationPause: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -21107,6 +21752,16 @@ export type components = {
              * @description Refined human title for the entity instance
              */
             entity_title: string;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default sample_clarification_pause
@@ -21134,6 +21789,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -21197,6 +21857,11 @@ export type components = {
          */
         SSESampleInstanceProgress: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed
              * @description Samples finished so far, including the template
              */
@@ -21219,6 +21884,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default sample_instance_progress
@@ -21246,6 +21921,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -21303,6 +21983,11 @@ export type components = {
          */
         SSESampleInstanceRoster: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -21320,6 +22005,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default sample_instance_roster
@@ -21357,6 +22052,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -21464,6 +22164,11 @@ export type components = {
          */
         SSEScoringCompleted: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -21481,6 +22186,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default scoring_completed
@@ -21508,6 +22223,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -21564,6 +22284,11 @@ export type components = {
          */
         SSEScoringDegraded: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -21581,6 +22306,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default scoring_degraded
@@ -21608,6 +22343,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -21659,6 +22399,11 @@ export type components = {
          */
         SSEScoringFailed: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -21676,8 +22421,18 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default scoring_failed
@@ -21705,6 +22460,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -21751,6 +22511,11 @@ export type components = {
          */
         SSEScoringProgress: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -21772,8 +22537,18 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default scoring_progress
@@ -21803,6 +22578,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -21877,6 +22657,11 @@ export type components = {
          */
         SSEScoringStarted: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -21894,6 +22679,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default scoring_started
@@ -21921,6 +22716,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -21971,6 +22771,11 @@ export type components = {
          */
         SSEScoringUnverifiedReference: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -21988,6 +22793,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default scoring_unverified_reference
@@ -22015,6 +22830,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -22060,6 +22880,11 @@ export type components = {
          */
         SSEStarted: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -22077,6 +22902,16 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default started
@@ -22104,6 +22939,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
@@ -22153,6 +22993,11 @@ export type components = {
          */
         SSEStrategySelected: {
             /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
              * Completed Entities
              * @description Batch jobs only: entities fully processed with ≥1 successful model
              * @default 0
@@ -22175,6 +23020,16 @@ export type components = {
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
             /**
              * Event
              * @default strategy_selected
@@ -22202,6 +23057,11 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
             /**
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
