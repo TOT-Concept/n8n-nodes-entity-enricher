@@ -4562,6 +4562,34 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/schema/nest-region": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Nest Schema Region
+         * @description Nest a flat entity region into a subobject of the object holding it —
+         *     the entity map's structural upgrade (judgment C's flat things), the one
+         *     implementation behind the editor's `→ TypeName` chips and the MCP
+         *     `nest_schema_region` tool. The region's flat members move into a new
+         *     object named after it (carrying the regions hanging from it along, pair
+         *     facts staying put) and shed the region's name tokens. Saved mode persists
+         *     through the ordinary save gate, marking renames when the schema is
+         *     published; content mode returns the rewritten document and persists
+         *     nothing.
+         */
+        post: operations["nest_schema_region_api_schema_nest_region_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schema/sample/generate/stream": {
         parameters: {
             query?: never;
@@ -11197,7 +11225,7 @@ export type components = {
             /**
              * Version
              * @description Map format version; a map written by an older version has every region stale and is re-judged incrementally.
-             * @default 1
+             * @default 2
              */
             version: number;
         };
@@ -13427,6 +13455,88 @@ export type components = {
             message: string;
             /** Total Models */
             total_models: number;
+        };
+        /**
+         * NestRegionRequest
+         * @description Nest a flat entity region into a subobject of the object holding it.
+         *
+         *     The entity map's structural upgrade: a region whose members sit flat in
+         *     some object (`product_id`, `product_name` on an order line — judgment C)
+         *     becomes a real nested object named after it, carrying every region that
+         *     hangs from it along (its maker's fields move with the product's), the
+         *     pair facts staying on the host. Saved mode (`schema_id`) edits the stored
+         *     working copy; content mode (`schema_content`) rewrites the supplied
+         *     document and persists nothing. Exactly one must be given.
+         */
+        NestRegionRequest: {
+            /**
+             * Dry Run
+             * @description Saved mode: report the rewrite without persisting it
+             * @default false
+             */
+            dry_run: boolean;
+            /**
+             * Host Path
+             * @description Container holding the flat members — '' for the root, an object path, 'path[]' for an array's items, or '$defs.X'
+             * @default
+             */
+            host_path: string;
+            /**
+             * Mark Rename
+             * @description Content mode: the document is published, so every stripped name leaves a `renamed_from` marker for the publish to migrate. Saved mode reads the schema's published state instead.
+             * @default false
+             */
+            mark_rename: boolean;
+            /**
+             * Region Id
+             * @description EntityRegion id from x-entityMap
+             */
+            region_id: string;
+            /** @description Content mode */
+            schema_content?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
+            /**
+             * Schema Id
+             * @description Saved mode
+             */
+            schema_id?: string | null;
+            /**
+             * Strip Prefix
+             * @description Drop the region's name tokens from the moved fields (`product_name` → `name` inside `product`)
+             * @default true
+             */
+            strip_prefix: boolean;
+        };
+        /** NestRegionResponse */
+        NestRegionResponse: {
+            /**
+             * Applied
+             * @description Whether the stored schema was updated (saved mode)
+             */
+            applied: boolean;
+            /**
+             * Moved
+             * @description Original names of the fields that moved into it
+             */
+            moved?: string[];
+            /** Notes */
+            notes?: string[];
+            /**
+             * Path
+             * @description Path of the subobject created
+             */
+            path: string;
+            /**
+             * Schema Content
+             * @description The rewritten document, conformant wire form
+             */
+            schema_content: {
+                [key: string]: unknown;
+            };
+            /**
+             * Success
+             * @default true
+             */
+            success: boolean;
         };
         /** OAuthGrantListItem */
         OAuthGrantListItem: {
@@ -16870,11 +16980,20 @@ export type components = {
          *     of the schema that were never annotated — missing descriptions/examples,
          *     unjudged behavioral flags, absent expertise domains/assignments, a missing
          *     entity map — and filling ONLY those (existing values are never
-         *     overwritten; a second run is a no-op). No samples are involved: the steps
-         *     read the schema's declared structure, so the evidence-gated judgments
-         *     (enums, discreteness, key collisions) do not run.
+         *     overwritten; a second run is a no-op). The steps read the schema's
+         *     declared structure; the saved schema's `entity_samples` (or the ones
+         *     supplied in content mode) serve one purpose only — nominating the flat
+         *     clusters of judgment C — so the other evidence-gated judgments (enums,
+         *     discreteness, key collisions) do not run.
          */
         SchemaAnnotateRequest: {
+            /**
+             * Entity Samples
+             * @description Content mode only: sample objects the document was drawn from, so flat clusters (fields of one object describing another thing) can be nominated and judged. Saved mode reads the schema's own.
+             */
+            entity_samples?: {
+                [key: string]: unknown;
+            }[] | null;
             /**
              * Generate Semantic Ids
              * @description Also inject a semantic_id property into each keyed object that lacks one (stable-keyed relationship targets excepted) and choose its identity participants — same rule as generation's checkbox.
@@ -16896,6 +17015,13 @@ export type components = {
          *     (not yet saved) schema document?
          */
         SchemaAnnotationScopeRequest: {
+            /**
+             * Entity Samples
+             * @description Sample objects, when known — they nominate flat clusters
+             */
+            entity_samples?: {
+                [key: string]: unknown;
+            }[] | null;
             /** @description The schema document, in either spelling */
             schema_content: components["schemas"]["GeneratedJsonSchema-Input"];
         };
@@ -24878,6 +25004,8 @@ export type ModelUsageRequest = components['schemas']['ModelUsageRequest'];
 export type ModelUsageResponse = components['schemas']['ModelUsageResponse'];
 export type ModelValidationRequest = components['schemas']['ModelValidationRequest'];
 export type ModelValidationResponse = components['schemas']['ModelValidationResponse'];
+export type NestRegionRequest = components['schemas']['NestRegionRequest'];
+export type NestRegionResponse = components['schemas']['NestRegionResponse'];
 export type OAuthGrantListItem = components['schemas']['OAuthGrantListItem'];
 export type OrganizationDetailResponse = components['schemas']['OrganizationDetailResponse'];
 export type OrganizationResponse = components['schemas']['OrganizationResponse'];
@@ -34103,6 +34231,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GenerateSchemaResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    nest_schema_region_api_schema_nest_region_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NestRegionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NestRegionResponse"];
                 };
             };
             /** @description Validation Error */
