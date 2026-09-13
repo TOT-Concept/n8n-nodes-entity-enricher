@@ -3174,6 +3174,28 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/llm/events/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Job Events
+         * @description Read a job's event log by cursor — the poll surface of the SSE stream,
+         *     for MCP / n8n / Make clients that cannot hold a connection open. The log
+         *     lives with the job in memory and is bounded (oldest events drop first).
+         */
+        get: operations["job_events_api_llm_events__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/llm/sse-events-schema": {
         parameters: {
             query?: never;
@@ -3205,8 +3227,10 @@ export type paths = {
          * Stream Job Progress
          * @description Stream progress events for any LLM job via SSE.
          *
-         *     Works for all job types (schema_generation, single_enrichment).
-         *     The job_type field in events indicates which type of job this is.
+         *     Works for all job types; the job_type field in events says which. Every
+         *     connection is independent (a job can be watched from several tabs): it
+         *     opens with `started`, replays the logged events after `after`, then
+         *     follows live.
          */
         get: operations["stream_job_progress_api_llm_stream__job_id__get"];
         put?: never;
@@ -6963,14 +6987,14 @@ export type components = {
             config_hash?: string | null;
             /**
              * Cost Score
-             * @description Cost vs the scenario's successful results, log-scale min-max (1.0 = cheapest, 0.0 = dearest; free results anchor at the top). sample_generation: cost is per distinct property (coverness count)
+             * @description Cost vs the scenario's successful results, log-scale min-max over at least one decade (1.0 = cheapest; 0.0 = 10× dearer or worse; free results anchor at the top). sample_generation: the output-token share of the cost is rescaled to the peer-median sample size
              */
             cost_score?: number | null;
             /** Cost Usd */
             cost_usd?: number | null;
             /**
              * Coverness Count
-             * @description sample_generation only: mean distinct-property count across successful reps (arrays merged). Basis of the read-time coverness ratio shown as Completeness and of the per-property speed/cost scores
+             * @description sample_generation only: mean distinct-property count across successful reps (arrays merged). Basis of the read-time coverness ratio shown as Completeness and of the size normalization behind the speed/cost scores
              */
             coverness_count?: number | null;
             /** Enrichment Record Id */
@@ -7075,7 +7099,7 @@ export type components = {
             scenario_id: string;
             /**
              * Speed Score
-             * @description Wall-clock speed vs the scenario's successful results, log-scale min-max (1.0 = fastest, 0.0 = slowest). sample_generation: time is per distinct property (coverness count), since output size is open-ended
+             * @description Wall-clock speed vs the scenario's successful results, log-scale min-max over at least one decade (1.0 = fastest; 0.0 = 10× slower or worse). sample_generation: the token-generation share of the time is rescaled to the peer-median sample size, since output size is open-ended
              */
             speed_score?: number | null;
             /** Strategy Used */
@@ -12257,6 +12281,36 @@ export type components = {
             properties: string[];
             /** Replaces */
             replaces: string[][];
+        };
+        /**
+         * JobEventsResponse
+         * @description A page of a job's event log, for clients that poll instead of streaming.
+         */
+        JobEventsResponse: {
+            /**
+             * Events
+             * @description Logged events with seq > after, oldest first — the same JSON objects the SSE stream delivers (see GET /api/llm/sse-events-schema).
+             */
+            events: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Has More
+             * @description True when the page was cut by `limit`: call again with after=last_seq.
+             */
+            has_more: boolean;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Last Seq
+             * @description seq of the last event returned, or `after` when none was.
+             */
+            last_seq: number;
+            /**
+             * Status
+             * @description The job's current status (not the status at the last returned event).
+             */
+            status: string;
         };
         /**
          * JobsListResponse
@@ -18031,6 +18085,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -18053,6 +18112,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEArbitrationStarted
@@ -18165,6 +18229,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -18185,6 +18254,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEAttachmentCoherence
@@ -18301,6 +18375,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -18321,6 +18400,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEAttachmentFile
@@ -18429,6 +18513,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -18454,6 +18543,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEBatchCompleted
@@ -18543,6 +18637,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -18568,6 +18667,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEBatchStarted
@@ -18660,6 +18764,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -18680,6 +18789,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEClassificationCompleted
@@ -18783,6 +18897,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -18805,6 +18924,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEClassificationMismatchPause
@@ -18895,6 +19019,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -18917,6 +19046,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEClassificationMismatchTimeout
@@ -19009,6 +19143,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -19029,6 +19168,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEClassificationStarted
@@ -19128,6 +19272,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -19148,6 +19297,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEConflictsDetected
@@ -19241,6 +19395,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -19263,6 +19422,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEDatabaseRejected
@@ -19365,6 +19529,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -19385,6 +19554,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEDatabaseSaved
@@ -19490,6 +19664,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -19510,6 +19689,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEEntityCompleted
@@ -19610,6 +19794,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -19642,6 +19831,11 @@ export type components = {
              * @default 0
              */
             total_processing_time_ms: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEEntitySkipped
@@ -19744,6 +19938,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -19764,6 +19963,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEEntityStarted
@@ -19857,6 +20061,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -19877,6 +20086,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEExpertiseCompleted
@@ -20004,6 +20218,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -20028,6 +20247,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEExpertiseStarted
@@ -20125,6 +20349,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -20147,6 +20376,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEFusionCompleted
@@ -20263,6 +20497,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -20285,6 +20524,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
             /** Validation Warnings */
             validation_warnings?: string[] | null;
         };
@@ -20383,6 +20627,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -20408,6 +20657,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEHeartbeat
@@ -20497,6 +20751,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -20517,6 +20776,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEJobCancelled
@@ -20612,6 +20876,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -20632,6 +20901,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEJobCompleted
@@ -20730,6 +21004,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -20750,6 +21029,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEJobFailed
@@ -20845,6 +21129,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -20865,6 +21154,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEJobPaused
@@ -20955,6 +21249,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -20975,6 +21274,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEJobPending
@@ -21064,6 +21368,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -21084,6 +21393,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEJobRunning
@@ -21173,6 +21487,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -21193,6 +21512,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEModelAutoSelected
@@ -21311,6 +21635,11 @@ export type components = {
             /** Scenario Names */
             scenario_names?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -21341,6 +21670,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEModelCompleted
@@ -21477,6 +21811,11 @@ export type components = {
              */
             scoreable?: boolean | null;
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -21499,6 +21838,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEModelsSkipped
@@ -21591,6 +21935,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -21611,6 +21960,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEModelStarted
@@ -21710,6 +22064,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -21730,6 +22089,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEResumed
@@ -21819,6 +22183,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -21839,6 +22208,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSESampleClarificationPause
@@ -21946,6 +22320,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -21973,6 +22352,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSESampleInstanceProgress
@@ -22070,6 +22454,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -22095,6 +22484,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSESampleInstanceRoster
@@ -22201,6 +22595,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -22226,6 +22625,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSESampleQuestion
@@ -22377,6 +22781,11 @@ export type components = {
              */
             scored: number;
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -22402,6 +22811,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEScoringDegraded
@@ -22497,6 +22911,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -22517,6 +22936,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEScoringFailed
@@ -22609,6 +23033,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -22629,6 +23058,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEScoringProgress
@@ -22742,6 +23176,11 @@ export type components = {
              */
             scored: number;
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -22773,6 +23212,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEScoringStarted
@@ -22865,6 +23309,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -22890,6 +23339,11 @@ export type components = {
              * @description Number of results to score (upper bound)
              */
             total_results: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEScoringUnverifiedReference
@@ -22979,6 +23433,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
              * @default 0
@@ -22999,10 +23458,17 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEStarted
-         * @description First event on a stream: the job's state at connect time.
+         * @description First event on a stream: the job's state at connect time, plus what the
+         *     job was launched on — enough for a client that attaches after the launch
+         *     (another tab, a page refresh) to rebuild its view before the replay.
          */
         SSEStarted: {
             /**
@@ -23081,12 +23547,30 @@ export type components = {
              */
             last_error_summary?: string | null;
             /**
+             * Last Seq
+             * @description seq of the job's latest logged event at connect time: what follows with seq <= last_seq is replayed history, anything beyond is live.
+             * @default 0
+             */
+            last_seq: number;
+            /**
+             * Launch
+             * @description Launch context stamped by the start route: a benchmark run carries `model_keys` (the composite keys it runs, in order) and `skipped_models` (key → missing capability); a scoring job its `model_keys`.
+             */
+            launch?: {
+                [key: string]: unknown;
+            } | null;
+            /**
              * Max Attempts
              * @default 0
              */
             max_attempts: number;
             /** Running Models */
             running_models?: string[];
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
             /**
              * Skipped Entities
              * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
@@ -23099,6 +23583,11 @@ export type components = {
              */
             status: string;
             /**
+             * Subject Id
+             * @description What the job operates on (a saved schema, a benchmark scenario, …), when it has one.
+             */
+            subject_id?: string | null;
+            /**
              * Total Entities
              * @description Batch jobs only: number of entities in the batch
              */
@@ -23108,6 +23597,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * SSEStrategySelected
@@ -23216,6 +23710,11 @@ export type components = {
             /** Running Models */
             running_models?: string[];
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
              * Signals
              * @description Numeric signals the decision keyed off (domains, weight, ...)
              */
@@ -23248,6 +23747,11 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
         };
         /**
          * StrategyInfo
@@ -24970,6 +25474,7 @@ export type ImportRequest = components['schemas']['ImportRequest'];
 export type ImportResult = components['schemas']['ImportResult'];
 export type IndexMergeSuggestion = components['schemas']['IndexMergeSuggestion'];
 export type IndexSuggestionDismissRequest = components['schemas']['IndexSuggestionDismissRequest'];
+export type JobEventsResponse = components['schemas']['JobEventsResponse'];
 export type JobsListResponse = components['schemas']['JobsListResponse'];
 export type JobSummary = components['schemas']['JobSummary'];
 export type JoinOrganizationRequest = components['schemas']['JoinOrganizationRequest'];
@@ -31571,6 +32076,47 @@ export interface operations {
             };
         };
     };
+    job_events_api_llm_events__job_id__get: {
+        parameters: {
+            query?: {
+                /** @description Replay cursor: the `seq` of the last event already received. 0 (a fresh client) replays the job's whole event log; a reconnecting client passes the last seq it saw and receives only what it missed. */
+                after?: number;
+                /** @description Maximum events per page. */
+                limit?: number;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobEventsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     sse_events_schema_api_llm_sse_events_schema_get: {
         parameters: {
             query?: never;
@@ -31594,6 +32140,8 @@ export interface operations {
     stream_job_progress_api_llm_stream__job_id__get: {
         parameters: {
             query?: {
+                /** @description Replay cursor: the `seq` of the last event already received. 0 (a fresh client) replays the job's whole event log; a reconnecting client passes the last seq it saw and receives only what it missed. */
+                after?: number;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
