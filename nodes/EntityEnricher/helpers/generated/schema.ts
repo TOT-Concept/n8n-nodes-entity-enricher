@@ -6953,8 +6953,13 @@ export type components = {
              * @description Enrichment record the reference was copied from (source='record')
              */
             record_id?: string | null;
+            /**
+             * Schema Id
+             * @description Saved schema the reference (and the input samples) were copied from (source='schema') — a snapshot, never a live link
+             */
+            schema_id?: string | null;
             /** Source */
-            source?: ("generated" | "pasted" | "record") | null;
+            source?: ("generated" | "pasted" | "record" | "schema") | null;
             /**
              * Web Search
              * @description Web search was enabled for generation
@@ -7200,11 +7205,18 @@ export type components = {
             enable_strict_structured_output: boolean;
             /**
              * Entity Data
-             * @description Fixed entity input (enrichment: search keys / raw JSON; schema_generation: the input sample JSON)
+             * @description Fixed entity input (enrichment only: search keys / raw JSON)
              */
             entity_data?: {
                 [key: string]: unknown;
             };
+            /**
+             * Entity Samples
+             * @description schema_generation only: the 1..20 fixed input samples of one entity type every model converts to a schema — the same list generation accepts, frozen on the scenario so the reference and the scoring evidence (nullable, types, identity partitions) read the very samples the candidates were derived from
+             */
+            entity_samples?: {
+                [key: string]: unknown;
+            }[] | null;
             /** Languages */
             languages?: string[];
             /** Name */
@@ -7287,6 +7299,10 @@ export type components = {
             entity_data: {
                 [key: string]: unknown;
             };
+            /** Entity Samples */
+            entity_samples?: {
+                [key: string]: unknown;
+            }[] | null;
             /**
              * Id
              * Format: uuid
@@ -7377,6 +7393,10 @@ export type components = {
             entity_data: {
                 [key: string]: unknown;
             };
+            /** Entity Samples */
+            entity_samples?: {
+                [key: string]: unknown;
+            }[] | null;
             /**
              * Id
              * Format: uuid
@@ -7458,6 +7478,13 @@ export type components = {
             entity_data?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Entity Samples
+             * @description schema_generation: replacement input samples (1..20)
+             */
+            entity_samples?: {
+                [key: string]: unknown;
+            }[] | null;
             /** Languages */
             languages?: string[] | null;
             /** Name */
@@ -16264,6 +16291,40 @@ export type components = {
             /** States */
             states: components["schemas"]["RecordSyncState"][];
         };
+        /**
+         * ReferenceSuggestion
+         * @description Where a candidate looked better than the gold reference — for the reference's author.
+         *
+         *     Never applied automatically: a judge does not rewrite the gold. Raised by a
+         *     ``candidate_better`` verdict, or by the samples themselves when the reference
+         *     violates a rule they prove (a nullable they show, a type they contradict, a key set
+         *     that collapses two of them).
+         */
+        ReferenceSuggestion: {
+            /**
+             * Attribute
+             * @description type | nullable | multilingual | preserve | enum | description | keys | participants
+             */
+            attribute: string;
+            /** Candidate */
+            candidate?: unknown;
+            /** Path */
+            path: string;
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+            /** Reference */
+            reference?: unknown;
+            /**
+             * Source
+             * @description judge = a candidate_better verdict; samples = the samples prove the reference wrong; structure = a fact of the documents (an undescribed property)
+             * @default judge
+             * @enum {string}
+             */
+            source: "judge" | "samples" | "structure";
+        };
         /** RefreshTokenRequest */
         RefreshTokenRequest: {
             /** Refresh Token */
@@ -17130,10 +17191,20 @@ export type components = {
             expertise?: components["schemas"]["SchemaExpertiseDetail"] | null;
             /** Extra Paths */
             extra_paths?: string[];
+            identity?: components["schemas"]["SchemaIdentityDetail"] | null;
             /** Matched */
             matched?: components["schemas"]["SchemaPropMatch"][];
             /** Missed Paths */
             missed_paths?: string[];
+            regions?: components["schemas"]["SchemaRegionsDetail"] | null;
+            /**
+             * Sample Count
+             * @description Samples the evidence was read from
+             * @default 0
+             */
+            sample_count: number;
+            /** Suggestions */
+            suggestions?: components["schemas"]["ReferenceSuggestion"][];
             /** Weights */
             weights?: {
                 [key: string]: number;
@@ -17166,7 +17237,7 @@ export type components = {
         };
         /**
          * SchemaGenTaskParams
-         * @description Fixed schema-generation options (the input sample JSON lives in entity_data).
+         * @description Fixed schema-generation options (the input samples live in entity_samples).
          */
         SchemaGenTaskParams: {
             /**
@@ -17174,6 +17245,56 @@ export type components = {
              * @default false
              */
             generate_semantic_ids: boolean;
+        };
+        /** SchemaIdentityDetail */
+        SchemaIdentityDetail: {
+            /** Scopes */
+            scopes?: components["schemas"]["SchemaIdentityScope"][];
+            /** Score */
+            score: number;
+        };
+        /**
+         * SchemaIdentityScope
+         * @description Identity of one matched object scope: its key set and, with semantic IDs, the
+         *     frozen participants composing the concept text.
+         */
+        SchemaIdentityScope: {
+            /** Cand Concept Type */
+            cand_concept_type?: string | null;
+            /**
+             * Cand Keys
+             * @description In reference spelling
+             */
+            cand_keys?: string[];
+            /** Cand Participants */
+            cand_participants?: string[] | null;
+            /**
+             * Instances
+             * @description Instances of this scope observed in the samples
+             */
+            instances: number;
+            /** Keys Score */
+            keys_score: number;
+            /**
+             * Keys Verdict
+             * @enum {string}
+             */
+            keys_verdict: "proven" | "proven_wrong" | "candidate_better" | "equivalent" | "reference_better" | "candidate_wrong" | "agree" | "unjudged";
+            /** Participants Score */
+            participants_score?: number | null;
+            /** Participants Verdict */
+            participants_verdict?: ("proven" | "proven_wrong" | "candidate_better" | "equivalent" | "reference_better" | "candidate_wrong" | "agree" | "unjudged") | null;
+            /**
+             * Path
+             * @description Reference-side scope path ('' = root)
+             */
+            path: string;
+            /** Ref Concept Type */
+            ref_concept_type?: string | null;
+            /** Ref Keys */
+            ref_keys?: string[];
+            /** Ref Participants */
+            ref_participants?: string[] | null;
         };
         /**
          * SchemaPromptRequest
@@ -17310,12 +17431,24 @@ export type components = {
             cand_path: string;
             /** Desc Score */
             desc_score?: number | null;
+            /** Desc Verdict */
+            desc_verdict?: ("proven" | "proven_wrong" | "candidate_better" | "equivalent" | "reference_better" | "candidate_wrong" | "agree" | "unjudged") | null;
             /**
              * Flag Diffs
-             * @description Behavioral flags that disagree (identifying, nullable, ...)
+             * @description Attributes that disagree (nullable, multilingual, preserve, enum)
              */
             flag_diffs?: string[];
-            /** Flags Score */
+            /**
+             * Flag Verdicts
+             * @description Per disagreeing attribute: how it was settled
+             */
+            flag_verdicts?: {
+                [key: string]: "proven" | "proven_wrong" | "candidate_better" | "equivalent" | "reference_better" | "candidate_wrong" | "agree" | "unjudged";
+            };
+            /**
+             * Flags Score
+             * @description Mean of the judged attributes (nullable, multilingual, preserve, enum)
+             */
             flags_score: number;
             /**
              * Method
@@ -17326,6 +17459,13 @@ export type components = {
             ref_path: string;
             /** Type Score */
             type_score: number;
+            /**
+             * Type Verdict
+             * @description proven / proven_wrong when the samples settle the type; candidate_better when the candidate's type is the one the samples prove and the reference's is not
+             * @default agree
+             * @enum {string}
+             */
+            type_verdict: "proven" | "proven_wrong" | "candidate_better" | "equivalent" | "reference_better" | "candidate_wrong" | "agree" | "unjudged";
         };
         /**
          * SchemaPublishDiff
@@ -17451,6 +17591,61 @@ export type components = {
             /** Published */
             published: boolean;
             saved_schema: components["schemas"]["SavedSchemaResponse"];
+        };
+        /**
+         * SchemaRegionMatch
+         * @description One reference region and the candidate region its members mostly landed in.
+         */
+        SchemaRegionMatch: {
+            /** Cand Region */
+            cand_region?: string | null;
+            /** Cand Type */
+            cand_type?: string | null;
+            /**
+             * Endpoints Score
+             * @description Pairing only: Jaccard of the endpoint region sets (mapped)
+             */
+            endpoints_score?: number | null;
+            /** F1 */
+            f1: number;
+            /**
+             * Kind Match
+             * @description Same kind (entity/pairing); None when unmatched
+             */
+            kind_match?: boolean | null;
+            /** Ref Region */
+            ref_region: string;
+            /** Ref Type */
+            ref_type: string;
+        };
+        /**
+         * SchemaRegionsDetail
+         * @description Entity-map comparison: partition similarity plus kind/endpoint agreement.
+         *
+         *     Asymmetric on purpose: a candidate region with no reference counterpart is a split
+         *     with no evidence (it mints a table and an identity for a non-thing), penalized on its
+         *     own; a reference region the candidate never split off only lowers the membership F1.
+         */
+        SchemaRegionsDetail: {
+            /**
+             * Extra Regions
+             * @description Candidate regions (type names) with no reference counterpart
+             */
+            extra_regions?: string[];
+            /** Mapping */
+            mapping?: components["schemas"]["SchemaRegionMatch"][];
+            /**
+             * Membership
+             * @description Size-weighted mean F1 over the reference regions
+             */
+            membership: number;
+            /** Score */
+            score: number;
+            /**
+             * Virtual Merges
+             * @description Pending unify proposals counted as applied because the other side merged
+             */
+            virtual_merges?: string[];
         };
         /**
          * SchemaSemanticUsage
@@ -25573,6 +25768,7 @@ export type RecordSyncDatabaseState = components['schemas']['RecordSyncDatabaseS
 export type RecordSyncState = components['schemas']['RecordSyncState'];
 export type RecordSyncStatesRequest = components['schemas']['RecordSyncStatesRequest'];
 export type RecordSyncStatesResponse = components['schemas']['RecordSyncStatesResponse'];
+export type ReferenceSuggestion = components['schemas']['ReferenceSuggestion'];
 export type RefreshTokenRequest = components['schemas']['RefreshTokenRequest'];
 export type RefreshTokenResponse = components['schemas']['RefreshTokenResponse'];
 export type RegisterRequest = components['schemas']['RegisterRequest'];
@@ -25606,6 +25802,8 @@ export type SchemaComparisonDetail = components['schemas']['SchemaComparisonDeta
 export type SchemaEnrichmentDataPurgeResponse = components['schemas']['SchemaEnrichmentDataPurgeResponse'];
 export type SchemaExpertiseDetail = components['schemas']['SchemaExpertiseDetail'];
 export type SchemaGenTaskParams = components['schemas']['SchemaGenTaskParams'];
+export type SchemaIdentityDetail = components['schemas']['SchemaIdentityDetail'];
+export type SchemaIdentityScope = components['schemas']['SchemaIdentityScope'];
 export type SchemaPromptRequest = components['schemas']['SchemaPromptRequest'];
 export type SchemaPromptResponse = components['schemas']['SchemaPromptResponse'];
 export type SchemaPromptStreamRequest = components['schemas']['SchemaPromptStreamRequest'];
@@ -25617,6 +25815,8 @@ export type SchemaPublishDiff = components['schemas']['SchemaPublishDiff'];
 export type SchemaPublishPreviewResponse = components['schemas']['SchemaPublishPreviewResponse'];
 export type SchemaPublishRequest = components['schemas']['SchemaPublishRequest'];
 export type SchemaPublishResponse = components['schemas']['SchemaPublishResponse'];
+export type SchemaRegionMatch = components['schemas']['SchemaRegionMatch'];
+export type SchemaRegionsDetail = components['schemas']['SchemaRegionsDetail'];
 export type SchemaSemanticUsage = components['schemas']['SchemaSemanticUsage'];
 export type ScoreBenchmarkJobResponse = components['schemas']['ScoreBenchmarkJobResponse'];
 export type ScoreBenchmarkRequest = components['schemas']['ScoreBenchmarkRequest'];
