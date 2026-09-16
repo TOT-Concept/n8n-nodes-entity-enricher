@@ -4597,12 +4597,14 @@ export type paths = {
         put?: never;
         /**
          * Nest Schema Region
-         * @description Nest a flat entity region into a subobject of the object holding it —
-         *     the entity map's structural upgrade (judgment C's flat things), the one
+         * @description Materialize an entity region in the physical schema — the entity map's
+         *     structural upgrade, and the one
          *     implementation behind the editor's `→ TypeName` chips and the MCP
          *     `nest_schema_region` tool. The region's flat members move into a new
          *     object named after it (carrying the regions hanging from it along, pair
-         *     facts staying put) and shed the region's name tokens. Saved mode persists
+         *     facts staying put) and shed the region's name tokens. Compact scalar
+         *     occurrences instead all become references to one shared `$defs` object.
+         *     Saved mode persists
          *     through the ordinary save gate, marking renames when the schema is
          *     published; content mode returns the rewritten document and persists
          *     nothing.
@@ -7075,6 +7077,11 @@ export type components = {
             /** Quality Scored At */
             quality_scored_at?: string | null;
             /**
+             * Quality Scoring Ms
+             * @description Wall-clock time the judge-scoring pass took, set on every attempt (success or failure). Distinct from processing_time_ms, which times the candidate's own generation, not the judge comparing it to the reference.
+             */
+            quality_scoring_ms?: number | null;
+            /**
              * Quality Stale
              * @description True when scored against a reference that has since changed
              * @default false
@@ -7222,6 +7229,11 @@ export type components = {
             /** Name */
             name: string;
             /**
+             * Reasoning Effort
+             * @description Reasoning opt-in applied to every model the scenario runs; null = off
+             */
+            reasoning_effort?: ("low" | "medium" | "high") | null;
+            /**
              * Repetitions
              * @description Run each model N times per run; keep the mean + consistency spread
              * @default 2
@@ -7312,6 +7324,8 @@ export type components = {
             languages: string[];
             /** Name */
             name: string;
+            /** Reasoning Effort */
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             reference_meta?: components["schemas"]["BenchmarkReferenceMeta"] | null;
             /** Reference Output */
             reference_output?: {
@@ -7406,6 +7420,8 @@ export type components = {
             languages: string[];
             /** Name */
             name: string;
+            /** Reasoning Effort */
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             reference_meta?: components["schemas"]["BenchmarkReferenceMeta"] | null;
             /** Reference Output */
             reference_output?: {
@@ -7489,6 +7505,8 @@ export type components = {
             languages?: string[] | null;
             /** Name */
             name?: string | null;
+            /** Reasoning Effort */
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             /** Repetitions */
             repetitions?: number | null;
             sample_params?: components["schemas"]["SampleGenTaskParams"] | null;
@@ -11251,7 +11269,7 @@ export type components = {
         };
         /**
          * EntityMap
-         * @description The region registry. Membership lives on the properties, not here.
+         * @description The region registry and compact scalar relationship occurrences.
          */
         EntityMap: {
             /**
@@ -11274,9 +11292,16 @@ export type components = {
                 [key: string]: string;
             };
             /**
+             * Value Sites
+             * @description Compact scalar relationship occurrences, keyed by data path. A many-valued path ends in [] (for example categories[]); a one-valued path names the scalar property directly. The source value binds to value_field when the editor materializes the region as one shared object definition.
+             */
+            value_sites?: {
+                [key: string]: components["schemas"]["EntityValueSite"];
+            };
+            /**
              * Version
              * @description Map format version; a map written by an older version has every region stale and is re-judged incrementally.
-             * @default 2
+             * @default 4
              */
             version: number;
         };
@@ -11449,6 +11474,45 @@ export type components = {
             values: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * EntityValueSite
+         * @description One compact scalar occurrence of an entity region.
+         *
+         *     The source stays a scalar in the approved wire shape until the editor
+         *     materializes the region. ``many`` means each array item is one occurrence;
+         *     ``one`` means the property value is the occurrence. In both cases the
+         *     primitive binds to ``value_field`` on the eventual shared object type.
+         */
+        EntityValueSite: {
+            /**
+             * Cardinality
+             * @description one = the scalar property is one reference; many = every scalar array item is one reference
+             * @enum {string}
+             */
+            cardinality: "one" | "many";
+            /**
+             * Reason
+             * @description Why the scalar denotes a reusable entity rather than merely qualifying the object that contains it
+             */
+            reason: string;
+            /**
+             * Region
+             * @description Entity region the value references
+             */
+            region: string;
+            /**
+             * Value Description
+             * @description Description of the identifying value on the materialized entity
+             * @default
+             */
+            value_description: string;
+            /**
+             * Value Field
+             * @description Property on the materialized entity which receives the primitive value, usually name, code, id or value
+             * @default name
+             */
+            value_field: string;
         };
         /**
          * EnumCandidate
@@ -11882,6 +11946,11 @@ export type components = {
              * @default auto
              */
             naming_convention: string;
+            /**
+             * Reasoning Effort
+             * @description Reasoning opt-in for a reasoning-capable model; null = off
+             */
+            reasoning_effort?: ("high" | "medium" | "low") | null;
             /**
              * Request
              * @description What the sample should contain, in free text: the kind of entity (optionally a specific instance), the properties it must include, size/depth budgets, structural preferences. Binding for the generation — it overrides the generator's default choices; only the output contract (JSON-only, naming convention, quantity units, single-language samples, one instance per sample) cannot be overridden. The NUMBER of samples is sample_count, never part of this text: a request for 'three samples' does not produce three — each sample is exactly one instance. When the request is materially ambiguous the job may pause on clarification questions (see auto_answer). Required unless attachment_ids is set, where the attached document is the request and this text only narrows it.
@@ -12537,6 +12606,8 @@ export type components = {
             } | null;
             /** Schema Generation Disabled */
             schema_generation_disabled?: boolean | null;
+            /** Supported Reasoning Efforts */
+            supported_reasoning_efforts?: string[] | null;
             /** Supports Audio Input */
             supports_audio_input?: boolean | null;
             /** Supports Audio Output */
@@ -13539,13 +13610,17 @@ export type components = {
         };
         /**
          * NestRegionRequest
-         * @description Nest a flat entity region into a subobject of the object holding it.
+         * @description Materialize a logical entity region in the physical schema.
          *
          *     The entity map's structural upgrade: a region whose members sit flat in
          *     some object (`product_id`, `product_name` on an order line — judgment C)
          *     becomes a real nested object named after it, carrying every region that
          *     hangs from it along (its maker's fields move with the product's), the
-         *     pair facts staying on the host. Saved mode (`schema_id`) edits the stored
+         *     pair facts staying on the host. A region represented by compact scalar
+         *     occurrences instead becomes one shared `$defs` object: a scalar is a 1-1
+         *     ref and every primitive array item is an N-valued ref. All occurrences of
+         *     that region are materialized together so they reference the same type.
+         *     Saved mode (`schema_id`) edits the stored
          *     working copy; content mode (`schema_content`) rewrites the supplied
          *     document and persists nothing. Exactly one must be given.
          */
@@ -13558,7 +13633,7 @@ export type components = {
             dry_run: boolean;
             /**
              * Host Path
-             * @description Container holding the flat members — '' for the root, an object path, 'path[]' for an array's items, or '$defs.X'
+             * @description Container holding ordinary flat members — '' for the root, an object path, 'path[]' for an array's items, or '$defs.X'. Ignored when the region is represented by compact scalar occurrences, which are materialized globally.
              * @default
              */
             host_path: string;
@@ -13603,7 +13678,7 @@ export type components = {
             notes?: string[];
             /**
              * Path
-             * @description Path of the subobject created
+             * @description Path of the subobject created, or '$defs.TypeName' for compact scalar occurrences materialized as a shared entity type
              */
             path: string;
             /**
@@ -24081,6 +24156,11 @@ export type components = {
              */
             model: string;
             /**
+             * Reasoning Effort
+             * @description Reasoning opt-in for a reasoning-capable model; null = off
+             */
+            reasoning_effort?: ("high" | "medium" | "low") | null;
+            /**
              * Sample Commonality Threshold
              * @description Minimum share (0..1) of the combined field-path set every sample must cover (default 0.5) — mixed entity types hard-fail with HTTP 400 before any LLM call.
              */
@@ -24534,6 +24614,11 @@ export type components = {
              */
             model: string;
             /**
+             * Reasoning Effort
+             * @description Reasoning opt-in for a reasoning-capable model; null = off
+             */
+            reasoning_effort?: ("high" | "medium" | "low") | null;
+            /**
              * Sample Commonality Threshold
              * @description Minimum share (0..1) of the combined field-path set every sample must cover (default 0.5) — mixed entity types hard-fail with HTTP 400 before any LLM call.
              */
@@ -24598,6 +24683,11 @@ export type components = {
              * @default auto
              */
             naming_convention: string;
+            /**
+             * Reasoning Effort
+             * @description Reasoning opt-in for a reasoning-capable model; null = off
+             */
+            reasoning_effort?: ("high" | "medium" | "low") | null;
             /**
              * Request
              * @description What the sample should contain, in free text: the kind of entity (optionally a specific instance), the properties it must include, size/depth budgets, structural preferences. Binding for the generation — it overrides the generator's default choices; only the output contract (JSON-only, naming convention, quantity units, single-language samples, one instance per sample) cannot be overridden. The NUMBER of samples is sample_count, never part of this text: a request for 'three samples' does not produce three — each sample is exactly one instance. When the request is materially ambiguous the job may pause on clarification questions (see auto_answer). Required unless attachment_ids is set, where the attached document is the request and this text only narrows it.
@@ -25639,6 +25729,7 @@ export type EntityStateListResponse = components['schemas']['EntityStateListResp
 export type EntityStateRow = components['schemas']['EntityStateRow'];
 export type EntityTypeKeys = components['schemas']['EntityTypeKeys'];
 export type EntityUniqueConflict = components['schemas']['EntityUniqueConflict'];
+export type EntityValueSite = components['schemas']['EntityValueSite'];
 export type EnumCandidate = components['schemas']['EnumCandidate'];
 export type EnumCandidatesResponse = components['schemas']['EnumCandidatesResponse'];
 export type EnumDefinition = components['schemas']['EnumDefinition'];
