@@ -1420,6 +1420,49 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/benchmarks/{scenario_id}/reference/revert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revert Reference Updates
+         * @description Undo automatic reference edits (owner+): each revision's inverse patch is
+         *     applied, the revision is marked reverted, and its (path, attribute) is pinned so
+         *     no scoring pass re-applies it. The base hash is untouched — a revert is the
+         *     author undoing the machine, not editing the gold — so no result goes stale.
+         */
+        post: operations["revert_reference_updates_api_benchmarks__scenario_id__reference_revert_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/benchmarks/{scenario_id}/reference/unpin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unpin Reference Path
+         * @description Let scoring passes update a (path, attribute) the author had reverted (owner+).
+         */
+        post: operations["unpin_reference_path_api_benchmarks__scenario_id__reference_unpin_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/benchmarks/{scenario_id}/results": {
         parameters: {
             query?: never;
@@ -6943,6 +6986,11 @@ export type components = {
              * @description Source-of-truth documents used for generation
              */
             attachment_ids?: string[];
+            /**
+             * Auto Applied
+             * @description The automatic edits scoring passes applied to the reference, newest first (capped); each carries its inverse for a revert
+             */
+            auto_applied?: components["schemas"]["ReferenceRevision"][];
             /** Generated At */
             generated_at?: string | null;
             /**
@@ -6950,6 +6998,11 @@ export type components = {
              * @description Models used for grounded generation
              */
             model_keys?: string[];
+            /**
+             * Pinned
+             * @description [path, attribute] pairs the author reverted: never re-applied automatically until a manual reference save clears them
+             */
+            pinned?: string[][];
             /**
              * Record Id
              * @description Enrichment record the reference was copied from (source='record')
@@ -7110,6 +7163,21 @@ export type components = {
              */
             scenario_id: string;
             /**
+             * Scoring Calls
+             * @description Judge calls the scoring pass made for this model. Questions answered from the verdict cache make none, so a re-score of an unchanged reference can be 0.
+             */
+            scoring_calls?: number | null;
+            /**
+             * Scoring Cost Usd
+             * @description Billed cost of the judge calls that scored this model (null until scored)
+             */
+            scoring_cost_usd?: number | null;
+            /**
+             * Scoring Record Id
+             * @description The benchmark_scoring record of the last scoring pass over this model: one prompts row per judge call (failed calls included), the verdict-cache hits, the outcome. Null until scored, or when the record was deleted.
+             */
+            scoring_record_id?: string | null;
+            /**
              * Speed Score
              * @description Wall-clock speed vs the scenario's successful results, log-scale min-max over at least one decade (1.0 = fastest; 0.0 = 10× slower or worse). sample_generation: the token-generation share of the time is rescaled to the peer-median sample size, since output size is open-ended
              */
@@ -7198,7 +7266,10 @@ export type components = {
         BenchmarkScenarioCreate: {
             /** Attachment Ids */
             attachment_ids?: string[];
-            /** Description */
+            /**
+             * Description
+             * @description Free-text note shown in the Benchmarks tab; no model ever reads it. The entity to enrich goes in entity_data, never here.
+             */
             description?: string | null;
             /**
              * Enable Response Schema
@@ -7212,7 +7283,7 @@ export type components = {
             enable_strict_structured_output: boolean;
             /**
              * Entity Data
-             * @description Fixed entity input (enrichment only: search keys / raw JSON)
+             * @description Enrichment only: the fixed entity input every model enriches — the same JSON a single enrichment takes (identifying fields, supplied values), checked against the schema's enrichment-input contract on create
              */
             entity_data?: {
                 [key: string]: unknown;
@@ -7326,6 +7397,8 @@ export type components = {
             name: string;
             /** Reasoning Effort */
             reasoning_effort?: ("low" | "medium" | "high") | null;
+            /** Reference Base Hash */
+            reference_base_hash?: string | null;
             reference_meta?: components["schemas"]["BenchmarkReferenceMeta"] | null;
             /** Reference Output */
             reference_output?: {
@@ -7422,6 +7495,8 @@ export type components = {
             name: string;
             /** Reasoning Effort */
             reasoning_effort?: ("low" | "medium" | "high") | null;
+            /** Reference Base Hash */
+            reference_base_hash?: string | null;
             reference_meta?: components["schemas"]["BenchmarkReferenceMeta"] | null;
             /** Reference Output */
             reference_output?: {
@@ -7484,13 +7559,19 @@ export type components = {
         BenchmarkScenarioUpdate: {
             /** Attachment Ids */
             attachment_ids?: string[] | null;
-            /** Description */
+            /**
+             * Description
+             * @description Free-text note shown in the Benchmarks tab; no model ever reads it
+             */
             description?: string | null;
             /** Enable Response Schema */
             enable_response_schema?: boolean | null;
             /** Enable Strict Structured Output */
             enable_strict_structured_output?: boolean | null;
-            /** Entity Data */
+            /**
+             * Entity Data
+             * @description Enrichment only: replacement fixed entity input, checked against the schema's enrichment-input contract like a single enrichment
+             */
             entity_data?: {
                 [key: string]: unknown;
             } | null;
@@ -11697,6 +11778,38 @@ export type components = {
             };
         };
         /**
+         * FindingPatch
+         * @description The mechanical edit a finding proposes on the reference — filled by the scorer
+         *     that raised it, so nothing downstream ever parses display strings.
+         */
+        FindingPatch: {
+            /**
+             * Flag
+             * @description kind=flag: which flag
+             */
+            flag?: ("nullable" | "multilingual" | "preserve") | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "flag" | "type" | "description" | "enum" | "keys" | "participants" | "add" | "remove" | "value" | "item" | "remove_item";
+            /**
+             * Name
+             * @description kind=add: the new property's name
+             */
+            name?: string | null;
+            /**
+             * Path
+             * @description flag / type / description / enum: the property path (dot segments, '[]' array hops); keys / participants: the object scope path ('' = root); add: the parent scope path; value / item: dotted path into the reference output, '[n]' indexing array positions (item: the array path to append to)
+             */
+            path: string;
+            /**
+             * Value
+             * @description flag → bool; type → scalar type name; description → text; enum → the closed set to attach as {name, description, values}, null to open the value; keys → {keys: [...], replaces: [...]} (relative paths); participants → ordered list or null for the default composition; add → the property definition; value → the JSON value to set; item → the JSON item to append; remove / remove_item → the inverse of add / item (the property path, or the array path with the item as value), produced by an applied patch for its revert
+             */
+            value?: unknown;
+        };
+        /**
          * FusionRequest
          * @description Request to merge multiple model results.
          */
@@ -15478,6 +15591,12 @@ export type components = {
          * @description Per-array set-alignment detail (precision / recall / F1 + miss/hallucination lists).
          */
         QualityArrayScore: {
+            /**
+             * Added
+             * @description Candidate items the reference lacked that the judge confirmed (credited, not extra)
+             * @default 0
+             */
+            added: number;
             /** Cand Count */
             cand_count: number;
             /** F1 */
@@ -15506,7 +15625,9 @@ export type components = {
          * @description Full per-result scoring breakdown stored in ``benchmark_results.quality_detail``.
          *
          *     ``fields``/``arrays`` are populated for enrichment scenarios; ``rubric`` for
-         *     sample-generation; ``schema_comparison`` for schema-generation.
+         *     sample-generation; ``schema_comparison`` for schema-generation. ``findings`` (both
+         *     reference-scored types) is what this result showed the reference should be —
+         *     folded across models and applied at the end of the scoring pass.
          */
         QualityDetail: {
             /** Arrays */
@@ -15517,6 +15638,8 @@ export type components = {
             correctness: number;
             /** Fields */
             fields?: components["schemas"]["QualityFieldScore"][];
+            /** Findings */
+            findings?: components["schemas"]["ReferenceFinding"][];
             /** Hallucination Rate */
             hallucination_rate: number;
             /** Overall */
@@ -15535,7 +15658,7 @@ export type components = {
             cosine?: number | null;
             /**
              * Method
-             * @description exact | normalized | embedding | judge | miss | extra
+             * @description exact | normalized | embedding | judge | addition | miss | extra
              */
             method: string;
             /** Path */
@@ -15544,6 +15667,11 @@ export type components = {
             reference?: unknown;
             /** Score */
             score: number;
+            /**
+             * Verdict
+             * @description The unblinded judge label when the leaf was judged (candidate_better, …)
+             */
+            verdict?: string | null;
         };
         /**
          * QuarantineActionRequest
@@ -16367,22 +16495,36 @@ export type components = {
             states: components["schemas"]["RecordSyncState"][];
         };
         /**
-         * ReferenceSuggestion
-         * @description Where a candidate looked better than the gold reference — for the reference's author.
+         * ReferenceFinding
+         * @description Where a candidate showed the reference should be different — what the end of
+         *     the scoring pass folds across models and writes into the reference.
          *
-         *     Never applied automatically: a judge does not rewrite the gold. Raised by a
-         *     ``candidate_better`` verdict, or by the samples themselves when the reference
-         *     violates a rule they prove (a nullable they show, a type they contradict, a key set
-         *     that collapses two of them).
+         *     Raised by a judge verdict in the candidate's favour, by the samples when the
+         *     reference violates a rule they prove (a nullable they show, a type they
+         *     contradict, a key set that collapses two of them), by a structural fact of the
+         *     documents (an undescribed or omitted sampled property), or by a judge-confirmed
+         *     addition (a value or an item the reference lacks).
          */
-        ReferenceSuggestion: {
+        ReferenceFinding: {
             /**
              * Attribute
-             * @description type | nullable | multilingual | preserve | enum | description | keys | participants
+             * @description type | nullable | multilingual | preserve | enum | description | keys | participants | property | region | value | missing_value | missing_item
              */
             attribute: string;
             /** Candidate */
             candidate?: unknown;
+            /**
+             * Identity
+             * @description For a missing_item finding: what names the proposed item — an object item's identity token, a scalar's normalized text — so two models' spellings of one item fold as one place and two items of one list as two
+             */
+            identity?: string | null;
+            /**
+             * Judge Score
+             * @description The judge's 0-100 grade, when judged
+             */
+            judge_score?: number | null;
+            /** @description The edit to apply; null when only a hand edit can act on the finding */
+            patch?: components["schemas"]["FindingPatch"] | null;
             /** Path */
             path: string;
             /**
@@ -16394,11 +16536,74 @@ export type components = {
             reference?: unknown;
             /**
              * Source
-             * @description judge = a candidate_better verdict; samples = the samples prove the reference wrong; structure = a fact of the documents (an undescribed property)
+             * @description judge = a verdict in the candidate's favour; samples = the samples prove the reference wrong; structure = a fact of the documents; addition = a value the reference lacks, confirmed by the judge
              * @default judge
              * @enum {string}
              */
-            source: "judge" | "samples" | "structure";
+            source: "judge" | "samples" | "structure" | "addition";
+            /**
+             * Strength
+             * @description wrong = the reference's answer was judged wrong, not merely worse
+             * @default better
+             * @enum {string}
+             */
+            strength: "better" | "wrong";
+        };
+        /**
+         * ReferenceRevision
+         * @description One automatic edit of the reference, logged in ``reference_meta.auto_applied``:
+         *     what the scoring pass applied (or could not), why, on which models' word, and
+         *     the inverse patch its revert applies.
+         */
+        ReferenceRevision: {
+            /** Attribute */
+            attribute: string;
+            /** Candidate */
+            candidate?: unknown;
+            /** Id */
+            id: string;
+            /** @description The edit that restores what was there */
+            inverse?: components["schemas"]["FindingPatch"] | null;
+            /**
+             * Models
+             * @description Models whose result raised it
+             */
+            models?: string[];
+            /** Notes */
+            notes?: string[];
+            patch?: components["schemas"]["FindingPatch"] | null;
+            /** Path */
+            path: string;
+            /** Previous */
+            previous?: unknown;
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+            /**
+             * Scored At
+             * Format: date-time
+             */
+            scored_at: string;
+            /**
+             * Source
+             * @default judge
+             * @enum {string}
+             */
+            source: "judge" | "samples" | "structure" | "addition";
+            /**
+             * Status
+             * @default applied
+             * @enum {string}
+             */
+            status: "applied" | "skipped" | "reverted";
+            /**
+             * Strength
+             * @default better
+             * @enum {string}
+             */
+            strength: "better" | "wrong";
         };
         /** RefreshTokenRequest */
         RefreshTokenRequest: {
@@ -16727,6 +16932,11 @@ export type components = {
             /** Schema Id */
             schema_id?: string | null;
             target_schema?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
+        };
+        /** RevertReferenceRequest */
+        RevertReferenceRequest: {
+            /** Revision Ids */
+            revision_ids: string[];
         };
         /**
          * ReviewDismissRequest
@@ -17278,8 +17488,6 @@ export type components = {
              * @default 0
              */
             sample_count: number;
-            /** Suggestions */
-            suggestions?: components["schemas"]["ReferenceSuggestion"][];
             /** Weights */
             weights?: {
                 [key: string]: number;
@@ -17354,11 +17562,11 @@ export type components = {
              * Keys Verdict
              * @enum {string}
              */
-            keys_verdict: "proven" | "proven_wrong" | "candidate_better" | "equivalent" | "reference_better" | "candidate_wrong" | "agree" | "unjudged";
+            keys_verdict: "proven" | "proven_wrong" | "candidate_better" | "equivalent" | "reference_better" | "candidate_wrong" | "reference_wrong" | "agree" | "unjudged";
             /** Participants Score */
             participants_score?: number | null;
             /** Participants Verdict */
-            participants_verdict?: ("proven" | "proven_wrong" | "candidate_better" | "equivalent" | "reference_better" | "candidate_wrong" | "agree" | "unjudged") | null;
+            participants_verdict?: ("proven" | "proven_wrong" | "candidate_better" | "equivalent" | "reference_better" | "candidate_wrong" | "reference_wrong" | "agree" | "unjudged") | null;
             /**
              * Path
              * @description Reference-side scope path ('' = root)
@@ -17507,7 +17715,7 @@ export type components = {
             /** Desc Score */
             desc_score?: number | null;
             /** Desc Verdict */
-            desc_verdict?: ("proven" | "proven_wrong" | "candidate_better" | "equivalent" | "reference_better" | "candidate_wrong" | "agree" | "unjudged") | null;
+            desc_verdict?: ("proven" | "proven_wrong" | "candidate_better" | "equivalent" | "reference_better" | "candidate_wrong" | "reference_wrong" | "agree" | "unjudged") | null;
             /**
              * Flag Diffs
              * @description Attributes that disagree (nullable, multilingual, preserve, enum)
@@ -17518,7 +17726,7 @@ export type components = {
              * @description Per disagreeing attribute: how it was settled
              */
             flag_verdicts?: {
-                [key: string]: "proven" | "proven_wrong" | "candidate_better" | "equivalent" | "reference_better" | "candidate_wrong" | "agree" | "unjudged";
+                [key: string]: "proven" | "proven_wrong" | "candidate_better" | "equivalent" | "reference_better" | "candidate_wrong" | "reference_wrong" | "agree" | "unjudged";
             };
             /**
              * Flags Score
@@ -17540,7 +17748,7 @@ export type components = {
              * @default agree
              * @enum {string}
              */
-            type_verdict: "proven" | "proven_wrong" | "candidate_better" | "equivalent" | "reference_better" | "candidate_wrong" | "agree" | "unjudged";
+            type_verdict: "proven" | "proven_wrong" | "candidate_better" | "equivalent" | "reference_better" | "candidate_wrong" | "reference_wrong" | "agree" | "unjudged";
         };
         /**
          * SchemaPublishDiff
@@ -18722,6 +18930,11 @@ export type components = {
             /** Current Model */
             current_model?: string | null;
             /**
+             * Entity Index
+             * @description Entity index (batch only)
+             */
+            entity_index?: number | null;
+            /**
              * Error Code
              * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
@@ -18800,7 +19013,7 @@ export type components = {
             status: string;
             /**
              * Step
-             * @description The pipeline step this attempt belongs to, when named.
+             * @description What this attempt belongs to, when named: a staged pipeline's step, or the expertise domain of a multi-expertise enrichment call.
              */
             step?: string | null;
             /**
@@ -20553,6 +20766,11 @@ export type components = {
             current_attempt: number;
             /** Current Model */
             current_model?: string | null;
+            /**
+             * Entity Index
+             * @description Entity index (batch only)
+             */
+            entity_index?: number | null;
             /**
              * Error Code
              * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
@@ -23489,6 +23707,141 @@ export type components = {
             ts?: number | null;
         };
         /**
+         * SSEScoringReferenceUpdated
+         * @description Emitted once per scoring pass when the findings folded across the scored
+         *     models were written into the reference (see reference_meta.auto_applied).
+         */
+        SSEScoringReferenceUpdated: {
+            /**
+             * Applied
+             * @description Findings applied to the reference
+             */
+            applied: number;
+            /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Error
+             * @description Why the reference could not be updated at all (the scores are kept)
+             */
+            error?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
+            /**
+             * Event
+             * @default scoring_reference_updated
+             * @constant
+             */
+            event: "scoring_reference_updated";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
+             * Skipped
+             * @description Findings logged but not applied (no mechanical patch, or refused)
+             */
+            skipped: number;
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
+        };
+        /**
          * SSEScoringStarted
          * @description Emitted when a benchmark scoring pass initializes. For a standalone scoring job
          *     total_results is exact; for a benchmark run's interleaved scoring it is the run's
@@ -25052,6 +25405,13 @@ export type components = {
              */
             success: boolean;
         };
+        /** UnpinReferenceRequest */
+        UnpinReferenceRequest: {
+            /** Attribute */
+            attribute: string;
+            /** Path */
+            path: string;
+        };
         /**
          * UserApprovalRequest
          * @description Request to approve or reject a pending user.
@@ -25737,6 +26097,7 @@ export type ExpertiseBreakdown = components['schemas']['ExpertiseBreakdown'];
 export type ExpertiseDomain = components['schemas']['ExpertiseDomain'];
 export type FailedModelSummary = components['schemas']['FailedModelSummary'];
 export type FieldConflict = components['schemas']['FieldConflict'];
+export type FindingPatch = components['schemas']['FindingPatch'];
 export type FusionRequest = components['schemas']['FusionRequest'];
 export type FusionResponse = components['schemas']['FusionResponse'];
 export type FusionSourceRef = components['schemas']['FusionSourceRef'];
@@ -25859,7 +26220,8 @@ export type RecordSyncDatabaseState = components['schemas']['RecordSyncDatabaseS
 export type RecordSyncState = components['schemas']['RecordSyncState'];
 export type RecordSyncStatesRequest = components['schemas']['RecordSyncStatesRequest'];
 export type RecordSyncStatesResponse = components['schemas']['RecordSyncStatesResponse'];
-export type ReferenceSuggestion = components['schemas']['ReferenceSuggestion'];
+export type ReferenceFinding = components['schemas']['ReferenceFinding'];
+export type ReferenceRevision = components['schemas']['ReferenceRevision'];
 export type RefreshTokenRequest = components['schemas']['RefreshTokenRequest'];
 export type RefreshTokenResponse = components['schemas']['RefreshTokenResponse'];
 export type RegisterRequest = components['schemas']['RegisterRequest'];
@@ -25871,6 +26233,7 @@ export type RelationalMapResponse = components['schemas']['RelationalMapResponse
 export type RelationalRef = components['schemas']['RelationalRef'];
 export type RelationalTable = components['schemas']['RelationalTable'];
 export type RetryExpertisesRequest = components['schemas']['RetryExpertisesRequest'];
+export type RevertReferenceRequest = components['schemas']['RevertReferenceRequest'];
 export type ReviewDismissRequest = components['schemas']['ReviewDismissRequest'];
 export type RubricCovernessDetail = components['schemas']['RubricCovernessDetail'];
 export type RubricJudgeDetail = components['schemas']['RubricJudgeDetail'];
@@ -25969,6 +26332,7 @@ export type SseScoringCompleted = components['schemas']['SSEScoringCompleted'];
 export type SseScoringDegraded = components['schemas']['SSEScoringDegraded'];
 export type SseScoringFailed = components['schemas']['SSEScoringFailed'];
 export type SseScoringProgress = components['schemas']['SSEScoringProgress'];
+export type SseScoringReferenceUpdated = components['schemas']['SSEScoringReferenceUpdated'];
 export type SseScoringStarted = components['schemas']['SSEScoringStarted'];
 export type SseScoringUnverifiedReference = components['schemas']['SSEScoringUnverifiedReference'];
 export type SseStarted = components['schemas']['SSEStarted'];
@@ -26001,6 +26365,7 @@ export type TunnelCredentialResponse = components['schemas']['TunnelCredentialRe
 export type UnifyProposal = components['schemas']['UnifyProposal'];
 export type UnifyResolveRequest = components['schemas']['UnifyResolveRequest'];
 export type UnifyResolveResponse = components['schemas']['UnifyResolveResponse'];
+export type UnpinReferenceRequest = components['schemas']['UnpinReferenceRequest'];
 export type UserApprovalRequest = components['schemas']['UserApprovalRequest'];
 export type UserProfileUpdate = components['schemas']['UserProfileUpdate'];
 export type UserResponse = components['schemas']['UserResponse'];
@@ -28839,6 +29204,88 @@ export interface operations {
             };
         };
     };
+    revert_reference_updates_api_benchmarks__scenario_id__reference_revert_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevertReferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkScenarioResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unpin_reference_path_api_benchmarks__scenario_id__reference_unpin_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnpinReferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkScenarioResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_results_api_benchmarks__scenario_id__results_get: {
         parameters: {
             query?: {
@@ -29009,6 +29456,7 @@ export interface operations {
             header?: {
                 authorization?: string | null;
                 "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
             };
             path: {
                 scenario_id: string;
@@ -32423,7 +32871,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEStarted"] | components["schemas"]["SSEHeartbeat"] | components["schemas"]["SSEAttempt"] | components["schemas"]["SSEResumed"] | components["schemas"]["SSEModelsSkipped"] | components["schemas"]["SSEJobPending"] | components["schemas"]["SSEJobRunning"] | components["schemas"]["SSEJobPaused"] | components["schemas"]["SSEExpertiseStarted"] | components["schemas"]["SSEClassificationMismatchTimeout"])[];
+                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEScoringReferenceUpdated"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEStarted"] | components["schemas"]["SSEHeartbeat"] | components["schemas"]["SSEAttempt"] | components["schemas"]["SSEResumed"] | components["schemas"]["SSEModelsSkipped"] | components["schemas"]["SSEJobPending"] | components["schemas"]["SSEJobRunning"] | components["schemas"]["SSEJobPaused"] | components["schemas"]["SSEExpertiseStarted"] | components["schemas"]["SSEClassificationMismatchTimeout"])[];
                 };
             };
         };
