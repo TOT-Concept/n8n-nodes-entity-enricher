@@ -445,6 +445,48 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/environment-sync/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings */
+        get: operations["get_settings_api_admin_environment_sync_settings_get"];
+        /**
+         * Update Settings
+         * @description A patch: only the fields sent change; `api_key: ""` clears the stored key.
+         */
+        put: operations["update_settings_api_admin_environment_sync_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/environment-sync/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Connection
+         * @description Ask the configured source who the stored key is, and report every reason
+         *     the next fire would refuse to sync with it.
+         */
+        post: operations["test_connection_api_admin_environment_sync_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/organizations": {
         parameters: {
             query?: never;
@@ -8735,7 +8777,7 @@ export type components = {
         CronJobOptions: {
             /**
              * Max Benchmark Models
-             * @description model_refresh: models benchmarked per scenario and run; null = no cap
+             * @description model_refresh: added models benchmarked per scenario and run; null = no cap
              */
             max_benchmark_models?: number | null;
         };
@@ -11695,6 +11737,60 @@ export type components = {
             value_descriptions?: {
                 [key: string]: string;
             } | null;
+        };
+        /**
+         * EnvironmentSyncProbe
+         * @description `POST /api/admin/environment-sync/test` — what the source says about the key,
+         *     and every reason the sync would not work with it.
+         */
+        EnvironmentSyncProbe: {
+            /** Email */
+            email?: string | null;
+            /** Ok */
+            ok: boolean;
+            /** Organization Name */
+            organization_name?: string | null;
+            /**
+             * Problems
+             * @description Empty when ok; else what to fix (the key's role, the plan, the source itself)
+             */
+            problems?: string[];
+            /** Role */
+            role?: string | null;
+        };
+        /**
+         * EnvironmentSyncSettingsResponse
+         * @description What the admin page reads — never the key.
+         */
+        EnvironmentSyncSettingsResponse: {
+            /** Api Key Set */
+            api_key_set: boolean;
+            /** Base Url */
+            base_url: string | null;
+            /**
+             * Configured
+             * @description Source, key and target all set: the job can run
+             */
+            configured: boolean;
+            /** Target Organization Id */
+            target_organization_id: string | null;
+            /** Target Organization Name */
+            target_organization_name: string | null;
+        };
+        /**
+         * EnvironmentSyncSettingsUpdate
+         * @description PUT body: every field optional; an empty key string clears the stored key.
+         */
+        EnvironmentSyncSettingsUpdate: {
+            /**
+             * Api Key
+             * @description Plain key; '' clears it
+             */
+            api_key?: string | null;
+            /** Base Url */
+            base_url?: string | null;
+            /** Target Organization Id */
+            target_organization_id?: string | null;
         };
         /**
          * ExpertiseBreakdown
@@ -17018,10 +17114,25 @@ export type components = {
         /**
          * RunBenchmarkJobResponse
          * @description Response after starting a benchmark run (progress streams over the LLM job SSE).
+         *
+         *     An organization's benchmark runs and scoring passes execute one at a time, in
+         *     launch order: a launch while another is in flight is accepted and queued rather
+         *     than refused, and the job's stream says where it stands.
          */
         RunBenchmarkJobResponse: {
             /** Job Id */
             job_id: string;
+            /**
+             * Merged
+             * @description True when the scenario already had a run waiting in the queue: the requested models were folded into it and job_id names that run, whose total_models now counts the union.
+             * @default false
+             */
+            merged: boolean;
+            /**
+             * Queue Position
+             * @description The place the run takes behind the organization's running benchmark job, 1-based; null when it starts at once. The stream's `queued` events are authoritative as the lane advances.
+             */
+            queue_position?: number | null;
             /**
              * Skipped Models
              * @description Models dropped by the scenario's skip-incapable-models run policy, keyed by composite key with the missing capability as value
@@ -17952,6 +18063,11 @@ export type components = {
         ScoreBenchmarkJobResponse: {
             /** Job Id */
             job_id: string;
+            /**
+             * Queue Position
+             * @description The place the pass takes behind the organization's running benchmark job (runs and scoring passes share one lane), 1-based; null when it starts at once.
+             */
+            queue_position?: number | null;
             /** Total Results */
             total_results: number;
         };
@@ -18167,6 +18283,11 @@ export type components = {
          * @description Save (or clear) a scenario's gold reference output.
          */
         SetBenchmarkReferenceRequest: {
+            /**
+             * Reference Base Hash
+             * @description Import only: the base hash the exported results were scored under, so a reference carrying automatic edits imports with its results fresh. Omitted (the author's save), the hash of reference_output is stamped.
+             */
+            reference_base_hash?: string | null;
             reference_meta?: components["schemas"]["BenchmarkReferenceMeta"] | null;
             /**
              * Reference Output
@@ -18560,6 +18681,11 @@ export type components = {
             max_attempts: number;
             /** Output Tokens */
             output_tokens?: number | null;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -18704,6 +18830,11 @@ export type components = {
              * @description Question keys
              */
             paths?: string[] | null;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -18843,6 +18974,11 @@ export type components = {
              * @description Type the sample models (narrowest common type)
              */
             object_type?: string | null;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /**
              * Reason
              * @description Why the set is incoherent (incoherent mode only)
@@ -18993,6 +19129,11 @@ export type components = {
             max_attempts: number;
             /** Model */
             model?: string | null;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -19117,6 +19258,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -19244,6 +19390,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -19377,6 +19528,11 @@ export type components = {
              * @description Classification model composite key
              */
             model: string;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -19499,6 +19655,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -19621,6 +19782,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Reason */
             reason?: string | null;
             /** Running Models */
@@ -19752,6 +19918,11 @@ export type components = {
              * @description Classification model composite key
              */
             model: string;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -19875,6 +20046,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -20004,6 +20180,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /**
              * Record Id
              * @description Record whose output was refused
@@ -20140,6 +20321,11 @@ export type components = {
              */
             max_attempts: number;
             /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
+            /**
              * Record Id
              * @description Record whose output the entity layer admitted
              */
@@ -20269,6 +20455,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /**
              * Results
              * @description Per-model enrichment results
@@ -20418,6 +20609,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -20541,6 +20737,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -20698,6 +20899,11 @@ export type components = {
             } | null;
             /** Processing Time Ms */
             processing_time_ms?: number | null;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -20834,6 +21040,11 @@ export type components = {
             max_attempts: number;
             /** Model */
             model?: string | null;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -20980,6 +21191,11 @@ export type components = {
             output_tokens?: number | null;
             /** Processing Time Ms */
             processing_time_ms?: number | null;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Record Id */
             record_id?: string | null;
             /** Running Models */
@@ -21112,6 +21328,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -21236,6 +21457,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -21355,6 +21581,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Result */
             result?: {
                 [key: string]: unknown;
@@ -21480,6 +21711,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /**
              * Result
              * @description Accumulated results (if any). Batch jobs store their terminal summary here: entity/database-outcome counts plus a compact per-entity list with record IDs (see BatchJobResult).
@@ -21608,6 +21844,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Result */
             result?: {
                 [key: string]: unknown;
@@ -21734,6 +21975,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -21853,6 +22099,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -21972,6 +22223,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -22112,6 +22368,11 @@ export type components = {
              * @default false
              */
             pinned: boolean;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -22282,6 +22543,11 @@ export type components = {
             partial_success: boolean;
             /** Processing Time Ms */
             processing_time_ms?: number | null;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Record Id */
             record_id?: string | null;
             /**
@@ -22420,6 +22686,11 @@ export type components = {
             max_attempts: number;
             /** Models */
             models?: string[];
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -22549,6 +22820,299 @@ export type components = {
              * @description Model composite key
              */
             model: string;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
+        };
+        /**
+         * SSEQueued
+         * @description The job waits in its organization's lane (benchmark runs and scoring
+         *     passes execute one at a time). Re-emitted each time its place changes; the
+         *     envelope's `queue_position` carries the same place on every later event
+         *     until a `running` status admits the job.
+         */
+        SSEQueued: {
+            /** @description What the lane is running right now, when known. */
+            behind?: components["schemas"]["SSEQueuedBehind"] | null;
+            /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
+            /**
+             * Event
+             * @default queued
+             * @constant
+             */
+            event: "queued";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /**
+             * Position
+             * @description 1-based place in the lane's queue.
+             */
+            position: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
+        };
+        /**
+         * SSEQueuedBehind
+         * @description The job a queued job waits for: the lane's running job, named for the UI.
+         */
+        SSEQueuedBehind: {
+            /** Job Id */
+            job_id: string;
+            /** Job Type */
+            job_type: string;
+            /**
+             * Label
+             * @description The running job's scenario name, when it has one.
+             */
+            label?: string | null;
+        };
+        /**
+         * SSEQueueMerged
+         * @description A later launch of the same scenario was folded into this still-waiting
+         *     benchmark run: its model set grew instead of a second entry joining the
+         *     queue. Carries the job's updated launch context, the same shape the
+         *     `started` envelope opens a stream with.
+         */
+        SSEQueueMerged: {
+            /**
+             * Added
+             * @description Model composite keys the merge added.
+             */
+            added?: string[];
+            /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
+            /**
+             * Event
+             * @default queue_merged
+             * @constant
+             */
+            event: "queue_merged";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
+            last_error_summary?: string | null;
+            /**
+             * Launch
+             * @description The job's launch context after the merge.
+             */
+            launch?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -22668,6 +23232,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -22799,6 +23368,11 @@ export type components = {
             max_attempts: number;
             /** Questions */
             questions: components["schemas"]["SSESampleQuestion"][];
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /**
              * Round
              * @description Zero-based planner loop round
@@ -22939,6 +23513,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -23080,6 +23659,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -23261,6 +23845,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -23392,6 +23981,11 @@ export type components = {
              */
             max_attempts: number;
             /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
+            /**
              * Reason
              * @description Why the embedder is unavailable
              */
@@ -23518,6 +24112,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -23656,6 +24255,11 @@ export type components = {
              * @description Mean overall quality (0..1)
              */
             overall?: number | null;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -23802,6 +24406,16 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
+            /**
+             * Reason
+             * @description Why the pass deliberately applied nothing: 'reference_moved' when the author saved the reference while the pass ran (its findings answer a reference that no longer exists; re-score to raise them again)
+             */
+            reason?: string | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -23929,6 +24543,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -24053,6 +24672,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -24187,6 +24811,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /** Running Models */
             running_models?: string[];
             /**
@@ -24320,6 +24949,11 @@ export type components = {
              * @default 0
              */
             max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
             /**
              * Reason
              * @description Human-readable justification for the choice
@@ -26093,6 +26727,9 @@ export type EntityValueSite = components['schemas']['EntityValueSite'];
 export type EnumCandidate = components['schemas']['EnumCandidate'];
 export type EnumCandidatesResponse = components['schemas']['EnumCandidatesResponse'];
 export type EnumDefinition = components['schemas']['EnumDefinition'];
+export type EnvironmentSyncProbe = components['schemas']['EnvironmentSyncProbe'];
+export type EnvironmentSyncSettingsResponse = components['schemas']['EnvironmentSyncSettingsResponse'];
+export type EnvironmentSyncSettingsUpdate = components['schemas']['EnvironmentSyncSettingsUpdate'];
 export type ExpertiseBreakdown = components['schemas']['ExpertiseBreakdown'];
 export type ExpertiseDomain = components['schemas']['ExpertiseDomain'];
 export type FailedModelSummary = components['schemas']['FailedModelSummary'];
@@ -26322,6 +26959,9 @@ export type SseModelAutoSelected = components['schemas']['SSEModelAutoSelected']
 export type SseModelCompleted = components['schemas']['SSEModelCompleted'];
 export type SseModelsSkipped = components['schemas']['SSEModelsSkipped'];
 export type SseModelStarted = components['schemas']['SSEModelStarted'];
+export type SseQueued = components['schemas']['SSEQueued'];
+export type SseQueuedBehind = components['schemas']['SSEQueuedBehind'];
+export type SseQueueMerged = components['schemas']['SSEQueueMerged'];
 export type SseResumed = components['schemas']['SSEResumed'];
 export type SseSampleClarificationPause = components['schemas']['SSESampleClarificationPause'];
 export type SseSampleInstanceProgress = components['schemas']['SSESampleInstanceProgress'];
@@ -27261,6 +27901,115 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DemoSettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_settings_api_admin_environment_sync_settings_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvironmentSyncSettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_settings_api_admin_environment_sync_settings_put: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnvironmentSyncSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvironmentSyncSettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_connection_api_admin_environment_sync_test_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvironmentSyncProbe"];
                 };
             };
             /** @description Validation Error */
@@ -32871,7 +33620,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEScoringReferenceUpdated"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEStarted"] | components["schemas"]["SSEHeartbeat"] | components["schemas"]["SSEAttempt"] | components["schemas"]["SSEResumed"] | components["schemas"]["SSEModelsSkipped"] | components["schemas"]["SSEJobPending"] | components["schemas"]["SSEJobRunning"] | components["schemas"]["SSEJobPaused"] | components["schemas"]["SSEExpertiseStarted"] | components["schemas"]["SSEClassificationMismatchTimeout"])[];
+                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEScoringReferenceUpdated"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEStarted"] | components["schemas"]["SSEHeartbeat"] | components["schemas"]["SSEAttempt"] | components["schemas"]["SSEResumed"] | components["schemas"]["SSEModelsSkipped"] | components["schemas"]["SSEJobPending"] | components["schemas"]["SSEJobRunning"] | components["schemas"]["SSEJobPaused"] | components["schemas"]["SSEQueued"] | components["schemas"]["SSEQueueMerged"] | components["schemas"]["SSEExpertiseStarted"] | components["schemas"]["SSEClassificationMismatchTimeout"])[];
                 };
             };
         };
