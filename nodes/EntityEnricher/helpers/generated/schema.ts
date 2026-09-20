@@ -1053,6 +1053,11 @@ export type paths = {
         /**
          * Get Current User Info
          * @description Get current user information with fresh chunk manifest.
+         *
+         *     An organization access key is a service account with no `users` row: the
+         *     answer then describes the key itself (name, role, organization), which is
+         *     how an API client — or another deployment's environment sync — learns what
+         *     a key is before relying on it.
          */
         get: operations["get_current_user_info_api_auth_me_get"];
         put?: never;
@@ -7101,6 +7106,11 @@ export type components = {
             coverness_count?: number | null;
             /** Enrichment Record Id */
             enrichment_record_id?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a failed result (the representative failed rep): insufficient_credits when Entity Enricher's credit gate refused the organization's call, provider_credits_exhausted when the provider account behind the key refused it — neither is the model's fault — else rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or null when unclassified
+             */
+            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
             /**
@@ -7257,6 +7267,11 @@ export type components = {
             coverness_count?: number | null;
             /** Enrichment Record Id */
             enrichment_record_id?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a failed rep, the shared failure vocabulary (insufficient_credits, provider_credits_exhausted, rate_limited, model_retired, …); null on success or an unclassified failure
+             */
+            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
             /**
@@ -12456,6 +12471,8 @@ export type components = {
             config_hash?: string | null;
             /** Cost Usd */
             cost_usd?: number | null;
+            /** Error Code */
+            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
             /** Input Tokens */
@@ -18615,7 +18632,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /** Error Message */
@@ -18765,7 +18782,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -18904,7 +18921,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -19072,7 +19089,7 @@ export type components = {
             entity_index?: number | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -19203,7 +19220,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -19335,7 +19352,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -19466,7 +19483,7 @@ export type components = {
             entity_index?: number | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /** Error Message */
@@ -19600,7 +19617,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -19727,7 +19744,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -19858,7 +19875,7 @@ export type components = {
             entity_index?: number | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -19991,7 +20008,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -20125,7 +20142,7 @@ export type components = {
             entity_index?: number | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -20265,7 +20282,7 @@ export type components = {
             entity_index?: number | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -20400,7 +20417,7 @@ export type components = {
             error?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -20554,7 +20571,7 @@ export type components = {
             entity_label: string;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -20682,7 +20699,7 @@ export type components = {
             entity_label: string;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -20816,7 +20833,7 @@ export type components = {
             entity_index?: number | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /** Error Message */
@@ -20979,7 +20996,7 @@ export type components = {
             entity_index?: number | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -21121,7 +21138,7 @@ export type components = {
             entity_index?: number | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /** Error Message */
@@ -21273,7 +21290,7 @@ export type components = {
             entity_index?: number | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -21402,7 +21419,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -21526,7 +21543,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -21656,7 +21673,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -21789,7 +21806,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -21920,7 +21937,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -22044,7 +22061,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -22168,7 +22185,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -22297,7 +22314,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -22468,7 +22485,7 @@ export type components = {
             entity_index?: number | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /** Error Message */
@@ -22629,7 +22646,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -22760,7 +22777,7 @@ export type components = {
             entity_index?: number | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -22894,7 +22911,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -23046,7 +23063,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -23177,7 +23194,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -23311,7 +23328,7 @@ export type components = {
             entity_title: string;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -23458,7 +23475,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -23594,7 +23611,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -23790,7 +23807,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -23925,7 +23942,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -24055,7 +24072,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /** Error Message */
@@ -24186,7 +24203,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /** Error Message */
@@ -24351,7 +24368,7 @@ export type components = {
             error?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -24488,7 +24505,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -24617,7 +24634,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -24743,7 +24760,7 @@ export type components = {
             current_model?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
@@ -24894,7 +24911,7 @@ export type components = {
             entity_index?: number | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: provider_credits_exhausted, rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code?: string | null;
             /**
