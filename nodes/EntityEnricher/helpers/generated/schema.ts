@@ -1558,7 +1558,9 @@ export type paths = {
          * @description Import portable (GUID-free) results onto a scenario, e.g. from another environment.
          *
          *     Results carry no enrichment-record link and reference models by composite key only, so an
-         *     export from test can be re-imported into prod. Upserts per model key like a normal run.
+         *     export from test can be re-imported into prod. Upserts per model key like a normal run;
+         *     `replace` additionally deletes the rows the payload does not carry, so the scenario's
+         *     results become exactly the payload.
          */
         post: operations["import_results_api_benchmarks__scenario_id__results_import_post"];
         delete?: never;
@@ -12446,6 +12448,12 @@ export type components = {
          * @description Bulk-import portable results onto an existing scenario (upsert per model key).
          */
         ImportBenchmarkResultsRequest: {
+            /**
+             * Replace
+             * @description Make the scenario's results identical to this payload: rows of model keys the payload does not carry are deleted in the same transaction (the Import modal's overwrite, the environment sync). An empty payload with replace=true clears the scenario's results.
+             * @default false
+             */
+            replace: boolean;
             /** Results */
             results?: components["schemas"]["ImportedBenchmarkResult"][];
         };
@@ -12454,6 +12462,12 @@ export type components = {
          * @description Outcome of a results import.
          */
         ImportBenchmarkResultsResponse: {
+            /**
+             * Deleted
+             * @description Rows removed by `replace` (0 otherwise)
+             * @default 0
+             */
+            deleted: number;
             /**
              * Imported
              * @default 0
@@ -24479,10 +24493,11 @@ export type components = {
         };
         /**
          * SSEScoringStarted
-         * @description Emitted when a benchmark scoring pass initializes. For a standalone scoring job
-         *     total_results is exact; for a benchmark run's interleaved scoring it is the run's
-         *     model count — an upper bound (failed models won't be scored). scoring_completed
-         *     carries the exact final counts.
+         * @description Emitted when scoring actually begins: at once for a standalone scoring job
+         *     (total_results exact), and for a benchmark run's interleaved scoring the moment
+         *     its workers are released (after scoring_waiting when the judge's provider is
+         *     benchmarked) — total_results is then the run's model count, an upper bound
+         *     (failed models won't be scored). scoring_completed carries the exact final counts.
          */
         SSEScoringStarted: {
             /**
@@ -24727,6 +24742,143 @@ export type components = {
              * @default 0
              */
             total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
+        };
+        /**
+         * SSEScoringWaiting
+         * @description Benchmark runs only: the scoring pipeline is initialized but its workers are
+         *     held back until the judge's own provider group has finished running — the judge
+         *     never calls its provider while that provider's models are being timed. Nothing
+         *     is scored before the matching scoring_started.
+         */
+        SSEScoringWaiting: {
+            /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             */
+            billing_url?: string | null;
+            /**
+             * Completed Entities
+             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @default 0
+             */
+            completed_entities: number;
+            /**
+             * Completed Models
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /** Current Model */
+            current_model?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             */
+            error_model?: string | null;
+            /**
+             * Event
+             * @default scoring_waiting
+             * @constant
+             */
+            event: "scoring_waiting";
+            /**
+             * Failed Entities
+             * @description Batch jobs only: entities whose every model failed
+             * @default 0
+             */
+            failed_entities: number;
+            /**
+             * Is Paused
+             * @default false
+             */
+            is_paused: boolean;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Judge Provider
+             * @description Provider whose benchmark runs the judge waits for
+             */
+            judge_provider: string;
+            /**
+             * Key Source
+             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             */
+            key_source?: string | null;
+            /**
+             * Last Error Step
+             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             */
+            last_error_step?: string | null;
+            /**
+             * Last Error Summary
+             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             */
+            last_error_summary?: string | null;
+            /**
+             * Max Attempts
+             * @default 0
+             */
+            max_attempts: number;
+            /**
+             * Queue Position
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             */
+            queue_position?: number | null;
+            /** Running Models */
+            running_models?: string[];
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             */
+            seq?: number | null;
+            /**
+             * Skipped Entities
+             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @default 0
+             */
+            skipped_entities: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Total Entities
+             * @description Batch jobs only: number of entities in the batch
+             */
+            total_entities?: number | null;
+            /**
+             * Total Models
+             * @default 0
+             */
+            total_models: number;
+            /**
+             * Total Results
+             * @description Number of results to score (upper bound)
+             */
+            total_results: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -26997,6 +27149,7 @@ export type SseScoringProgress = components['schemas']['SSEScoringProgress'];
 export type SseScoringReferenceUpdated = components['schemas']['SSEScoringReferenceUpdated'];
 export type SseScoringStarted = components['schemas']['SSEScoringStarted'];
 export type SseScoringUnverifiedReference = components['schemas']['SSEScoringUnverifiedReference'];
+export type SseScoringWaiting = components['schemas']['SSEScoringWaiting'];
 export type SseStarted = components['schemas']['SSEStarted'];
 export type SseStrategySelected = components['schemas']['SSEStrategySelected'];
 export type StrategyInfo = components['schemas']['StrategyInfo'];
@@ -33642,7 +33795,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEScoringReferenceUpdated"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEStarted"] | components["schemas"]["SSEHeartbeat"] | components["schemas"]["SSEAttempt"] | components["schemas"]["SSEResumed"] | components["schemas"]["SSEModelsSkipped"] | components["schemas"]["SSEJobPending"] | components["schemas"]["SSEJobRunning"] | components["schemas"]["SSEJobPaused"] | components["schemas"]["SSEQueued"] | components["schemas"]["SSEQueueMerged"] | components["schemas"]["SSEExpertiseStarted"] | components["schemas"]["SSEClassificationMismatchTimeout"])[];
+                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringWaiting"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEScoringReferenceUpdated"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEStarted"] | components["schemas"]["SSEHeartbeat"] | components["schemas"]["SSEAttempt"] | components["schemas"]["SSEResumed"] | components["schemas"]["SSEModelsSkipped"] | components["schemas"]["SSEJobPending"] | components["schemas"]["SSEJobRunning"] | components["schemas"]["SSEJobPaused"] | components["schemas"]["SSEQueued"] | components["schemas"]["SSEQueueMerged"] | components["schemas"]["SSEExpertiseStarted"] | components["schemas"]["SSEClassificationMismatchTimeout"])[];
                 };
             };
         };
