@@ -2052,7 +2052,12 @@ export type paths = {
          * Execute Custom Prompt
          * @description Execute a custom prompt with the selected model.
          *
-         *     Returns the raw text response from the model.
+         *     Returns the raw text response from the model. Billed like every other LLM
+         *     call: an exhausted organization balance is refused up front with 402
+         *     `insufficient_credits` (and mid-call by the credit gate, reported the same
+         *     way), the call runs as a `playground` job, and `cost_usd` is the billed cost
+         *     (raw provider cost × the plan's commission), deducted from the balance on a
+         *     billing plan and recorded on the ledger on every plan.
          */
         post: operations["execute_custom_prompt_api_custom_prompt_execute_post"];
         delete?: never;
@@ -4667,7 +4672,7 @@ export type paths = {
         put?: never;
         /**
          * Synchronous schema generation
-         * @description Blocks until schema generation finishes and returns the generated schema. Designed for non-streaming clients such as the MCP server, Make.com, Zapier, or curl. Rejects the samples with 400 `sample_commonality_failed` (mixed entity types) or `sample_field_conformance_failed` (array items sharing no field) before any spend — POST /api/schema/samples/conformance reports both without generating. Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 502 `provider_credits_exhausted`, 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the offending property and `retryable: true`), 500 `schema_generation_empty` (no result), else 502 `schema_generation_failed`.
+         * @description Blocks until schema generation finishes and returns the generated schema. Designed for non-streaming clients such as the MCP server, Make.com, Zapier, or curl. Rejects the samples with 400 `sample_commonality_failed` (mixed entity types) or `sample_field_conformance_failed` (array items sharing no field) before any spend — POST /api/schema/samples/conformance reports both without generating. Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 402 `insufficient_credits` (the organization's balance ran out mid-job), 502 `provider_credits_exhausted`, 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the offending property and `retryable: true`), 500 `schema_generation_empty` (no result), else 502 `schema_generation_failed`.
          */
         post: operations["generate_schema_sync_api_schema_generate_sync_post"];
         delete?: never;
@@ -4739,7 +4744,7 @@ export type paths = {
         put?: never;
         /**
          * Synchronous sample generation
-         * @description Blocks until sample generation finishes and returns the generated sample(s). Designed for non-streaming clients such as Make.com, Zapier, or curl — always runs with auto_answer=true (the generator is told not to ask about an ambiguous request, and any attachment-planner clarification questions resolve to the planner's defaults rather than pausing, since a blocking call can't wait for a live answer). Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 502 `provider_credits_exhausted` (the provider account behind the key is out of credit), 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the offending property and `retryable: true`), 500 `sample_generation_empty` (no result), else 502 `sample_generation_failed`.
+         * @description Blocks until sample generation finishes and returns the generated sample(s). Designed for non-streaming clients such as Make.com, Zapier, or curl — always runs with auto_answer=true (the generator is told not to ask about an ambiguous request, and any attachment-planner clarification questions resolve to the planner's defaults rather than pausing, since a blocking call can't wait for a live answer). Returns HTTP 504 on timeout, 499 if cancelled, and a typed failure otherwise: 422 `model_retired` / `context_length_exceeded`, 429 `rate_limited`, 402 `insufficient_credits` (the organization's balance ran out mid-job), 502 `provider_credits_exhausted` (the provider account behind the key is out of credit), 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the offending property and `retryable: true`), 500 `sample_generation_empty` (no result), else 502 `sample_generation_failed`.
          */
         post: operations["generate_sample_sync_api_schema_sample_generate_sync_post"];
         delete?: never;
@@ -5111,8 +5116,8 @@ export type paths = {
          *
          *     Failures follow the same typed contract as every other blocking endpoint in
          *     this family (422 `model_retired` / `context_length_exceeded`, 429
-         *     `rate_limited`, 502 `provider_credits_exhausted`, 504 `provider_timeout`,
-         *     502 `model_output_invalid`): a
+         *     `rate_limited`, 402 `insufficient_credits`, 502 `provider_credits_exhausted`,
+         *     504 `provider_timeout`, 502 `model_output_invalid`): a
          *     provider rate-limit used to surface here as an untyped 500, so a caller
          *     could not tell a retryable condition from a bug.
          */
@@ -5959,7 +5964,7 @@ export type paths = {
         put?: never;
         /**
          * Synchronous single-entity enrichment
-         * @description Blocks until the enrichment job finishes and returns the final fused (or best single-model) result. Designed for non-streaming clients such as Make.com, Zapier, or curl. Returns HTTP 422 with classification context if the entity is rejected by pre-flight classification, 504 on timeout, and a typed failure otherwise: 422 `model_retired` (provider retired the model — reselect and retry) or `context_length_exceeded`, 429 `rate_limited`, 502 `provider_credits_exhausted` (the provider account behind the key is out of credit — no retry helps until it is topped up), 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the model, the offending property and `retryable: true`), else 502 `enrichment_failed`.
+         * @description Blocks until the enrichment job finishes and returns the final fused (or best single-model) result. Designed for non-streaming clients such as Make.com, Zapier, or curl. Returns HTTP 422 with classification context if the entity is rejected by pre-flight classification, 504 on timeout, and a typed failure otherwise: 422 `model_retired` (provider retired the model — reselect and retry) or `context_length_exceeded`, 429 `rate_limited`, 402 `insufficient_credits` (your organization's Entity Enricher balance ran out mid-job — add credits), 502 `provider_credits_exhausted` (the provider account behind the key is out of credit — no retry helps until it is topped up), 504 `provider_timeout`, 502 `model_output_invalid` (the model's output did not match the schema — the detail names the model, the offending property and `retryable: true`), else 502 `enrichment_failed`.
          */
         post: operations["enrich_sync_api_single_enrich_sync_post"];
         delete?: never;
@@ -18404,7 +18409,7 @@ export type components = {
             database?: components["schemas"]["DatabaseSyncOutcome"] | null;
             /**
              * Error Code
-             * @description Typed failure code when success=false — e.g. 'model_retired' (provider retired the model, now deactivated), 'rate_limited', 'provider_credits_exhausted' (the provider account behind the key is out of credit), 'context_length_exceeded', 'provider_timeout'. Absent on success.
+             * @description Typed failure code when success=false — e.g. 'model_retired' (provider retired the model, now deactivated), 'rate_limited', 'insufficient_credits' (the organization's Entity Enricher balance ran out mid-batch — add credits), 'provider_credits_exhausted' (the provider account behind the key is out of credit), 'context_length_exceeded', 'provider_timeout'. Absent on success.
              */
             error_code?: string | null;
             /** Error Message */
