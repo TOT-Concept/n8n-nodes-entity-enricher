@@ -11231,7 +11231,7 @@ export type components = {
             web_search_cost_usd?: number | null;
             /**
              * Wire Output Schema
-             * @description Structured-output schema slice as it appeared on the wire to the provider (response_format.json_schema.schema / output_config / tools[].input_schema / generationConfig.response_json_schema — provider-specific). Captured for every native/tool-channel LLM call; null for legacy rows, prompted/text channels, or pre-HTTP cancellations. May contain a `_capture_error` sentinel on extraction failure.
+             * @description Structured-output schema slice as it appeared on the wire to the provider (response_format.json_schema.schema / output_config / tools[].input_schema / generationConfig.response_json_schema — provider-specific). Captured for every native/tool-channel LLM call; null for legacy rows, plain-text agents, or pre-HTTP cancellations. May contain a `_capture_error` sentinel on extraction failure.
              */
             wire_output_schema?: {
                 [key: string]: unknown;
@@ -12519,6 +12519,8 @@ export type components = {
             quality_hallucination?: number | null;
             /** Quality Overall */
             quality_overall?: number | null;
+            /** Quality Scored At */
+            quality_scored_at?: string | null;
             /** Reference Hash */
             reference_hash?: string | null;
             /**
@@ -12539,6 +12541,8 @@ export type components = {
              * @default false
              */
             success: boolean;
+            /** Updated At */
+            updated_at?: string | null;
         };
         /**
          * ImportRequest
@@ -17153,20 +17157,23 @@ export type components = {
          *
          *     An organization's benchmark runs and scoring passes execute one at a time, in
          *     launch order: a launch while another is in flight is accepted and queued rather
-         *     than refused, and the job's stream says where it stands.
+         *     than refused, and the job's stream says where it stands. A launch that names the
+         *     same scenario as a run already queued or already executing is instead folded
+         *     into it (`merged`) — a provider that run hasn't started yet begins on the added
+         *     models at once rather than waiting for a second job's turn in the lane.
          */
         RunBenchmarkJobResponse: {
             /** Job Id */
             job_id: string;
             /**
              * Merged
-             * @description True when the scenario already had a run waiting in the queue: the requested models were folded into it and job_id names that run, whose total_models now counts the union.
+             * @description True when the scenario already had a run waiting in the queue or already executing: the requested models were folded into it and job_id names that run, whose total_models now counts the union.
              * @default false
              */
             merged: boolean;
             /**
              * Queue Position
-             * @description The place the run takes behind the organization's running benchmark job, 1-based; null when it starts at once. The stream's `queued` events are authoritative as the lane advances.
+             * @description The place the run takes behind the organization's running benchmark job, 1-based; null when it starts at once or was folded into a run already executing (`merged`). The stream's `queued` events are authoritative as the lane advances.
              */
             queue_position?: number | null;
             /**
@@ -23046,10 +23053,12 @@ export type components = {
         };
         /**
          * SSEQueueMerged
-         * @description A later launch of the same scenario was folded into this still-waiting
-         *     benchmark run: its model set grew instead of a second entry joining the
-         *     queue. Carries the job's updated launch context, the same shape the
-         *     `started` envelope opens a stream with.
+         * @description A later launch of the same scenario was folded into this benchmark
+         *     run — still waiting in the lane, or already executing — instead of a
+         *     second entry joining the queue: its model set grew, and on an executing
+         *     run any provider it hadn't started yet begins on the new models at once.
+         *     Carries the job's updated launch context, the same shape the `started`
+         *     envelope opens a stream with.
          */
         SSEQueueMerged: {
             /**
