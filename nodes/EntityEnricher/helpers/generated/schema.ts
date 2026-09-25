@@ -11,8 +11,25 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** No Frontend */
-        get: operations["no_frontend__get"];
+        /** Serve Index */
+        get: operations["serve_index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve Spa */
+        get: operations["serve_spa__path__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3952,6 +3969,35 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/providers/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Catalog
+         * @description The read-only global catalog: every GLOBAL provider/model plus
+         *     `llm_specs`, for any owner-or-above key — no admin role required.
+         *
+         *     This is the same global data an owner already reads on the Model
+         *     Management page (`list_providers` / `list_all_models` fuse it into an
+         *     owner's view there); this route just hands it back raw, in `/export`'s
+         *     format. It never carries organization rows, and — unlike `/export` — it
+         *     is not meant to be re-imported: it exists for a reader that only wants
+         *     to mirror the global catalog, such as another deployment's environment
+         *     sync, without holding a source key any more privileged than an owner's.
+         */
+        get: operations["export_catalog_api_providers_catalog_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/providers/export": {
         parameters: {
             query?: never;
@@ -3963,19 +4009,18 @@ export type paths = {
          * Export Config
          * @description Export providers, models, and (admin only) model specs as JSON.
          *
-         *     Keys are sorted alphabetically at every level so the file is stable across
-         *     releases and readable in a diff.
-         *
-         *     Each provider/model is tagged with a portable `scope` ("global" or
-         *     "organization") instead of a concrete org UUID, so an "organization"-scoped
-         *     file can be re-imported by any org into their own organization.
-         *
          *     Admins get all GLOBAL providers/models plus their OWN org's providers/models
          *     (never other organizations') and the `llm_specs` rows. Owners get only their
          *     org-scoped providers and models, plus any global provider that carries one of
          *     their org models (emitted as a match-by-name carrier so it round-trips
          *     without letting the owner mutate the global catalog). API keys and runtime
          *     cost/token counters are never included.
+         *
+         *     This file is meant to round-trip through `/import`, which is why an
+         *     owner's copy holds no real global rows: a non-admin importer treats a
+         *     "global" model as an error, so widening this for owners would make their
+         *     own export fail to re-import. A caller that only needs to *read* the
+         *     global catalog — never re-import it — wants `/catalog` instead.
          */
         get: operations["export_config_api_providers_export_get"];
         put?: never;
@@ -4359,9 +4404,12 @@ export type paths = {
          *
          *     mode='capabilities' empirically probes the capability flags that gate app
          *     code paths (tool/native channels, strict mode, vision/pdf/audio input,
-         *     web search, reasoning effort) and persists the verdicts as a
-         *     source='probe' row per model — the highest-priority fusion source.
-         *     Activation is never touched in this mode.
+         *     web search, reasoning effort, streaming-only endpoints) on every route the
+         *     router can choose and persists the verdicts as a source='probe' row per
+         *     model — the highest-priority fusion source. It retires a model no route
+         *     answers for (the health check's reasons) and one whose routes carry
+         *     neither structured channel (no_structured_output, lifted only by a later
+         *     probe proving a channel).
          *
          *     Returns a job_id for SSE streaming via GET /api/llm/stream/{job_id}.
          */
@@ -7975,7 +8023,7 @@ export type components = {
              * Reasons
              * @description Which auto-deactivation reasons to sweep (never 'manual').
              */
-            reasons?: ("model_not_found" | "unsupported" | "sync_removed" | "validation_failed")[];
+            reasons?: ("model_not_found" | "unsupported" | "sync_removed" | "validation_failed" | "no_structured_output")[];
         };
         /**
          * CleanupDeactivatedResponse
@@ -13518,6 +13566,15 @@ export type components = {
              * @description Cross-provider model identity from `canonical_model_key(model, provider)`. Rows with the same (provider_id, canonical_key) are the same underlying model — used to collapse alias/snapshot duplicates in selection lists (e.g. benchmarks) and to attach the `llm_specs` rows.
              */
             canonical_key?: string | null;
+            /**
+             * Capabilities
+             * @description THE capability storage: route -> {capability: verdict}. Claims (sync sources, a human edit) sit under '*' and carry no endpoint; measurements sit under the route they were taken on. The flat `supports_*` fields above are the derived union across routes, kept because the API, the connectors and the import format all key on those names.
+             */
+            capabilities?: {
+                [key: string]: {
+                    [key: string]: boolean;
+                };
+            } | null;
             /** Context Length */
             context_length?: number | null;
             /**
@@ -13535,7 +13592,7 @@ export type components = {
              * @description Why the model was deactivated. Persists even after reactivation via toggle/edit so admins can spot zombie rows (is_active=true with a stale reason). NULL means the model has never been auto-deactivated.
              * @enum {unknown}
              */
-            deactivation_reason?: "model_not_found" | "unsupported" | "sync_removed" | "validation_failed" | "no_pricing" | "manual" | "tunnel_offline" | "benchmark_failed" | "user" | null;
+            deactivation_reason?: "model_not_found" | "unsupported" | "sync_removed" | "validation_failed" | "no_structured_output" | "no_pricing" | "manual" | "tunnel_offline" | "benchmark_failed" | "user" | null;
             /** Deprecation Date */
             deprecation_date?: string | null;
             /**
@@ -13829,7 +13886,7 @@ export type components = {
             include_benchmark_failed: boolean;
             /**
              * Mode
-             * @description 'health' sends the minimal reachability prompt (may deactivate/reactivate models). 'capabilities' empirically probes each capability flag by driving the matching agent-factory path and persists the measured verdicts as a source='probe' row, which outranks every scraper source at read time. Probes only ever run on active models: inactive rows are dropped from any scope, model_ids included.
+             * @description 'health' sends the minimal reachability prompt (may deactivate/reactivate models). 'capabilities' empirically probes each capability flag by driving the matching agent-factory path and persists the measured verdicts as a source='probe' row, which outranks every scraper source at read time. The probe also owns two activation verdicts: a model no route answers for is retired with the health check's reasons, and one whose reachable routes carry neither structured channel is retired as no_structured_output — the one inactive row the probe revisits, since only a probe can lift it. Every other inactive row is dropped from any scope, model_ids included.
              * @default health
              * @enum {string}
              */
@@ -27215,7 +27272,7 @@ export type WebhookTestResponse = components['schemas']['WebhookTestResponse'];
 export type WebhookTypeInfo = components['schemas']['WebhookTypeInfo'];
 export type $defs = Record<string, never>;
 export interface operations {
-    no_frontend__get: {
+    serve_index__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -27231,6 +27288,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    serve_spa__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -35252,6 +35340,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BulkToggleResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_catalog_api_providers_catalog_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigExport"];
                 };
             };
             /** @description Validation Error */
