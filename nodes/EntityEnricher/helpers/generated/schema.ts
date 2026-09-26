@@ -8785,8 +8785,6 @@ export type components = {
             output_tokens?: number | null;
             /** Record Type */
             record_type?: string | null;
-            /** Step */
-            step?: string | null;
             /** Type */
             type: string;
         };
