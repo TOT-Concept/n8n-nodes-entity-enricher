@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed — Generate Sample reports why a generation failed
+
+A failed sample generation used to come out as a generic "No sample generation result received": the node matched only a successful result, so the job's own reason was dropped. The output item now carries the job's `error_message`, its typed `error_code` (`incoherent_attachments`, `rate_limited`, `provider_credits_exhausted`, …) and, when several attachments were refused as unrelated, the `attachment_coherence` verdict that explains it. A cancelled generation says so.
+
 ## 5.0.0 (2026-09-07)
 
 ### Changed — new logo

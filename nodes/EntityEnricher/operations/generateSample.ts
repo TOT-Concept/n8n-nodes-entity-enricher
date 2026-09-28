@@ -2,29 +2,15 @@ import type { IDataObject, IExecuteFunctions, INodeExecutionData } from 'n8n-wor
 import { NodeOperationError } from 'n8n-workflow';
 import { apiRequest } from '../helpers/api';
 import { consumeSSEStream } from '../helpers/sse';
-import type { JobStartResponse, SSEEvent, GenericSSEEvent } from '../helpers/types';
+import type { JobStartResponse, SSEEvent } from '../helpers/types';
+import type { SseJobFailed, SseSampleGenerationJobCompleted } from '../helpers/generated/schema';
 
-/** Sample-generation `model_completed` payload — not part of the OpenAPI schema
- * (the terminal payload is built as a raw dict server-side, not a Pydantic
- * response_model), so this shape is hand-typed rather than generated. */
-interface SampleCompletedEvent extends GenericSSEEvent {
-	event: 'model_completed';
-	success: boolean;
-	samples?: IDataObject[];
-	samples_requested?: number;
-	samples_note?: string;
-	object_type?: string | null;
-	error_message?: string;
-	ambiguity_report?: IDataObject;
-	attachment_coherence?: IDataObject;
-	cost_usd?: number;
-	input_tokens?: number;
-	output_tokens?: number;
-	processing_time_ms?: number;
+function isSampleJobCompleted(e: SSEEvent): e is SseSampleGenerationJobCompleted {
+	return e.event === 'completed' && e.job_type === 'sample_generation';
 }
 
-function isSampleCompleted(e: SSEEvent): e is SampleCompletedEvent {
-	return e.event === 'model_completed' && 'samples' in e;
+function isJobFailed(e: SSEEvent): e is SseJobFailed {
+	return e.event === 'failed';
 }
 
 /**
@@ -104,23 +90,31 @@ function buildOutputItems(
 	itemIndex: number,
 	sampleCountRequested: number,
 ): INodeExecutionData[] {
-	const completed = events.find(isSampleCompleted);
-
-	if (!completed) {
+	const failed = events.find(isJobFailed);
+	if (failed) {
+		// The typed reason (`incoherent_attachments`, `rate_limited`, …) and, on an
+		// incoherent-attachments refusal, the verdict that explains it — the job's
+		// failure payload rides `result`, a list of one.
+		const payload = (Array.isArray(failed.result) ? failed.result[0] : null) as IDataObject | null;
 		return [{
 			json: {
 				success: false,
-				error_message: 'No sample generation result received',
+				error_message: failed.last_error_summary ?? 'Sample generation failed',
+				error_code: failed.error_code,
+				...(payload?.attachment_coherence
+					? { attachment_coherence: payload.attachment_coherence } : {}),
 			},
 			pairedItem: itemIndex,
 		}];
 	}
 
-	if (!completed.success || !completed.samples?.length) {
+	const completed = events.find(isSampleJobCompleted)?.result[0];
+	if (!completed?.samples.length) {
+		const cancelled = events.find((e) => e.event === 'cancelled');
 		return [{
 			json: {
 				success: false,
-				error_message: completed.error_message ?? 'Sample generation failed',
+				error_message: cancelled ? 'Sample generation was cancelled' : 'No sample generation result received',
 			},
 			pairedItem: itemIndex,
 		}];
@@ -129,17 +123,17 @@ function buildOutputItems(
 	return completed.samples.map((sample, i) => ({
 		json: {
 			success: true,
-			sample,
+			sample: sample as IDataObject,
 			sample_index: i + 1,
-			samples_generated: completed.samples!.length,
+			samples_generated: completed.samples.length,
 			samples_requested: completed.samples_requested ?? sampleCountRequested,
 			// The kind of entity the model read out of the request (or the planner out
 			// of the attachment) — what the record is named after.
 			object_type: completed.object_type ?? null,
 			...(i === 0 && completed.ambiguity_report
-				? { ambiguity_report: completed.ambiguity_report } : {}),
+				? { ambiguity_report: completed.ambiguity_report as IDataObject } : {}),
 			...(i === 0 && completed.attachment_coherence
-				? { attachment_coherence: completed.attachment_coherence } : {}),
+				? { attachment_coherence: completed.attachment_coherence as IDataObject } : {}),
 			...(i === 0 ? {
 				cost_usd: completed.cost_usd,
 				input_tokens: completed.input_tokens,

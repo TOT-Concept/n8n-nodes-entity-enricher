@@ -2891,66 +2891,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/enrichment/cancel/{job_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Cancel Job
-         * @description Request cancellation of a running job.
-         */
-        post: operations["cancel_job_api_enrichment_cancel__job_id__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/enrichment/jobs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Jobs
-         * @description List recent enrichment jobs.
-         */
-        get: operations["list_jobs_api_enrichment_jobs_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/enrichment/jobs/{job_id}/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Job Status
-         * @description Get current status of an enrichment job.
-         */
-        get: operations["get_job_status_api_enrichment_jobs__job_id__status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/enrichment/options": {
         parameters: {
             query?: never;
@@ -2968,26 +2908,6 @@ export type paths = {
          *     optional field as "absent means false/unknown".
          */
         get: operations["get_options_api_enrichment_options_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/enrichment/stream/{job_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Stream Progress
-         * @description Stream progress events for an enrichment job via SSE.
-         */
-        get: operations["stream_progress_api_enrichment_stream__job_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3282,28 +3202,6 @@ export type paths = {
          *     reads to continue).
          */
         post: operations["continue_job_api_llm_continue__job_id__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/llm/events/{job_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Job Events
-         * @description Read a job's event log by cursor — the poll surface of the SSE stream,
-         *     for MCP / n8n / Make clients that cannot hold a connection open. The log
-         *     lives with the job in memory and is bounded (oldest events drop first).
-         */
-        get: operations["job_events_api_llm_events__job_id__get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -12871,36 +12769,6 @@ export type components = {
             replaces: string[][];
         };
         /**
-         * JobEventsResponse
-         * @description A page of a job's event log, for clients that poll instead of streaming.
-         */
-        JobEventsResponse: {
-            /**
-             * Events
-             * @description Logged events with seq > after, oldest first — the same JSON objects the SSE stream delivers (see GET /api/llm/sse-events-schema).
-             */
-            events: {
-                [key: string]: unknown;
-            }[];
-            /**
-             * Has More
-             * @description True when the page was cut by `limit`: call again with after=last_seq.
-             */
-            has_more: boolean;
-            /** Job Id */
-            job_id: string;
-            /**
-             * Last Seq
-             * @description seq of the last event returned, or `after` when none was.
-             */
-            last_seq: number;
-            /**
-             * Status
-             * @description The job's current status (not the status at the last returned event).
-             */
-            status: string;
-        };
-        /**
          * JobsListResponse
          * @description Paginated list of job summaries.
          */
@@ -15083,52 +14951,6 @@ export type components = {
              * @default 0
              */
             total_scraped: number;
-        };
-        /**
-         * ProgressEvent
-         * @description SSE progress event for enrichment jobs.
-         */
-        ProgressEvent: {
-            /**
-             * Completed Enrichments
-             * @default 0
-             */
-            completed_enrichments: number;
-            /**
-             * Current
-             * @default 0
-             */
-            current: number;
-            /** Current Company */
-            current_company?: string | null;
-            /** Current Model */
-            current_model?: string | null;
-            /** Errors */
-            errors?: string[];
-            /**
-             * Failed
-             * @default 0
-             */
-            failed: number;
-            /** Job Id */
-            job_id: string;
-            /** Message */
-            message?: string | null;
-            /**
-             * Skipped
-             * @default 0
-             */
-            skipped: number;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "pending" | "running" | "completed" | "failed" | "cancelled";
-            /**
-             * Total
-             * @default 0
-             */
-            total: number;
         };
         /**
          * ProjectedConcept
@@ -19235,7 +19057,7 @@ export type components = {
             output_tokens: number | null;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -19295,7 +19117,7 @@ export type components = {
             paths: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -19353,7 +19175,7 @@ export type components = {
             reference_attachment?: components["schemas"]["SSEAttachmentFile"];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -19426,7 +19248,7 @@ export type components = {
             model: string | null;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -19471,7 +19293,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /** Skipped Entities */
@@ -19520,7 +19342,7 @@ export type components = {
             result: components["schemas"]["BatchJobResult"];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -19556,7 +19378,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -19601,7 +19423,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -19651,7 +19473,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -19703,7 +19525,7 @@ export type components = {
             model: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -19743,7 +19565,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -19786,7 +19608,7 @@ export type components = {
             reason: string | null;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -19832,7 +19654,7 @@ export type components = {
             model: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -19872,7 +19694,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -19922,7 +19744,7 @@ export type components = {
             record_id: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -19970,7 +19792,7 @@ export type components = {
             record_id: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -20007,7 +19829,7 @@ export type components = {
             result: components["schemas"]["DbModelClassificationJobResult"][];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -20047,7 +19869,7 @@ export type components = {
             result: components["schemas"]["SingleEnrichmentResponse"][];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -20125,7 +19947,7 @@ export type components = {
             results: components["schemas"]["SingleEnrichmentResponse"][];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -20157,8 +19979,9 @@ export type components = {
         };
         /**
          * SSEEntitySkipped
-         * @description A batch entity yields no enrichment: it never started (cancelled, quota or
-         *     credits ran out), or the classifier discarded it as not the schema's type.
+         * @description A batch entity yields no enrichment: it never started (quota or credits
+         *     ran out), the batch was cancelled before any of its models finished, or the
+         *     classifier discarded it as not the schema's type.
          */
         SSEEntitySkipped: {
             /**
@@ -20203,7 +20026,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -20259,7 +20082,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -20332,7 +20155,7 @@ export type components = {
             processing_time_ms: number | null;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -20385,7 +20208,7 @@ export type components = {
             model: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -20478,7 +20301,7 @@ export type components = {
             record_id: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -20521,7 +20344,7 @@ export type components = {
             result: components["schemas"]["FusionResponse"];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -20564,7 +20387,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -20612,7 +20435,7 @@ export type components = {
             result?: unknown;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -20652,7 +20475,7 @@ export type components = {
             last_error_summary: null;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -20715,7 +20538,7 @@ export type components = {
             result?: unknown;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -20751,7 +20574,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -20890,7 +20713,7 @@ export type components = {
             scenario_names: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -20987,7 +20810,7 @@ export type components = {
             scoreable?: boolean;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21032,7 +20855,7 @@ export type components = {
             };
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21078,7 +20901,7 @@ export type components = {
             model: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21126,7 +20949,7 @@ export type components = {
             result: components["schemas"]["ModelValidationResult"] | components["schemas"]["ModelCapabilityProbeResult"];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21167,7 +20990,7 @@ export type components = {
             result: components["schemas"]["ModelValidationJobResult"];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21203,7 +21026,7 @@ export type components = {
             result: components["schemas"]["PricingSyncResponse"];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21246,7 +21069,7 @@ export type components = {
             position: number;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21309,7 +21132,7 @@ export type components = {
             } | null;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21350,7 +21173,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21405,7 +21228,7 @@ export type components = {
             round: number;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21452,7 +21275,7 @@ export type components = {
             result: components["schemas"]["SampleGenerationResult"][];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21493,7 +21316,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21545,7 +21368,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21640,7 +21463,7 @@ export type components = {
             result: components["schemas"]["SchemaAnnotationResult"][];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21681,7 +21504,7 @@ export type components = {
             result: (components["schemas"]["GenerateSchemaResponse"] | components["schemas"]["SchemaPromptStreamResponse"])[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21722,7 +21545,7 @@ export type components = {
             scored: number;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21768,7 +21591,7 @@ export type components = {
             reason: string | null;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21806,7 +21629,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21844,7 +21667,7 @@ export type components = {
             model: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21908,7 +21731,7 @@ export type components = {
             scored: number;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -21964,12 +21787,13 @@ export type components = {
             job_type: string;
             /**
              * Reason
-             * @description Why the pass deliberately applied nothing: 'reference_moved' when the author saved the reference while the pass ran
+             * @description Why the pass deliberately applied nothing: the author saved the reference while the pass ran
+             * @constant
              */
-            reason?: string;
+            reason?: "reference_moved";
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -22010,7 +21834,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -22023,42 +21847,6 @@ export type components = {
              * @description Number of results to score
              */
             total_results: number;
-            /**
-             * Ts
-             * @description When the event was emitted (Unix epoch milliseconds)
-             */
-            ts?: number;
-        };
-        /**
-         * SSEScoringUnverifiedReference
-         * @description Scoring runs against a reference that is not verified.
-         */
-        SSEScoringUnverifiedReference: {
-            /**
-             * Event
-             * @constant
-             */
-            event: "scoring_unverified_reference";
-            /**
-             * Job Id
-             * @description Unique job identifier
-             */
-            job_id: string;
-            /**
-             * Job Type
-             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
-             */
-            job_type: string;
-            /**
-             * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
-             */
-            seq?: number;
-            /**
-             * Status
-             * @description Job status: pending, running, paused, completed, failed, cancelled
-             */
-            status: string;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds)
@@ -22092,7 +21880,7 @@ export type components = {
             judge_provider: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -22138,7 +21926,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /** Source */
@@ -22182,7 +21970,7 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -22238,7 +22026,7 @@ export type components = {
             };
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -22300,7 +22088,7 @@ export type components = {
             processing_time_ms: number | null;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -22355,7 +22143,7 @@ export type components = {
             model: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -22413,7 +22201,7 @@ export type components = {
             requested: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
             seq?: number;
             /**
@@ -24192,7 +23980,6 @@ export type ImportRequest = components['schemas']['ImportRequest'];
 export type ImportResult = components['schemas']['ImportResult'];
 export type IndexMergeSuggestion = components['schemas']['IndexMergeSuggestion'];
 export type IndexSuggestionDismissRequest = components['schemas']['IndexSuggestionDismissRequest'];
-export type JobEventsResponse = components['schemas']['JobEventsResponse'];
 export type JobsListResponse = components['schemas']['JobsListResponse'];
 export type JobSummary = components['schemas']['JobSummary'];
 export type JoinOrganizationRequest = components['schemas']['JoinOrganizationRequest'];
@@ -24255,7 +24042,6 @@ export type PricingSyncJobResponse = components['schemas']['PricingSyncJobRespon
 export type PricingSyncRequest = components['schemas']['PricingSyncRequest'];
 export type PricingSyncResponse = components['schemas']['PricingSyncResponse'];
 export type PricingSyncSummary = components['schemas']['PricingSyncSummary'];
-export type ProgressEvent = components['schemas']['ProgressEvent'];
 export type ProjectedConcept = components['schemas']['ProjectedConcept'];
 export type ProjectionMigrationRequest = components['schemas']['ProjectionMigrationRequest'];
 export type ProjectionMigrationResponse = components['schemas']['ProjectionMigrationResponse'];
@@ -24427,7 +24213,6 @@ export type SseScoringModelStarted = components['schemas']['SSEScoringModelStart
 export type SseScoringProgress = components['schemas']['SSEScoringProgress'];
 export type SseScoringReferenceUpdated = components['schemas']['SSEScoringReferenceUpdated'];
 export type SseScoringStarted = components['schemas']['SSEScoringStarted'];
-export type SseScoringUnverifiedReference = components['schemas']['SSEScoringUnverifiedReference'];
 export type SseScoringWaiting = components['schemas']['SSEScoringWaiting'];
 export type SseSourceCompleted = components['schemas']['SSESourceCompleted'];
 export type SseSourceStarted = components['schemas']['SSESourceStarted'];
@@ -30232,115 +30017,6 @@ export interface operations {
             };
         };
     };
-    cancel_job_api_enrichment_cancel__job_id__post: {
-        parameters: {
-            query?: {
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_jobs_api_enrichment_jobs_get: {
-        parameters: {
-            query?: {
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_job_status_api_enrichment_jobs__job_id__status_get: {
-        parameters: {
-            query?: {
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProgressEvent"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_options_api_enrichment_options_get: {
         parameters: {
             query?: {
@@ -30363,43 +30039,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EnrichmentOptionsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    stream_progress_api_enrichment_stream__job_id__get: {
-        parameters: {
-            query?: {
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -31053,47 +30692,6 @@ export interface operations {
             };
         };
     };
-    job_events_api_llm_events__job_id__get: {
-        parameters: {
-            query?: {
-                /** @description Replay cursor: the `seq` of the last event already received. 0 (a fresh client) replays the job's whole event log; a reconnecting client passes the last seq it saw and receives only what it missed. */
-                after?: number;
-                /** @description Maximum events per page. */
-                limit?: number;
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobEventsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     sse_events_schema_api_llm_sse_events_schema_get: {
         parameters: {
             query?: never;
@@ -31109,7 +30707,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEClassificationMismatchTimeout"] | components["schemas"]["SSEResumed"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseStarted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEStepStarted"] | components["schemas"]["SSEStepCompleted"] | components["schemas"]["SSEAttempt"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringWaiting"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringModelStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEScoringReferenceUpdated"] | components["schemas"]["SSEBenchmarkRunStarted"] | components["schemas"]["SSEBenchmarkRunCompleted"] | components["schemas"]["SSEModelsSkipped"] | components["schemas"]["SSEQueued"] | components["schemas"]["SSEQueueMerged"] | components["schemas"]["SSESourceStarted"] | components["schemas"]["SSESourceCompleted"] | components["schemas"]["SSEModelValidated"] | components["schemas"]["SSEStarted"] | components["schemas"]["SSEJobRunning"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEEnrichmentJobCompleted"] | components["schemas"]["SSEFusionJobCompleted"] | components["schemas"]["SSEBatchJobCompleted"] | components["schemas"]["SSESampleGenerationJobCompleted"] | components["schemas"]["SSESchemaGenerationJobCompleted"] | components["schemas"]["SSESchemaAnnotationJobCompleted"] | components["schemas"]["SSEDbModelClassificationJobCompleted"] | components["schemas"]["SSEModelValidationJobCompleted"] | components["schemas"]["SSEPricingSyncJobCompleted"])[];
+                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEClassificationMismatchTimeout"] | components["schemas"]["SSEResumed"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseStarted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEStepStarted"] | components["schemas"]["SSEStepCompleted"] | components["schemas"]["SSEAttempt"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringWaiting"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringModelStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEScoringReferenceUpdated"] | components["schemas"]["SSEBenchmarkRunStarted"] | components["schemas"]["SSEBenchmarkRunCompleted"] | components["schemas"]["SSEModelsSkipped"] | components["schemas"]["SSEQueued"] | components["schemas"]["SSEQueueMerged"] | components["schemas"]["SSESourceStarted"] | components["schemas"]["SSESourceCompleted"] | components["schemas"]["SSEModelValidated"] | components["schemas"]["SSEStarted"] | components["schemas"]["SSEJobRunning"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEEnrichmentJobCompleted"] | components["schemas"]["SSEFusionJobCompleted"] | components["schemas"]["SSEBatchJobCompleted"] | components["schemas"]["SSESampleGenerationJobCompleted"] | components["schemas"]["SSESchemaGenerationJobCompleted"] | components["schemas"]["SSESchemaAnnotationJobCompleted"] | components["schemas"]["SSEDbModelClassificationJobCompleted"] | components["schemas"]["SSEModelValidationJobCompleted"] | components["schemas"]["SSEPricingSyncJobCompleted"])[];
                 };
             };
         };
