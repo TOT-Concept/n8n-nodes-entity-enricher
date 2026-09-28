@@ -7026,6 +7026,54 @@ export type components = {
             target_schema?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
         };
         /**
+         * BatchEntityOutcome
+         * @description Per-entity outcome in a batch job's terminal result.
+         *
+         *     Compact by design (no structured outputs — those live on the records):
+         *     what a caller needs to act on each entity after the fact.
+         */
+        BatchEntityOutcome: {
+            /** @description Entity-layer outcome for the final result — same contract as SingleEnrichmentResponse.database; absent when the schema has no linked database or the batch opted out (database_sync=false). */
+            database?: components["schemas"]["DatabaseSyncOutcome"] | null;
+            /** Entity Index */
+            entity_index: number;
+            /**
+             * Entity Label
+             * @description Compact identifier derived from the input entity: its `identifying` values when the schema declares any, else the first scalar value sent, else the positional 'Entity N'. Human-facing — correlate strictly by entity_index.
+             */
+            entity_label: string;
+            /** Error Message */
+            error_message?: string | null;
+            /**
+             * Model Record Ids
+             * @description Per-model source records (model composite key → record id)
+             */
+            model_record_ids?: {
+                [key: string]: string;
+            };
+            /**
+             * Record Id
+             * @description Record holding the entity's final result — the fused record when 2+ models merged, else the single model's record. This is the record any `database` outcome refers to. Null when nothing was persisted (skipped, or every model failed before saving).
+             */
+            record_id?: string | null;
+            /**
+             * Skip Code
+             * @description Why the entity was skipped: cancelled | prompt_limit_reached | insufficient_credits | classification_mismatch
+             */
+            skip_code?: string | null;
+            /**
+             * Skipped
+             * @description Entity produced no enrichment: it never started (job cancelled, or org quota/credit ran out mid-batch), or the pre-flight classifier discarded it as not the schema's type — see skip_code
+             * @default false
+             */
+            skipped: boolean;
+            /**
+             * Success
+             * @description At least one model produced a successful enrichment for this entity
+             */
+            success: boolean;
+        };
+        /**
          * BatchFetchRequest
          * @description Request to fetch entities from a REST API.
          */
@@ -7051,6 +7099,44 @@ export type components = {
             fetch_time_ms: number;
             /** Total */
             total: number;
+        };
+        /**
+         * BatchJobResult
+         * @description Terminal result of a batch enrichment job (LLMJob.result).
+         *
+         *     Surfaced by MCP get_job_status — counts by default, `entities` with
+         *     include_result=true — and by the terminal SSE event. Jobs are kept in
+         *     memory only: after eviction/restart, recover per-record outcomes via
+         *     list_records(job_id=...) and per-entity state via the entity-state browse.
+         */
+        BatchJobResult: {
+            /** Completed Entities */
+            completed_entities: number;
+            /**
+             * Db Partial
+             * @description Entities admitted with dropped rows (DatabaseSyncOutcome.status='partial') — silent data loss, treat as a warning
+             */
+            db_partial?: number | null;
+            /**
+             * Db Rejected
+             * @description Entities the admission gate refused whole (nothing reached any linked database)
+             */
+            db_rejected?: number | null;
+            /**
+             * Db Saved
+             * @description Entities whose final result was fully admitted into the entity layer. Null (all three db_* counts) when no entity carried a database outcome — schema without a linked database, or database_sync=false: a batch that never went near the entity layer must not read as 'zero saved'.
+             */
+            db_saved?: number | null;
+            /** Entities */
+            entities?: components["schemas"]["BatchEntityOutcome"][];
+            /** Failed Entities */
+            failed_entities: number;
+            /** Skipped Entities */
+            skipped_entities: number;
+            /** Stopped Early Reason */
+            stopped_early_reason?: string | null;
+            /** Total Entities */
+            total_entities: number;
         };
         /** BatchRestoreRequest */
         BatchRestoreRequest: {
@@ -7398,7 +7484,7 @@ export type components = {
              * Reasoning Effort
              * @description Reasoning opt-in applied to every model the scenario runs; null = off
              */
-            reasoning_effort?: ("low" | "medium" | "high") | null;
+            reasoning_effort?: ("high" | "medium" | "low") | null;
             /**
              * Repetitions
              * @description Run each model N times per run; keep the mean + consistency spread
@@ -7491,7 +7577,7 @@ export type components = {
             /** Name */
             name: string;
             /** Reasoning Effort */
-            reasoning_effort?: ("low" | "medium" | "high") | null;
+            reasoning_effort?: ("high" | "medium" | "low") | null;
             /** Reference Base Hash */
             reference_base_hash?: string | null;
             reference_meta?: components["schemas"]["BenchmarkReferenceMeta"] | null;
@@ -7589,7 +7675,7 @@ export type components = {
             /** Name */
             name: string;
             /** Reasoning Effort */
-            reasoning_effort?: ("low" | "medium" | "high") | null;
+            reasoning_effort?: ("high" | "medium" | "low") | null;
             /** Reference Base Hash */
             reference_base_hash?: string | null;
             reference_meta?: components["schemas"]["BenchmarkReferenceMeta"] | null;
@@ -7682,7 +7768,7 @@ export type components = {
             /** Name */
             name?: string | null;
             /** Reasoning Effort */
-            reasoning_effort?: ("low" | "medium" | "high") | null;
+            reasoning_effort?: ("high" | "medium" | "low") | null;
             /** Repetitions */
             repetitions?: number | null;
             sample_params?: components["schemas"]["SampleGenTaskParams"] | null;
@@ -7904,6 +7990,39 @@ export type components = {
              * @default 0
              */
             updated: number;
+        };
+        /**
+         * CapabilityProbeOutcome
+         * @description Outcome of one capability probe against one model, on one route.
+         */
+        CapabilityProbeOutcome: {
+            /**
+             * Content Ok
+             * @description For a probe carrying a payload whose answer is checkable (the image's colour, the word in the PDF, the number of tones): True when the model answered it, False when it accepted the request but answered something else, None when the probe has nothing to check. Deliberately NEVER flips the capability flag — a weak model misreading an image must not erase a capability the transport proved.
+             */
+            content_ok?: boolean | null;
+            /**
+             * Detail
+             * @description Model output excerpt (confirmed) or the classified error.
+             */
+            detail?: string | null;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "confirmed" | "denied" | "unavailable" | "inconclusive" | "skipped";
+            /** Probe */
+            probe: string;
+            /**
+             * Response Time Ms
+             * @default 0
+             */
+            response_time_ms: number;
+            /**
+             * Route
+             * @description The pydantic-ai route this probe was measured on. The same model answers differently per route, so a verdict without one cannot be told apart from one taken on an endpoint the router no longer uses.
+             */
+            route?: string | null;
         };
         /** ChangeOrganizationRequest */
         ChangeOrganizationRequest: {
@@ -9758,6 +9877,75 @@ export type components = {
             suggested_key_language?: string | null;
             /** Valid */
             valid: boolean;
+        };
+        /**
+         * DbModelClassificationJobResult
+         * @description A completed database-model classification pass.
+         */
+        DbModelClassificationJobResult: {
+            /** Applied */
+            applied: boolean;
+            /** Changed */
+            changed: components["schemas"]["DbModelFlagChange"][];
+            /**
+             * Column Types
+             * @description Resolved SQL type per column path
+             */
+            column_types: {
+                [key: string]: string;
+            };
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /** Degraded */
+            degraded: boolean;
+            /** Degraded Reason */
+            degraded_reason?: string | null;
+            /** In Scope Properties */
+            in_scope_properties: number;
+            /** In Scope Relationships */
+            in_scope_relationships: number;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /** Model */
+            model: string;
+            /** Notes */
+            notes: string[];
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Record Id */
+            record_id?: string | null;
+            /** Stamped Keys */
+            stamped_keys: components["schemas"]["EntityTypeKeys"][];
+            /**
+             * Success
+             * @description The pass produced a usable model — true even when degraded to defaults
+             */
+            success: boolean;
+            /**
+             * Unclassified Properties
+             * @description Asked but never answered: defaults applied, re-asked on the next run
+             */
+            unclassified_properties: string[];
+            /** Unclassified Property Count */
+            unclassified_property_count: number;
+            /** Unclassified Relationship Count */
+            unclassified_relationship_count: number;
+            /** Unclassified Relationships */
+            unclassified_relationships: string[];
+        };
+        /**
+         * DbModelFlagChange
+         * @description One database flag the classification pass changed.
+         */
+        DbModelFlagChange: {
+            /** Flag */
+            flag: string;
+            /** New */
+            new: unknown;
+            /** Old */
+            old: unknown;
+            /** Path */
+            path: string;
         };
         /**
          * DbModelScopeResponse
@@ -12210,7 +12398,7 @@ export type components = {
              * Reasoning Effort
              * @description Reasoning opt-in for a reasoning-capable model; null = off
              */
-            reasoning_effort?: ("high" | "medium" | "low") | null;
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             /**
              * Request
              * @description What the sample should contain, in free text: the kind of entity (optionally a specific instance), the properties it must include, size/depth budgets, structural preferences. Binding for the generation — it overrides the generator's default choices; only the output contract (JSON-only, naming convention, quantity units, single-language samples, one instance per sample) cannot be overridden. The NUMBER of samples is sample_count, never part of this text: a request for 'three samples' does not produce three — each sample is exactly one instance. When the request is materially ambiguous the job may pause on clarification questions (see auto_answer). Required unless attachment_ids is set, where the attached document is the request and this text only narrows it.
@@ -13106,6 +13294,81 @@ export type components = {
             speed?: number | null;
         };
         /**
+         * ModelCapabilityProbeResult
+         * @description Per-model result of a capability probe run.
+         */
+        ModelCapabilityProbeResult: {
+            /**
+             * Action Taken
+             * @description 'deactivated', 'reactivated', or None — the probe's own activation verdict on this model, same vocabulary as the health check.
+             */
+            action_taken?: string | null;
+            /** Composite Key */
+            composite_key: string;
+            /**
+             * Error Message
+             * @description Unreachable: the first route's baseline failure. Reachable: every probe that decided nothing (unavailable / inconclusive), joined — flags and route_capabilities are then empty and nothing was persisted; the previous probe row stands and a re-run decides.
+             */
+            error_message?: string | null;
+            /**
+             * Flags
+             * @description Measured capability columns. None = probe was inconclusive or unavailable; the flag is left NULL on the probe row so lower-priority sources keep filling it.
+             */
+            flags?: {
+                [key: string]: boolean | null;
+            };
+            /** Model Id */
+            model_id: number;
+            /** Model Name */
+            model_name: string;
+            /**
+             * No Structured Output
+             * @description The probe proved that no reachable route carries either structured channel: tool_calls and response_schema were both denied on every route that answered. The model is retired as deactivation_reason='no_structured_output' — every structured run would otherwise die at agent build time. Only a later probe proving a channel lifts it.
+             * @default false
+             */
+            no_structured_output: boolean;
+            /**
+             * Observed Rpm
+             * @description Requests per minute the provider stated for this model on the probe calls' response headers (global key only); None when it states none.
+             */
+            observed_rpm?: number | null;
+            /**
+             * Observed Tpm
+             * @description Tokens per minute, same source as observed_rpm.
+             */
+            observed_tpm?: number | null;
+            /**
+             * Persisted
+             * @default false
+             */
+            persisted: boolean;
+            /** Probes */
+            probes?: components["schemas"]["CapabilityProbeOutcome"][];
+            /** Provider Display Name */
+            provider_display_name: string;
+            /** Provider Name */
+            provider_name: string;
+            /**
+             * Reachable
+             * @description False when no candidate route answered its plain-text baseline — nothing is persisted, and the model is retired with the reason the failures justify (nothing on a transient one).
+             */
+            reachable: boolean;
+            /**
+             * Route
+             * @description The route `flags` describe: the one the router picks among the routes that answered, or the first candidate when none did. Each probe in `probes` names its own route; this is the served one.
+             */
+            route?: string | null;
+            /**
+             * Route Capabilities
+             * @description Measured matrix, route -> {short capability name: verdict}, one entry per route that answered. `flags` is the view of the route the router picks given these measurements; a consumer needing that route calls select_route() over the same map.
+             */
+            route_capabilities?: {
+                [key: string]: {
+                    [key: string]: boolean;
+                };
+            };
+        };
+        /**
          * ModelChange
          * @description A single model change (add, update, or deactivate)
          */
@@ -13849,6 +14112,15 @@ export type components = {
             usages?: components["schemas"]["ModelUsage"][];
         };
         /**
+         * ModelValidationJobResult
+         * @description A model validation job's outcome — what completed or, when cancelled, validated so far.
+         */
+        ModelValidationJobResult: {
+            /** Results */
+            results: (components["schemas"]["ModelValidationResult"] | components["schemas"]["ModelCapabilityProbeResult"])[];
+            summary: components["schemas"]["ModelValidationSummary"];
+        };
+        /**
          * ModelValidationRequest
          * @description Request to validate models by sending test prompts.
          */
@@ -13894,6 +14166,71 @@ export type components = {
             message: string;
             /** Total Models */
             total_models: number;
+        };
+        /**
+         * ModelValidationResult
+         * @description Result for a single model validation.
+         */
+        ModelValidationResult: {
+            /**
+             * Action Taken
+             * @description Action taken: 'deactivated', 'reactivated', or None
+             */
+            action_taken?: string | null;
+            /** Composite Key */
+            composite_key: string;
+            /** Error Message */
+            error_message?: string | null;
+            /** Model Id */
+            model_id: number;
+            /** Model Name */
+            model_name: string;
+            /** Provider Display Name */
+            provider_display_name: string;
+            /** Provider Name */
+            provider_name: string;
+            /** Response Time Ms */
+            response_time_ms: number;
+            /**
+             * Route Errors
+             * @description A failed chat health check's error per route tried, in candidate_routes order — the model answers when one route answers, and the route module retires it on the most specific reason any route earned. None for an embedding model.
+             */
+            route_errors?: {
+                [key: string]: string;
+            } | null;
+            /** Success */
+            success: boolean;
+        };
+        /**
+         * ModelValidationSummary
+         * @description Summary of completed model validation.
+         */
+        ModelValidationSummary: {
+            /**
+             * Deactivated
+             * @default 0
+             */
+            deactivated: number;
+            /**
+             * Failed
+             * @default 0
+             */
+            failed: number;
+            /**
+             * Passed
+             * @default 0
+             */
+            passed: number;
+            /**
+             * Reactivated
+             * @default 0
+             */
+            reactivated: number;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
         };
         /**
          * NestRegionRequest
@@ -17097,7 +17434,7 @@ export type components = {
              * Reasoning Effort
              * @description Enable model thinking/reasoning for the retried expertises at the given effort. Same semantics as the enrichment request field.
              */
-            reasoning_effort?: ("high" | "medium" | "low") | null;
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             /**
              * Record Id
              * @description Existing enrichment record ID
@@ -17295,6 +17632,66 @@ export type components = {
              * @description Distinct field sets, most frequent first.
              */
             shapes: string[][];
+        };
+        /**
+         * SampleGenerationResult
+         * @description A successful sample generation.
+         */
+        SampleGenerationResult: {
+            /**
+             * Ambiguity Report
+             * @description Flagged ambiguous names and any auto-applied renames
+             */
+            ambiguity_report?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Attachment Coherence
+             * @description How 2+ attachments relate (see the attachment_coherence event)
+             */
+            attachment_coherence?: {
+                [key: string]: unknown;
+            } | null;
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /**
+             * Object Type
+             * @description The kind of entity read out of the request (PascalCase)
+             */
+            object_type?: string | null;
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Processing Time Ms */
+            processing_time_ms?: number | null;
+            /**
+             * Samples
+             * @description The generated sample objects
+             */
+            samples: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Samples Note
+             * @description Why fewer samples than requested were produced
+             */
+            samples_note?: string | null;
+            /**
+             * Samples Requested
+             * @description Samples the job planned (attachments force a single sample)
+             */
+            samples_requested: number;
+            /**
+             * Success
+             * @default true
+             */
+            success: boolean;
+            /**
+             * Warnings
+             * @description Normalizations that undid something the samples carried, lost bookkeeping
+             */
+            warnings?: string[] | null;
         };
         /**
          * SampleGenTaskParams
@@ -17602,6 +17999,45 @@ export type components = {
             schema_content?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
         };
         /**
+         * SchemaAnnotationResult
+         * @description A completed annotation pass.
+         */
+        SchemaAnnotationResult: {
+            /**
+             * Applied
+             * @description Saved mode: the annotated content was written to the schema
+             */
+            applied: boolean;
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /**
+             * Filled
+             * @description Annotations filled, per kind
+             */
+            filled: {
+                [key: string]: number;
+            };
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /** Model */
+            model: string;
+            /** Notes */
+            notes: string[];
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Record Id */
+            record_id?: string | null;
+            /**
+             * Schema Content
+             * @description The annotated schema (the caller saves it in content mode)
+             */
+            schema_content?: {
+                [key: string]: unknown;
+            } | null;
+            /** Success */
+            success: boolean;
+        };
+        /**
          * SchemaAnnotationScopeRequest
          * @description Content-mode scope check: what would the annotation pass fill on this
          *     (not yet saved) schema document?
@@ -17820,6 +18256,31 @@ export type components = {
             model: string;
             /** Prompt */
             prompt: string;
+        };
+        /**
+         * SchemaPromptStreamResponse
+         * @description Response from an AI prompt edit of a saved schema (a `schema_generation` job).
+         */
+        SchemaPromptStreamResponse: {
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /** Model */
+            model: string;
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Processing Time Ms */
+            processing_time_ms?: number | null;
+            schema_content?: components["schemas"]["GeneratedJsonSchema-Output"] | null;
+            /** Schema Id */
+            schema_id?: string | null;
+            /** Success */
+            success: boolean;
+            /** Suggestions */
+            suggestions?: string[] | null;
         };
         /** SchemaPropertyAddRequest */
         SchemaPropertyAddRequest: {
@@ -18650,42 +19111,32 @@ export type components = {
         };
         /**
          * SSEArbitrationCompleted
-         * @description Emitted when LLM arbitration finishes.
-         *
-         *     The decisions themselves arrive on `fusion_completed` inside
-         *     `merged_result._arbitration_metadata`: the arbiter answers questions, and
-         *     the decisions are what the merge makes of those answers.
+         * @description LLM arbitration finished; the decisions arrive on `fusion_completed`
+         *     (`merged_result._arbitration_metadata`).
          */
         SSEArbitrationCompleted: {
-            /**
-             * Auto Outlier
-             * @default false
-             */
+            /** Auto Outlier */
             auto_outlier: boolean;
             /** Cache Read Tokens */
-            cache_read_tokens?: number | null;
+            cache_read_tokens: number | null;
             /**
              * Calls
              * @description LLM calls made (one per level, then per item)
              */
-            calls?: number | null;
+            calls: number;
             /** Cost Usd */
-            cost_usd?: number | null;
+            cost_usd: number | null;
             /** Error Message */
-            error_message?: string | null;
+            error_message: string | null;
             /**
              * Event
-             * @default arbitration_completed
              * @constant
              */
             event: "arbitration_completed";
-            /**
-             * Fallback To Rule Based
-             * @default false
-             */
+            /** Fallback To Rule Based */
             fallback_to_rule_based: boolean;
             /** Input Tokens */
-            input_tokens?: number | null;
+            input_tokens: number | null;
             /**
              * Job Id
              * @description Unique job identifier
@@ -18697,12 +19148,12 @@ export type components = {
              */
             job_type: string;
             /** Output Tokens */
-            output_tokens?: number | null;
+            output_tokens: number | null;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -18712,13 +19163,13 @@ export type components = {
             success: boolean;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEArbitrationStarted
-         * @description Emitted when LLM arbitration begins for conflict resolution.
+         * @description LLM arbitration begins on what the rules could not settle.
          */
         SSEArbitrationStarted: {
             /** Arbitration Model */
@@ -18726,7 +19177,6 @@ export type components = {
             /**
              * Auto Outlier
              * @description True when a rule-based merge escalated numeric outliers to an auto-resolved arbiter rather than the caller naming one
-             * @default false
              */
             auto_outlier: boolean;
             /**
@@ -18736,7 +19186,6 @@ export type components = {
             conflict_count: number;
             /**
              * Event
-             * @default arbitration_started
              * @constant
              */
             event: "arbitration_started";
@@ -18752,19 +19201,19 @@ export type components = {
             job_type: string;
             /**
              * Levels
-             * @description Nesting levels the questions span: the root level is asked in one call, each deeper level in parallel calls per array item
+             * @description Nesting levels the questions span: the root level in one call, each deeper level in parallel calls per array item
              */
-            levels?: number | null;
+            levels: number;
             /**
              * Paths
              * @description Question keys
              */
-            paths?: string[] | null;
+            paths: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -18772,23 +19221,17 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEAttachmentCoherence
-         * @description Emitted once by sample generation with 2+ attachments, when the planner has
-         *     settled how the files relate. mode 'single_entity' merges values extracted from
-         *     ALL files; 'instances_of_type' takes values from `reference_attachment` only
-         *     (object_type is the narrowest common type of the instances, possibly a
-         *     generalization such as Vehicle for a car + a bicycle + a bus); 'incoherent'
-         *     aborts the job with error_code='incoherent_attachments' in the terminal payload.
+         * @description Sample generation with 2+ attachments settled how the files relate.
          */
         SSEAttachmentCoherence: {
             /**
              * Event
-             * @default attachment_coherence
              * @constant
              */
             event: "attachment_coherence";
@@ -18816,19 +19259,19 @@ export type components = {
              * Object Type
              * @description Type the sample models (narrowest common type)
              */
-            object_type?: string | null;
+            object_type: string | null;
             /**
              * Reason
              * @description Why the set is incoherent (incoherent mode only)
              */
             reason?: string | null;
             /** @description Value-source file (instances_of_type only) */
-            reference_attachment?: components["schemas"]["SSEAttachmentFile"] | null;
+            reference_attachment?: components["schemas"]["SSEAttachmentFile"];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -18836,9 +19279,9 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEAttachmentFile
@@ -18858,20 +19301,18 @@ export type components = {
         };
         /**
          * SSEAttempt
-         * @description One attempt of one model. `last_error_summary` on the same event carries
-         *     what went wrong on the previous attempt, when the retry had a reason.
+         * @description One attempt of one model; `last_error_summary` says why the previous one was retried.
          */
         SSEAttempt: {
             /** Current Attempt */
             current_attempt: number;
             /**
              * Entity Index
-             * @description Entity index (batch only)
+             * @description Index of the batch entity this event belongs to (batch jobs only)
              */
-            entity_index?: number | null;
+            entity_index?: number;
             /**
              * Event
-             * @default attempt
              * @constant
              */
             event: "attempt";
@@ -18889,21 +19330,21 @@ export type components = {
              * Last Error Step
              * @description The pipeline step the retry's error came from, when a staged run named it
              */
-            last_error_step?: string | null;
+            last_error_step: string | null;
             /**
              * Last Error Summary
              * @description On `attempt`: the error that caused this retry (a hint, not an outcome). On a terminal event: the reason that status carries — null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null at the end; its per-attempt messages are kept on the record's prompts.
              */
-            last_error_summary?: string | null;
+            last_error_summary: string | null;
             /** Max Attempts */
             max_attempts: number;
             /** Model */
-            model?: string | null;
+            model: string | null;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -18913,35 +19354,26 @@ export type components = {
              * Step
              * @description What this attempt belongs to, when named: a staged pipeline's step, or the expertise domain of a multi-expertise enrichment call.
              */
-            step?: string | null;
+            step: string | null;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEBatchCompleted
-         * @description Emitted when the entire batch enrichment job finishes.
+         * @description The batch's entities all ended, with the final counters.
          */
         SSEBatchCompleted: {
-            /**
-             * Completed Entities
-             * @description Entities fully processed with ≥1 successful model
-             * @default 0
-             */
+            /** Completed Entities */
             completed_entities: number;
             /**
              * Event
-             * @default batch_completed
              * @constant
              */
             event: "batch_completed";
-            /**
-             * Failed Entities
-             * @description Entities whose every model failed
-             * @default 0
-             */
+            /** Failed Entities */
             failed_entities: number;
             /**
              * Job Id
@@ -18955,14 +19387,10 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Entities that yielded no enrichment (cancelled, quota/credit ran out, or discarded as a classification mismatch)
-             * @default 0
-             */
+            seq?: number;
+            /** Skipped Entities */
             skipped_entities: number;
             /**
              * Status
@@ -18971,28 +19399,64 @@ export type components = {
             status: string;
             /**
              * Stopped Early Reason
-             * @description Set when skipped_entities > 0 because quota/credit ran out mid-batch ('prompt_limit_reached' / 'insufficient_credits'); absent for a plain cancellation or a batch that ran to completion.
+             * @description Set when skipped_entities > 0 because quota/credit ran out mid-batch ('prompt_limit_reached' / 'insufficient_credits')
              */
-            stopped_early_reason?: string | null;
-            /**
-             * Total Entities
-             * @description Number of entities in the batch
-             */
+            stopped_early_reason: string | null;
+            /** Total Entities */
             total_entities: number;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
+        };
+        /**
+         * SSEBatchJobCompleted
+         * @description Terminal event of a batch: entity and database-outcome counts plus a
+         *     compact per-entity list with record IDs.
+         */
+        SSEBatchJobCompleted: {
+            /**
+             * Event
+             * @constant
+             */
+            event: "completed";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @constant
+             */
+            job_type: "batch_enrichment";
+            /** Last Error Summary */
+            last_error_summary: null;
+            result: components["schemas"]["BatchJobResult"];
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
         };
         /**
          * SSEBatchStarted
-         * @description Emitted when a batch enrichment job begins.
+         * @description A batch enrichment job begins.
          */
         SSEBatchStarted: {
             /**
              * Event
-             * @default batch_started
              * @constant
              */
             event: "batch_started";
@@ -19008,9 +19472,9 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19025,27 +19489,116 @@ export type components = {
             total_models: number;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
+        };
+        /**
+         * SSEBenchmarkRunCompleted
+         * @description A benchmark run's models all ended (scoring may still be draining).
+         */
+        SSEBenchmarkRunCompleted: {
+            /**
+             * Event
+             * @constant
+             */
+            event: "benchmark_run_completed";
+            /** Failed Models */
+            failed_models: number;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Skipped Models
+             * @description Never launched (credit stop or cancellation)
+             */
+            skipped_models: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /** Stopped Early Reason */
+            stopped_early_reason: string | null;
+            /** Succeeded Models */
+            succeeded_models: number;
+            /**
+             * Total Models
+             * @description The final model set, live merges included
+             */
+            total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
+        };
+        /**
+         * SSEBenchmarkRunStarted
+         * @description A benchmark run was admitted and starts its models.
+         */
+        SSEBenchmarkRunStarted: {
+            /**
+             * Event
+             * @constant
+             */
+            event: "benchmark_run_started";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /** Total Models */
+            total_models: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
         };
         /**
          * SSEClassificationCompleted
-         * @description Emitted when pre-flight classification finishes.
+         * @description Pre-flight classification finished.
          */
         SSEClassificationCompleted: {
-            /** @description Classification result (None if failed) */
-            classification?: components["schemas"]["ClassificationContext"] | null;
+            /** @description Classification result (null if it failed) */
+            classification: components["schemas"]["ClassificationContext"] | null;
             /**
              * Entity Index
-             * @description Entity index (batch only)
+             * @description Index of the batch entity this event belongs to (batch jobs only)
              */
-            entity_index?: number | null;
+            entity_index?: number;
             /** Error Message */
-            error_message?: string | null;
+            error_message: string | null;
             /**
              * Event
-             * @default classification_completed
              * @constant
              */
             event: "classification_completed";
@@ -19066,9 +19619,9 @@ export type components = {
             model: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19078,19 +19631,19 @@ export type components = {
             success: boolean;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEClassificationMismatchPause
-         * @description Emitted when classification detects a warning (mismatch, unknown, or ambiguous) and pauses for user decision.
+         * @description Classification returned a warning (mismatch, unknown or ambiguous): the job
+         *     pauses (status `paused`) until continued or cancelled; nobody answering cancels it.
          */
         SSEClassificationMismatchPause: {
             classification: components["schemas"]["ClassificationContext"];
             /**
              * Event
-             * @default classification_mismatch_pause
              * @constant
              */
             event: "classification_mismatch_pause";
@@ -19106,31 +19659,32 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /** Timeout Seconds */
+            /**
+             * Timeout Seconds
+             * @description How long the job waits before its timeout rule applies
+             */
             timeout_seconds: number;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEClassificationMismatchTimeout
-         * @description Nobody answered a classification-mismatch pause in time; the job is
-         *     cancelled rather than left waiting.
+         * @description Nobody answered a classification pause in time; the job is cancelled.
          */
         SSEClassificationMismatchTimeout: {
             /**
              * Event
-             * @default classification_mismatch_timeout
              * @constant
              */
             event: "classification_mismatch_timeout";
@@ -19145,12 +19699,12 @@ export type components = {
              */
             job_type: string;
             /** Reason */
-            reason?: string | null;
+            reason: string | null;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19158,23 +19712,22 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEClassificationStarted
-         * @description Emitted when pre-flight classification begins.
+         * @description Pre-flight classification begins.
          */
         SSEClassificationStarted: {
             /**
              * Entity Index
-             * @description Entity index (batch only)
+             * @description Index of the batch entity this event belongs to (batch jobs only)
              */
-            entity_index?: number | null;
+            entity_index?: number;
             /**
              * Event
-             * @default classification_started
              * @constant
              */
             event: "classification_started";
@@ -19195,9 +19748,9 @@ export type components = {
             model: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19205,13 +19758,13 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEConflictsDetected
-         * @description Emitted after conflict detection phase.
+         * @description Conflict detection finished.
          */
         SSEConflictsDetected: {
             /** Agreed Fields */
@@ -19220,7 +19773,6 @@ export type components = {
             conflicted_fields: number;
             /**
              * Event
-             * @default conflicts_detected
              * @constant
              */
             event: "conflicts_detected";
@@ -19236,9 +19788,9 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19248,26 +19800,24 @@ export type components = {
             total_fields: number;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEDatabaseRejected
-         * @description Emitted when the admission gate refused a run's final result: the
-         *     enrichment succeeded but nothing reached the entity layer or any linked
-         *     database. `database.reason` / `database.missing_fields` say why.
+         * @description The admission gate refused a run's final result: nothing reached the entity
+         *     layer or any linked database (`database.reason` / `database.missing_fields`).
          */
         SSEDatabaseRejected: {
             database: components["schemas"]["DatabaseSyncOutcome"];
             /**
              * Entity Index
-             * @description Entity index (batch only)
+             * @description Index of the batch entity this event belongs to (batch jobs only)
              */
-            entity_index?: number | null;
+            entity_index?: number;
             /**
              * Event
-             * @default database_rejected
              * @constant
              */
             event: "database_rejected";
@@ -19288,9 +19838,9 @@ export type components = {
             record_id: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19298,29 +19848,24 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEDatabaseSaved
-         * @description Emitted when a run's final result was admitted into the entity layer
-         *     (single-model record or fused record — the one `record_id` points to).
-         *
-         *     `database.status` distinguishes a whole write ('saved') from a partial one
-         *     ('partial': the entity landed but some rows were dropped and nothing
-         *     re-sends them) — treat partial as a warning, not a success.
+         * @description A run's final result was admitted into the entity layer. `database.status`
+         *     'partial' (some rows dropped, never re-sent) is a warning, not a success.
          */
         SSEDatabaseSaved: {
             database: components["schemas"]["DatabaseSyncOutcome"];
             /**
              * Entity Index
-             * @description Entity index (batch only)
+             * @description Index of the batch entity this event belongs to (batch jobs only)
              */
-            entity_index?: number | null;
+            entity_index?: number;
             /**
              * Event
-             * @default database_saved
              * @constant
              */
             event: "database_saved";
@@ -19341,9 +19886,9 @@ export type components = {
             record_id: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19351,13 +19896,90 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
+        };
+        /** SSEDbModelClassificationJobCompleted */
+        SSEDbModelClassificationJobCompleted: {
+            /**
+             * Event
+             * @constant
+             */
+            event: "completed";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @constant
+             */
+            job_type: "database_model_classification";
+            /** Last Error Summary */
+            last_error_summary: null;
+            /** Result */
+            result: components["schemas"]["DbModelClassificationJobResult"][];
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
+        };
+        /**
+         * SSEEnrichmentJobCompleted
+         * @description Terminal event of a single enrichment (and of its retry): one result per model.
+         */
+        SSEEnrichmentJobCompleted: {
+            /**
+             * Event
+             * @constant
+             */
+            event: "completed";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @constant
+             */
+            job_type: "single_enrichment";
+            /** Last Error Summary */
+            last_error_summary: null;
+            /** Result */
+            result: components["schemas"]["SingleEnrichmentResponse"][];
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
         };
         /**
          * SSEEntityCompleted
-         * @description Emitted when processing finishes for a single entity in a batch.
+         * @description Processing finished for one entity of a batch.
          */
         SSEEntityCompleted: {
             /**
@@ -19368,12 +19990,17 @@ export type components = {
             /**
              * Completed Entities
              * @description Entities fully processed with ≥1 successful model
-             * @default 0
              */
-            completed_entities: number;
-            /** Entity Index */
+            completed_entities?: number;
+            /**
+             * Entity Index
+             * @description Position of the entity in the batch
+             */
             entity_index: number;
-            /** Entity Label */
+            /**
+             * Entity Label
+             * @description Display label of the entity
+             */
             entity_label: string;
             /** Error */
             error?: string | null;
@@ -19384,16 +20011,14 @@ export type components = {
             error_model?: string | null;
             /**
              * Event
-             * @default entity_completed
              * @constant
              */
             event: "entity_completed";
             /**
              * Failed Entities
              * @description Entities whose every model failed
-             * @default 0
              */
-            failed_entities: number;
+            failed_entities?: number;
             /**
              * Job Id
              * @description Unique job identifier
@@ -19413,18 +20038,17 @@ export type components = {
              * Results
              * @description Per-model enrichment results
              */
-            results?: components["schemas"]["SingleEnrichmentResponse"][];
+            results: components["schemas"]["SingleEnrichmentResponse"][];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Skipped Entities
              * @description Entities that yielded no enrichment (cancelled, quota/credit ran out, or discarded as a classification mismatch)
-             * @default 0
              */
-            skipped_entities: number;
+            skipped_entities?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19432,34 +20056,25 @@ export type components = {
             status: string;
             /** Success */
             success: boolean;
-            /**
-             * Total Cost Usd
-             * @default 0
-             */
-            total_cost_usd: number;
+            /** Total Cost Usd */
+            total_cost_usd?: number;
             /**
              * Total Entities
              * @description Number of entities in the batch
              */
-            total_entities: number;
-            /**
-             * Total Processing Time Ms
-             * @default 0
-             */
-            total_processing_time_ms: number;
+            total_entities?: number;
+            /** Total Processing Time Ms */
+            total_processing_time_ms?: number;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEEntitySkipped
-         * @description Emitted when a batch entity yields no enrichment. Either it never started —
-         *     the job was cancelled, or the org's live prompt-count/credit quota ran out
-         *     mid-batch (whether consumed by this batch or by concurrent activity) — or the
-         *     pre-flight classifier discarded it as not the schema's entity type, which is
-         *     what batch does instead of the pause single enrichment offers a user.
+         * @description A batch entity yields no enrichment: it never started (cancelled, quota or
+         *     credits ran out), or the classifier discarded it as not the schema's type.
          */
         SSEEntitySkipped: {
             /**
@@ -19470,25 +20085,28 @@ export type components = {
             /**
              * Completed Entities
              * @description Entities fully processed with ≥1 successful model
-             * @default 0
              */
-            completed_entities: number;
-            /** Entity Index */
+            completed_entities?: number;
+            /**
+             * Entity Index
+             * @description Position of the entity in the batch
+             */
             entity_index: number;
-            /** Entity Label */
+            /**
+             * Entity Label
+             * @description Display label of the entity
+             */
             entity_label: string;
             /**
              * Event
-             * @default entity_skipped
              * @constant
              */
             event: "entity_skipped";
             /**
              * Failed Entities
              * @description Entities whose every model failed
-             * @default 0
              */
-            failed_entities: number;
+            failed_entities?: number;
             /**
              * Job Id
              * @description Unique job identifier
@@ -19501,15 +20119,14 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Skipped Entities
              * @description Entities that yielded no enrichment (cancelled, quota/credit ran out, or discarded as a classification mismatch)
-             * @default 0
              */
-            skipped_entities: number;
+            skipped_entities?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19519,25 +20136,30 @@ export type components = {
              * Total Entities
              * @description Number of entities in the batch
              */
-            total_entities: number;
+            total_entities?: number;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEEntityStarted
-         * @description Emitted when processing begins for a single entity in a batch.
+         * @description Processing begins for one entity of a batch.
          */
         SSEEntityStarted: {
-            /** Entity Index */
+            /**
+             * Entity Index
+             * @description Position of the entity in the batch
+             */
             entity_index: number;
-            /** Entity Label */
+            /**
+             * Entity Label
+             * @description Display label of the entity
+             */
             entity_label: string;
             /**
              * Event
-             * @default entity_started
              * @constant
              */
             event: "entity_started";
@@ -19553,9 +20175,9 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19563,30 +20185,28 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEExpertiseCompleted
-         * @description Emitted when one expertise domain (or pipeline step) finishes within a
-         *     model's run.
+         * @description One expertise domain of an enrichment finished within a model's run.
          */
         SSEExpertiseCompleted: {
             /** Completed Expertises */
             completed_expertises: number;
             /** Cost Usd */
-            cost_usd?: number | null;
+            cost_usd: number | null;
             /**
              * Entity Index
-             * @description Entity index (batch only)
+             * @description Index of the batch entity this event belongs to (batch jobs only)
              */
-            entity_index?: number | null;
+            entity_index?: number;
             /** Error Message */
-            error_message?: string | null;
+            error_message: string | null;
             /**
              * Event
-             * @default expertise_completed
              * @constant
              */
             event: "expertise_completed";
@@ -19598,11 +20218,11 @@ export type components = {
              * Expertise Result
              * @description This expertise's individual output
              */
-            expertise_result?: {
+            expertise_result: {
                 [key: string]: unknown;
             } | null;
             /** Input Tokens */
-            input_tokens?: number | null;
+            input_tokens: number | null;
             /**
              * Job Id
              * @description Unique job identifier
@@ -19616,21 +20236,21 @@ export type components = {
             /** Model */
             model: string;
             /** Output Tokens */
-            output_tokens?: number | null;
+            output_tokens: number | null;
             /**
              * Partial Result
              * @description Accumulated merged result so far
              */
-            partial_result?: {
+            partial_result: {
                 [key: string]: unknown;
             } | null;
             /** Processing Time Ms */
-            processing_time_ms?: number | null;
+            processing_time_ms: number | null;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19642,32 +20262,31 @@ export type components = {
             total_expertises: number;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEExpertiseStarted
-         * @description One expertise domain (or staged pipeline step) began.
+         * @description One expertise domain of an enrichment began (multi_expertise).
          */
         SSEExpertiseStarted: {
             /** Completed Expertises */
-            completed_expertises?: number | null;
+            completed_expertises: number;
             /**
              * Entity Index
-             * @description Entity index (batch only)
+             * @description Index of the batch entity this event belongs to (batch jobs only)
              */
-            entity_index?: number | null;
+            entity_index?: number;
             /**
              * Event
-             * @default expertise_started
              * @constant
              */
             event: "expertise_started";
             /** Expertise Key */
-            expertise_key?: string | null;
+            expertise_key: string;
             /** Expertise Name */
-            expertise_name?: string | null;
+            expertise_name: string;
             /**
              * Job Id
              * @description Unique job identifier
@@ -19679,49 +20298,69 @@ export type components = {
              */
             job_type: string;
             /** Model */
-            model?: string | null;
+            model: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
             /** Total Expertises */
-            total_expertises?: number | null;
+            total_expertises: number;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEFusionCompleted
-         * @description Emitted when fusion finishes. Contains the full FusionResponse fields flat.
+         * @description Fusion finished: its FusionResponse fields, flat.
          */
         SSEFusionCompleted: {
-            conflict_report?: components["schemas"]["ConflictReport"] | null;
-            /** Cost Usd */
+            /**
+             * Arbitration Key Source
+             * @description Provider-key source ('org' / 'global') of an auto-resolved arbitration model, so the caller applies the right commission rate.
+             */
+            arbitration_key_source?: string | null;
+            /**
+             * Arbitration Model Used
+             * @description Model an LLM arbitration call ran on — the requested arbitration_model, or the auto-resolved model when a rule-based merge escalated numeric fields the models disagreed about wildly. Set even when that call failed and rule-based values stood, since the tokens were still spent; `_arbitration_metadata.arbitration_model` is the narrower 'whose decisions were applied'.
+             */
+            arbitration_model_used?: string | null;
+            /**
+             * Cache Read Tokens
+             * @description Prompt-cache reads across the arbitration calls (None if rule-based). Arbitration runs one call per level of nesting after the root call; the shared prefix is cached by the first, so this is non-zero on every run that needed more than one call.
+             */
+            cache_read_tokens?: number | null;
+            conflict_report: components["schemas"]["ConflictReport"];
+            /**
+             * Cost Usd
+             * @description Cost of LLM arbitration (None if rule-based)
+             */
             cost_usd?: number | null;
-            /** @description Entity-layer outcome of the fused write (None when database_sync was off, no schema is linked, or fusion failed) */
+            /** @description Entity-layer outcome for the merged result (docs/ENTITY_LAYER.md). saved=false carries the admission-gate rejection reason — a fused result can validate yet still be refused by a strict-on_gaps database because merging left required fields null. */
             database?: components["schemas"]["DatabaseSyncOutcome"] | null;
             /**
              * Entity Index
-             * @description Entity index (batch only)
+             * @description Index of the batch entity this event belongs to (batch jobs only)
              */
-            entity_index?: number | null;
+            entity_index?: number;
             /** Error Message */
             error_message?: string | null;
             /**
              * Event
-             * @default fusion_completed
              * @constant
              */
             event: "fusion_completed";
-            /** Input Tokens */
+            /**
+             * Input Tokens
+             * @description Tokens used for LLM arbitration (None if rule-based)
+             */
             input_tokens?: number | null;
             /**
              * Job Id
@@ -19735,22 +20374,29 @@ export type components = {
             job_type: string;
             /**
              * Merged Result
-             * @description The final fused output
+             * @description The final fused output (includes _arbitration_metadata)
              */
-            merged_result?: {
+            merged_result: {
                 [key: string]: unknown;
             };
-            /** Output Tokens */
+            /**
+             * Output Tokens
+             * @description Tokens used for LLM arbitration (None if rule-based)
+             */
             output_tokens?: number | null;
             /** Processing Time Ms */
-            processing_time_ms?: number | null;
-            /** Record Id */
-            record_id?: string | null;
+            processing_time_ms: number;
+            /**
+             * Record Id
+             * Format: uuid
+             * @description ID of the created arbitration record
+             */
+            record_id: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19760,27 +20406,65 @@ export type components = {
             success: boolean;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
-            /** Validation Warnings */
+            ts?: number;
+            /**
+             * Validation Warnings
+             * @description Schema validation warnings on merged result (None if no schema)
+             */
             validation_warnings?: string[] | null;
+        };
+        /** SSEFusionJobCompleted */
+        SSEFusionJobCompleted: {
+            /**
+             * Event
+             * @constant
+             */
+            event: "completed";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @constant
+             */
+            job_type: "fusion";
+            /** Last Error Summary */
+            last_error_summary: null;
+            result: components["schemas"]["FusionResponse"];
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
         };
         /**
          * SSEFusionStarted
-         * @description Emitted when multi-model fusion begins.
+         * @description Multi-model fusion begins.
          */
         SSEFusionStarted: {
             /** Arbitration Model */
             arbitration_model?: string | null;
             /**
              * Entity Index
-             * @description Entity index (batch only)
+             * @description Index of the batch entity this event belongs to (batch jobs only)
              */
-            entity_index?: number | null;
+            entity_index?: number;
             /**
              * Event
-             * @default fusion_started
              * @constant
              */
             event: "fusion_started";
@@ -19796,14 +20480,14 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Source Record Ids
-             * @description IDs of records being fused
+             * @description IDs of the records being fused
              */
-            source_record_ids?: string[] | null;
+            source_record_ids?: string[];
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19811,18 +20495,17 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEJobCancelled
-         * @description Terminal event: job was cancelled.
+         * @description Terminal event: the job was cancelled; `result` holds what completed before.
          */
         SSEJobCancelled: {
             /**
              * Event
-             * @default cancelled
              * @constant
              */
             event: "cancelled";
@@ -19840,18 +20523,14 @@ export type components = {
              * Last Error Summary
              * @description On `attempt`: the error that caused this retry (a hint, not an outcome). On a terminal event: the reason that status carries — null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null at the end; its per-attempt messages are kept on the record's prompts.
              */
-            last_error_summary?: string | null;
+            last_error_summary: string | null;
             /** Result */
-            result?: {
-                [key: string]: unknown;
-            }[] | {
-                [key: string]: unknown;
-            } | null;
+            result?: unknown;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19859,18 +20538,19 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEJobCompleted
-         * @description Terminal event: job completed successfully.
+         * @description Terminal event of a job whose outcome lives elsewhere (benchmark results,
+         *     the playground's response). Every other job type has its own `completed`
+         *     class, told apart by `job_type`.
          */
         SSEJobCompleted: {
             /**
              * Event
-             * @default completed
              * @constant
              */
             event: "completed";
@@ -19881,23 +20561,16 @@ export type components = {
             job_id: string;
             /**
              * Job Type
-             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             * @enum {string}
              */
-            job_type: string;
-            /**
-             * Result
-             * @description Accumulated results (if any). Batch jobs store their terminal summary here: entity/database-outcome counts plus a compact per-entity list with record IDs (see BatchJobResult).
-             */
-            result?: {
-                [key: string]: unknown;
-            }[] | {
-                [key: string]: unknown;
-            } | null;
+            job_type: "benchmark" | "benchmark_scoring" | "playground";
+            /** Last Error Summary */
+            last_error_summary: null;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19905,13 +20578,13 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEJobFailed
-         * @description Terminal event: job failed.
+         * @description Terminal event: the job failed.
          */
         SSEJobFailed: {
             /**
@@ -19921,9 +20594,9 @@ export type components = {
             billing_url?: string | null;
             /**
              * Error Code
-             * @description Typed reason of the failure (see SSEJobSnapshot.error_code); null when unclassified
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
-            error_code?: string | null;
+            error_code: string | null;
             /**
              * Error Model
              * @description The provider::model whose failure is described, when one can be named — set the moment a provider refuses a call for lack of credit.
@@ -19931,7 +20604,6 @@ export type components = {
             error_model?: string | null;
             /**
              * Event
-             * @default failed
              * @constant
              */
             event: "failed";
@@ -19954,18 +20626,14 @@ export type components = {
              * Last Error Summary
              * @description On `attempt`: the error that caused this retry (a hint, not an outcome). On a terminal event: the reason that status carries — null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null at the end; its per-attempt messages are kept on the record's prompts.
              */
-            last_error_summary?: string | null;
+            last_error_summary: string | null;
             /** Result */
-            result?: {
-                [key: string]: unknown;
-            }[] | {
-                [key: string]: unknown;
-            } | null;
+            result?: unknown;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19973,18 +20641,17 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEJobRunning
-         * @description Status transition emitted by `set_status`.
+         * @description Status transition: the job body started (or a laned job was admitted).
          */
         SSEJobRunning: {
             /**
              * Event
-             * @default running
              * @constant
              */
             event: "running";
@@ -20000,9 +20667,9 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -20010,9 +20677,9 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEJobSnapshot
@@ -20028,25 +20695,20 @@ export type components = {
             /**
              * Completed Entities
              * @description Batch jobs only
-             * @default 0
              */
-            completed_entities: number;
+            completed_entities?: number;
             /**
              * Completed Models
              * @description Not maintained on batch jobs — read the entity counters
-             * @default 0
              */
             completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
+            /** Current Attempt */
             current_attempt: number;
             /**
              * Error Code
              * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
-            error_code?: string | null;
+            error_code: string | null;
             /**
              * Error Model
              * @description The provider::model whose failure is described, when one can be named — set the moment a provider refuses a call for lack of credit.
@@ -20055,9 +20717,8 @@ export type components = {
             /**
              * Failed Entities
              * @description Batch jobs only
-             * @default 0
              */
-            failed_entities: number;
+            failed_entities?: number;
             /**
              * Key Source
              * @description 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
@@ -20067,57 +20728,47 @@ export type components = {
              * Last Error Step
              * @description The pipeline step `last_error_summary` came from, when named
              */
-            last_error_step?: string | null;
+            last_error_step: string | null;
             /**
              * Last Error Summary
              * @description On `attempt`: the error that caused this retry (a hint, not an outcome). On a terminal event: the reason that status carries — null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null at the end; its per-attempt messages are kept on the record's prompts.
              */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
+            last_error_summary: string | null;
+            /** Max Attempts */
             max_attempts: number;
             /**
              * Queue Position
              * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish; null once admitted, and for job types that never queue. Later changes arrive as `queued`.
              */
-            queue_position?: number | null;
+            queue_position: number | null;
             /**
              * Running Models
-             * @description Models started and not yet completed (not maintained on batch jobs); later changes arrive as model_started / model_completed
+             * @description Units started and not yet completed (not maintained on batch jobs)
              */
-            running_models?: string[];
+            running_models: string[];
             /**
              * Skipped Entities
              * @description Batch jobs only
-             * @default 0
              */
-            skipped_entities: number;
+            skipped_entities?: number;
             /**
              * Total Entities
              * @description Batch jobs only
              */
-            total_entities?: number | null;
+            total_entities?: number;
             /**
              * Total Models
-             * @description Models the job runs (per entity on a batch job)
+             * @description Units the job runs (models per entity on a batch)
              */
             total_models: number;
         };
         /**
          * SSEModelAutoSelected
-         * @description Emitted once when the server auto-selects the model for a job.
-         *
-         *     Only sent when the client omitted the model (or passed the 'auto' sentinel)
-         *     for enrichment, schema generation, or sample generation. Carries the pick's
-         *     provenance — pinned org default vs best blended benchmark score — so UIs can
-         *     show a badge and API clients can log which model actually ran.
+         * @description The server resolved an `auto` / omitted model, with the pick's provenance.
          */
         SSEModelAutoSelected: {
             /**
              * Event
-             * @default model_auto_selected
              * @constant
              */
             event: "model_auto_selected";
@@ -20138,33 +20789,31 @@ export type components = {
             model: string;
             /**
              * Overall
-             * @description Blended overall benchmark score behind the pick (None for an unscored pinned model)
+             * @description Blended overall benchmark score behind the pick (null for an unscored pinned model)
              */
-            overall?: number | null;
+            overall: number | null;
             /**
              * Pinned
              * @description True when the org's pinned per-task default model was used instead of the best score
-             * @default false
              */
             pinned: boolean;
             /**
              * Scenario Count
              * @description How many scoring-source scenarios fed the score
-             * @default 0
              */
             scenario_count: number;
             /** Scenario Names */
-            scenario_names?: string[];
+            scenario_names: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Source
-             * @description Scoring-source provenance: 'organization' or 'global' (None for an unscored pinned model)
+             * @description Scoring-source provenance: 'organization' or 'global' (null for an unscored pinned model)
              */
-            source?: string | null;
+            source: string | null;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -20172,48 +20821,47 @@ export type components = {
             status: string;
             /**
              * Task Type
-             * @description Task the model was selected for: enrichment / schema_generation / sample_generation
+             * @description enrichment / schema_generation / sample_generation
              */
             task_type: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEModelCompleted
-         * @description Emitted when a model finishes enrichment. The result field contains the
-         *     SingleEnrichmentResponse data (model, success, result, tokens, cost, etc.).
+         * @description A model finished: its SingleEnrichmentResponse fields, flat. A staged job
+         *     (schema / sample generation, annotation, database-model classification) adds
+         *     its terminal payload as extra fields — typed on its `completed` event.
          */
         SSEModelCompleted: {
-            /**
-             * Cancelled
-             * @default false
-             */
-            cancelled: boolean;
+            /** Cancelled */
+            cancelled?: boolean;
             /**
              * Completed Models
-             * @description Models the job has completed so far (null where a route reports per-entity models itself: batch)
+             * @description Models the job has completed so far (absent where a batch reports per entity)
              */
-            completed_models?: number | null;
+            completed_models?: number;
             /** Cost Usd */
             cost_usd?: number | null;
+            /** @description Entity-layer outcome when the schema has a registered database (docs/ENTITY_LAYER.md): saved=true with entity/delta counts, or saved=false with the rejection reason and missing_fields. Absent when the schema has no database — a successful enrichment whose entity was NOT admitted must not look like a synced one. */
+            database?: components["schemas"]["DatabaseSyncOutcome"] | null;
             /**
              * Entity Index
-             * @description Entity index (batch only)
+             * @description Index of the batch entity this event belongs to (batch jobs only)
              */
-            entity_index?: number | null;
+            entity_index?: number;
             /**
              * Error Code
-             * @description Typed reason of this model's failure (same vocabulary as the job's)
+             * @description Typed failure code when success=false — e.g. 'model_retired' (provider retired the model, now deactivated), 'rate_limited', 'insufficient_credits' (the organization's Entity Enricher balance ran out mid-batch — add credits), 'provider_credits_exhausted' (the provider account behind the key is out of credit), 'context_length_exceeded', 'provider_timeout'. Absent on success.
              */
             error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
             /**
              * Event
-             * @default model_completed
              * @constant
              */
             event: "model_completed";
@@ -20231,26 +20879,20 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /**
-             * Model
-             * @description Model composite key
-             */
+            /** Model */
             model: string;
             /** Output Tokens */
             output_tokens?: number | null;
+            /** Partial Success */
+            partial_success?: boolean;
             /**
-             * Partial Success
-             * @default false
+             * Processing Time Ms
+             * @description Wall-clock duration of the run (first LLM call start to last call end); parallel expertise calls overlap, so this can be smaller than the sum of the expertise_breakdown durations.
              */
-            partial_success: boolean;
-            /** Processing Time Ms */
             processing_time_ms?: number | null;
             /** Record Id */
             record_id?: string | null;
-            /**
-             * Result
-             * @description Structured enrichment output
-             */
+            /** Result */
             result?: {
                 [key: string]: unknown;
             } | null;
@@ -20258,12 +20900,12 @@ export type components = {
              * Scoreable
              * @description Benchmark runs only: whether this model's result will be scored
              */
-            scoreable?: boolean | null;
+            scoreable?: boolean;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -20273,19 +20915,17 @@ export type components = {
             success: boolean;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEModelsSkipped
-         * @description Benchmark models dropped by the scenario's skip-incapable run policy, so
-         *     their rows can be marked skipped rather than left pending.
+         * @description Benchmark models dropped by the scenario's skip-incapable run policy.
          */
         SSEModelsSkipped: {
             /**
              * Event
-             * @default models_skipped
              * @constant
              */
             event: "models_skipped";
@@ -20303,14 +20943,14 @@ export type components = {
              * Models
              * @description Model composite key → the capability it lacks
              */
-            models?: {
+            models: {
                 [key: string]: string;
             };
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -20318,23 +20958,22 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEModelStarted
-         * @description Emitted when a model starts processing.
+         * @description A model starts processing.
          */
         SSEModelStarted: {
             /**
              * Entity Index
-             * @description Entity index (batch only)
+             * @description Index of the batch entity this event belongs to (batch jobs only)
              */
-            entity_index?: number | null;
+            entity_index?: number;
             /**
              * Event
-             * @default model_started
              * @constant
              */
             event: "model_started";
@@ -20355,9 +20994,9 @@ export type components = {
             model: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -20365,22 +21004,144 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
+        };
+        /**
+         * SSEModelValidated
+         * @description Model validation: one model's health check or capability probe verdict.
+         */
+        SSEModelValidated: {
+            /**
+             * Completed Models
+             * @description Models validated so far (stamped)
+             */
+            completed_models?: number;
+            /**
+             * Event
+             * @constant
+             */
+            event: "model_validated";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Model */
+            model: string;
+            /**
+             * Result
+             * @description Health mode: the check; capabilities mode: the probe (a check on a probe crash)
+             */
+            result: components["schemas"]["ModelValidationResult"] | components["schemas"]["ModelCapabilityProbeResult"];
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Success
+             * @description Health check passed / probe reached the model
+             */
+            success: boolean;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
+        };
+        /** SSEModelValidationJobCompleted */
+        SSEModelValidationJobCompleted: {
+            /**
+             * Event
+             * @constant
+             */
+            event: "completed";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @constant
+             */
+            job_type: "model_validation";
+            /** Last Error Summary */
+            last_error_summary: null;
+            result: components["schemas"]["ModelValidationJobResult"];
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
+        };
+        /** SSEPricingSyncJobCompleted */
+        SSEPricingSyncJobCompleted: {
+            /**
+             * Event
+             * @constant
+             */
+            event: "completed";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @constant
+             */
+            job_type: "pricing_sync";
+            /** Last Error Summary */
+            last_error_summary: null;
+            result: components["schemas"]["PricingSyncResponse"];
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
         };
         /**
          * SSEQueued
-         * @description The job waits in its organization's lane (benchmark runs and scoring
-         *     passes execute one at a time). Re-emitted as the lane moves, until a
-         *     `running` status admits the job.
+         * @description The job waits in its organization's lane; re-emitted as the lane moves.
          */
         SSEQueued: {
             /** @description What the lane is running right now, when known. */
-            behind?: components["schemas"]["SSEQueuedBehind"] | null;
+            behind: components["schemas"]["SSEQueuedBehind"] | null;
             /**
              * Event
-             * @default queued
              * @constant
              */
             event: "queued";
@@ -20401,9 +21162,9 @@ export type components = {
             position: number;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -20411,9 +21172,9 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEQueuedBehind
@@ -20428,26 +21189,20 @@ export type components = {
              * Label
              * @description The running job's scenario name, when it has one.
              */
-            label?: string | null;
+            label: string | null;
         };
         /**
          * SSEQueueMerged
-         * @description A later launch of the same scenario was folded into this benchmark
-         *     run — still waiting in the lane, or already executing — instead of a
-         *     second entry joining the queue: its model set grew, and on an executing
-         *     run any provider it hadn't started yet begins on the new models at once.
-         *     Carries the job's updated launch context, the same shape the `started`
-         *     envelope opens a stream with.
+         * @description A later launch of the same scenario was folded into this benchmark run.
          */
         SSEQueueMerged: {
             /**
              * Added
              * @description Model composite keys the merge added.
              */
-            added?: string[];
+            added: string[];
             /**
              * Event
-             * @default queue_merged
              * @constant
              */
             event: "queue_merged";
@@ -20465,14 +21220,14 @@ export type components = {
              * Launch
              * @description The job's launch context after the merge.
              */
-            launch?: {
+            launch: {
                 [key: string]: unknown;
             } | null;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -20485,18 +21240,17 @@ export type components = {
             total_models: number;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEResumed
-         * @description A paused job was resumed (clarification answered, mismatch confirmed).
+         * @description A paused job goes on: answered, or its wait expired under a proceed rule.
          */
         SSEResumed: {
             /**
              * Event
-             * @default resumed
              * @constant
              */
             event: "resumed";
@@ -20512,28 +21266,30 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
             /**
-             * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * Timed Out
+             * @description True when nobody answered in time and the job continued with its defaults
              */
-            ts?: number | null;
+            timed_out?: boolean;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
         };
         /**
          * SSESampleClarificationPause
-         * @description Emitted when interactive sample generation pauses to ask the user clarifying questions.
-         *
-         *     Part of an iterative planner↔user loop: each round may emit a fresh set of
-         *     questions (distinguished by `round`). The client answers via
-         *     POST /api/llm/continue/{job_id} with a ContinueJobRequest body, after which
-         *     the planner may pause again or proceed to generate.
+         * @description Interactive sample generation asks clarifying questions (status `paused`).
+         *     Each planner round may ask again (`round`); nobody answering proceeds with the
+         *     planner's defaults.
          */
         SSESampleClarificationPause: {
             /**
@@ -20543,7 +21299,6 @@ export type components = {
             entity_title: string;
             /**
              * Event
-             * @default sample_clarification_pause
              * @constant
              */
             event: "sample_clarification_pause";
@@ -20562,14 +21317,13 @@ export type components = {
             /**
              * Round
              * @description Zero-based planner loop round
-             * @default 0
              */
             round: number;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Source Mode
              * @description knowledge (the generator itself asked, no attachment) | transcribe_data | structure_only | describe_subject (attachment planner)
@@ -20580,20 +21334,57 @@ export type components = {
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /** Timeout Seconds */
+            /**
+             * Timeout Seconds
+             * @description How long the job waits before its timeout rule applies
+             */
             timeout_seconds: number;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
+        };
+        /** SSESampleGenerationJobCompleted */
+        SSESampleGenerationJobCompleted: {
+            /**
+             * Event
+             * @constant
+             */
+            event: "completed";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @constant
+             */
+            job_type: "sample_generation";
+            /** Last Error Summary */
+            last_error_summary: null;
+            /** Result */
+            result: components["schemas"]["SampleGenerationResult"][];
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
         };
         /**
          * SSESampleInstanceProgress
-         * @description Emitted during multi-sample generation (sample_count > 1) as each instance
-         *     variant finishes — the template (sample 1) already ran the full pipeline;
-         *     the remaining instances run in parallel as follow-up turns, so `completed`
-         *     increments out of order relative to their instance number.
+         * @description Multi-sample generation: one more instance finished (out of order).
          */
         SSESampleInstanceProgress: {
             /**
@@ -20603,7 +21394,6 @@ export type components = {
             completed: number;
             /**
              * Event
-             * @default sample_instance_progress
              * @constant
              */
             event: "sample_instance_progress";
@@ -20619,9 +21409,9 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -20634,25 +21424,18 @@ export type components = {
             total: number;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSESampleInstanceRoster
-         * @description Emitted once during multi-sample generation (sample_count > 1), right after
-         *     the first sample, announcing which instances the remaining samples will cover.
-         *
-         *     The first pass names them all in one call (see run_multi_sample_generation),
-         *     so the plan is known before any variant runs — clients can show it instead of
-         *     revealing instances one by one. Names the user supplied via `typical_objects`
-         *     come first, then the model's roster. Shorter than `total - 1` when a model
-         *     under-delivered the roster: those slots ask for an unnamed instance instead.
+         * @description Multi-sample generation announces which instances samples 2..N will cover
+         *     (names the user supplied first, then the model's roster).
          */
         SSESampleInstanceRoster: {
             /**
              * Event
-             * @default sample_instance_roster
              * @constant
              */
             event: "sample_instance_roster";
@@ -20660,12 +21443,12 @@ export type components = {
              * First Instance
              * @description Identity of the sample that already ran
              */
-            first_instance?: string | null;
+            first_instance: string | null;
             /**
              * Instances
              * @description Planned instances for samples 2..N, in order
              */
-            instances?: string[];
+            instances: string[];
             /**
              * Job Id
              * @description Unique job identifier
@@ -20678,9 +21461,9 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -20693,24 +21476,21 @@ export type components = {
             total: number;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSESampleQuestion
-         * @description A clarifying question the sample-generation planner asks the user.
-         *
-         *     Free text is always allowed in addition to the listed options (the UI shows
-         *     an 'Other' field), so `options` may be empty for a free-text-only question.
+         * @description A clarifying question the sample-generation planner asks the user. Free
+         *     text is always allowed besides the options, so `options` may be empty.
          */
         SSESampleQuestion: {
             /**
              * Allow Multiple
              * @description Allow selecting >1 option
-             * @default false
              */
-            allow_multiple: boolean;
+            allow_multiple?: boolean;
             /**
              * Default Option Id
              * @description Option used if the user does not answer before timeout
@@ -20724,12 +21504,11 @@ export type components = {
             /**
              * Label
              * @description Short tab label (1–3 words) for the question
-             * @default
              */
-            label: string;
+            label?: string;
             /**
              * Options
-             * @description Selectable choices (may be empty)
+             * @description Selectable choices
              */
             options?: components["schemas"]["SSESampleQuestionOption"][];
             /**
@@ -20754,14 +21533,91 @@ export type components = {
              */
             label: string;
         };
+        /** SSESchemaAnnotationJobCompleted */
+        SSESchemaAnnotationJobCompleted: {
+            /**
+             * Event
+             * @constant
+             */
+            event: "completed";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @constant
+             */
+            job_type: "schema_annotation";
+            /** Last Error Summary */
+            last_error_summary: null;
+            /** Result */
+            result: components["schemas"]["SchemaAnnotationResult"][];
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
+        };
+        /**
+         * SSESchemaGenerationJobCompleted
+         * @description A generation (GenerateSchemaResponse) or an AI prompt edit of a saved
+         *     schema (SchemaPromptStreamResponse).
+         */
+        SSESchemaGenerationJobCompleted: {
+            /**
+             * Event
+             * @constant
+             */
+            event: "completed";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @constant
+             */
+            job_type: "schema_generation";
+            /** Last Error Summary */
+            last_error_summary: null;
+            /** Result */
+            result: (components["schemas"]["GenerateSchemaResponse"] | components["schemas"]["SchemaPromptStreamResponse"])[];
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
+        };
         /**
          * SSEScoringCompleted
-         * @description Emitted when the scoring pass finishes, with the exact final counts.
+         * @description The scoring pass finished, with the exact final counts.
          */
         SSEScoringCompleted: {
             /**
              * Event
-             * @default scoring_completed
              * @constant
              */
             event: "scoring_completed";
@@ -20782,9 +21638,9 @@ export type components = {
             scored: number;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -20797,19 +21653,17 @@ export type components = {
             total: number;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEScoringDegraded
-         * @description Emitted when no embedding model is available — scoring degrades to
-         *     exact/normalized matching only.
+         * @description No embedding model: scoring degrades to exact / normalized matching.
          */
         SSEScoringDegraded: {
             /**
              * Event
-             * @default scoring_degraded
              * @constant
              */
             event: "scoring_degraded";
@@ -20827,12 +21681,12 @@ export type components = {
              * Reason
              * @description Why the embedder is unavailable
              */
-            reason?: string | null;
+            reason: string | null;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -20840,21 +21694,19 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEScoringFailed
-         * @description Emitted when the scoring pass fails as a whole (e.g. unusable judge model).
-         *     The generation results are saved — the standalone Score action can retry.
+         * @description The scoring pass failed as a whole (e.g. unusable judge); the results are kept.
          */
         SSEScoringFailed: {
             /** Error Message */
-            error_message?: string | null;
+            error_message: string | null;
             /**
              * Event
-             * @default scoring_failed
              * @constant
              */
             event: "scoring_failed";
@@ -20870,9 +21722,9 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -20880,30 +21732,71 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
+        };
+        /**
+         * SSEScoringModelStarted
+         * @description Standalone scoring pass: one model's stored result is being scored.
+         */
+        SSEScoringModelStarted: {
+            /**
+             * Event
+             * @constant
+             */
+            event: "scoring_model_started";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Model */
+            model: string;
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
         };
         /**
          * SSEScoringProgress
-         * @description Emitted after each result is scored (or fails to score). Carries the per-model
-         *     mean quality so the run modal can badge rows as they are scored.
+         * @description One result scored (or failed to score), with its mean quality.
          */
         SSEScoringProgress: {
+            /**
+             * Completed Models
+             * @description Standalone scoring pass: results completed so far (the pass's units); absent in a benchmark run, whose units are the models it runs
+             */
+            completed_models?: number;
             /** Completeness */
-            completeness?: number | null;
+            completeness?: number;
             /** Correctness */
-            correctness?: number | null;
+            correctness?: number;
             /** Error Message */
-            error_message?: string | null;
+            error_message?: string;
             /**
              * Event
-             * @default scoring_progress
              * @constant
              */
             event: "scoring_progress";
             /** Hallucination Rate */
-            hallucination_rate?: number | null;
+            hallucination_rate?: number;
             /**
              * Job Id
              * @description Unique job identifier
@@ -20918,12 +21811,12 @@ export type components = {
              * Model
              * @description Model composite key just scored
              */
-            model?: string | null;
+            model: string;
             /**
              * Overall
              * @description Mean overall quality (0..1)
              */
-            overall?: number | null;
+            overall?: number;
             /**
              * Scored
              * @description Results scored so far
@@ -20931,9 +21824,9 @@ export type components = {
             scored: number;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -20942,7 +21835,6 @@ export type components = {
             /**
              * Success
              * @description Whether this model's scoring succeeded
-             * @default true
              */
             success: boolean;
             /**
@@ -20952,14 +21844,13 @@ export type components = {
             total: number;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEScoringReferenceUpdated
-         * @description Emitted once per scoring pass when the findings folded across the scored
-         *     models were written into the reference (see reference_meta.auto_applied).
+         * @description The findings folded across the scored models were written into the reference.
          */
         SSEScoringReferenceUpdated: {
             /**
@@ -20969,12 +21860,11 @@ export type components = {
             applied: number;
             /**
              * Error
-             * @description Why the reference could not be updated at all (the scores are kept)
+             * @description Why the reference could not be updated at all
              */
-            error?: string | null;
+            error?: string;
             /**
              * Event
-             * @default scoring_reference_updated
              * @constant
              */
             event: "scoring_reference_updated";
@@ -20990,17 +21880,17 @@ export type components = {
             job_type: string;
             /**
              * Reason
-             * @description Why the pass deliberately applied nothing: 'reference_moved' when the author saved the reference while the pass ran (its findings answer a reference that no longer exists; re-score to raise them again)
+             * @description Why the pass deliberately applied nothing: 'reference_moved' when the author saved the reference while the pass ran
              */
-            reason?: string | null;
+            reason?: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Skipped
-             * @description Findings logged but not applied (no mechanical patch, or refused)
+             * @description Findings logged but not applied
              */
             skipped: number;
             /**
@@ -21010,22 +21900,17 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEScoringStarted
-         * @description Emitted when scoring actually begins: at once for a standalone scoring job
-         *     (total_results exact), and for a benchmark run's interleaved scoring the moment
-         *     its workers are released (after scoring_waiting when the judge's provider is
-         *     benchmarked) — total_results is then the run's model count, an upper bound
-         *     (failed models won't be scored). scoring_completed carries the exact final counts.
+         * @description Scoring actually begins (exact total on a standalone pass, an upper bound in a run).
          */
         SSEScoringStarted: {
             /**
              * Event
-             * @default scoring_started
              * @constant
              */
             event: "scoring_started";
@@ -21041,9 +21926,9 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -21051,23 +21936,22 @@ export type components = {
             status: string;
             /**
              * Total Results
-             * @description Number of results to score (upper bound)
+             * @description Number of results to score
              */
             total_results: number;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEScoringUnverifiedReference
-         * @description Emitted when scoring runs against a reference that is not verified.
+         * @description Scoring runs against a reference that is not verified.
          */
         SSEScoringUnverifiedReference: {
             /**
              * Event
-             * @default scoring_unverified_reference
              * @constant
              */
             event: "scoring_unverified_reference";
@@ -21083,9 +21967,9 @@ export type components = {
             job_type: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -21093,21 +21977,17 @@ export type components = {
             status: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * SSEScoringWaiting
-         * @description Benchmark runs only: the scoring pipeline is initialized but its workers are
-         *     held back until the judge's own provider group has finished running — the judge
-         *     never calls its provider while that provider's models are being timed. Nothing
-         *     is scored before the matching scoring_started.
+         * @description Benchmark run: scoring waits until the judge's own provider group finished running.
          */
         SSEScoringWaiting: {
             /**
              * Event
-             * @default scoring_waiting
              * @constant
              */
             event: "scoring_waiting";
@@ -21128,9 +22008,9 @@ export type components = {
             judge_provider: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -21143,20 +22023,108 @@ export type components = {
             total_results: number;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
+        };
+        /**
+         * SSESourceCompleted
+         * @description Pricing sync: one scraper source finished.
+         */
+        SSESourceCompleted: {
+            /**
+             * Completed Models
+             * @description Sources completed so far (stamped)
+             */
+            completed_models?: number;
+            /**
+             * Event
+             * @constant
+             */
+            event: "source_completed";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /** Source */
+            source: string;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Success
+             * @description False on a scrape, diff or apply error
+             */
+            success: boolean;
+            summary: components["schemas"]["PricingSyncSummary"];
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
+        };
+        /**
+         * SSESourceStarted
+         * @description Pricing sync: one scraper source began.
+         */
+        SSESourceStarted: {
+            /**
+             * Event
+             * @constant
+             */
+            event: "source_started";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Source
+             * @description Source id (litellm, pricepertoken, …)
+             */
+            source: string;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
         };
         /**
          * SSEStarted
-         * @description First event on a stream: the job's state at connect time, plus what the
-         *     job was launched on — enough for a client that attaches after the launch
-         *     (another tab, a page refresh) to rebuild its view before the replay.
+         * @description First frame of every stream connection (not logged): the job's state at
+         *     connect time and what it was launched on.
          */
         SSEStarted: {
             /**
              * Event
-             * @default started
              * @constant
              */
             event: "started";
@@ -21175,21 +22143,20 @@ export type components = {
             /**
              * Last Seq
              * @description seq of the job's latest logged event at connect time: what follows with seq <= last_seq is replayed history, anything beyond is live.
-             * @default 0
              */
             last_seq: number;
             /**
              * Launch
-             * @description Launch context stamped by the start route: a benchmark run carries `model_keys` (the composite keys it runs, in order) and `skipped_models` (key → missing capability); a scoring job its `model_keys`.
+             * @description Launch context stamped by the start route (a benchmark run's model_keys and skipped_models, a scoring job's model_keys, a validation's mode, …)
              */
             launch?: {
                 [key: string]: unknown;
-            } | null;
+            };
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -21197,32 +22164,146 @@ export type components = {
             status: string;
             /**
              * Subject Id
-             * @description What the job operates on (a saved schema, a benchmark scenario, …), when it has one.
+             * @description What the job operates on (a saved schema, a benchmark scenario, …)
              */
-            subject_id?: string | null;
+            subject_id?: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
+        };
+        /**
+         * SSEStepCompleted
+         * @description One step of a staged pipeline finished.
+         */
+        SSEStepCompleted: {
+            /** Completed Steps */
+            completed_steps: number;
+            /** Cost Usd */
+            cost_usd: number | null;
+            /**
+             * Decision
+             * @description The step's decision
+             */
+            decision: {
+                [key: string]: unknown;
+            };
+            /** Error Message */
+            error_message: string | null;
+            /**
+             * Event
+             * @constant
+             */
+            event: "step_completed";
+            /** Input Tokens */
+            input_tokens: number | null;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Model */
+            model: string;
+            /** Output Tokens */
+            output_tokens: number | null;
+            /** Processing Time Ms */
+            processing_time_ms: number | null;
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Step Key
+             * @description Stable step key (e.g. schema_entity_scoping, schema_flags_2)
+             */
+            step_key: string;
+            /**
+             * Step Name
+             * @description Display name of the step
+             */
+            step_name: string;
+            /** Success */
+            success: boolean;
+            /** Total Steps */
+            total_steps: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
+        };
+        /**
+         * SSEStepStarted
+         * @description One step of a staged pipeline began (schema / sample generation, annotation,
+         *     database-model classification, and their benchmark runs).
+         */
+        SSEStepStarted: {
+            /** Completed Steps */
+            completed_steps: number;
+            /**
+             * Event
+             * @constant
+             */
+            event: "step_started";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Model */
+            model: string;
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Step Key
+             * @description Stable step key (e.g. schema_entity_scoping, schema_flags_2)
+             */
+            step_key: string;
+            /**
+             * Step Name
+             * @description Display name of the step
+             */
+            step_name: string;
+            /** Total Steps */
+            total_steps: number;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
         };
         /**
          * SSEStrategySelected
-         * @description Emitted once when the server auto-selects the enrichment strategy.
-         *
-         *     Only sent when the client requested ``auto`` (or omitted the strategy).
-         *     Lets the UI show a badge like "Auto → Multi-expertise" with the reasoning,
-         *     so users aren't surprised when auto picks a costlier strategy.
+         * @description The server resolved an `auto` / omitted enrichment strategy.
          */
         SSEStrategySelected: {
             /**
-             * Entity Index
-             * @description Entity index (batch only)
-             */
-            entity_index?: number | null;
-            /**
              * Event
-             * @default strategy_selected
              * @constant
              */
             event: "strategy_selected";
@@ -21248,14 +22329,14 @@ export type components = {
             requested: string;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
              */
-            seq?: number | null;
+            seq?: number;
             /**
              * Signals
              * @description Numeric signals the decision keyed off (domains, weight, ...)
              */
-            signals?: {
+            signals: {
                 [key: string]: number;
             } | null;
             /**
@@ -21270,9 +22351,9 @@ export type components = {
             strategy: string;
             /**
              * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             * @description When the event was emitted (Unix epoch milliseconds)
              */
-            ts?: number | null;
+            ts?: number;
         };
         /**
          * StrategyInfo
@@ -21351,7 +22432,7 @@ export type components = {
              * Reasoning Effort
              * @description Enable model thinking/reasoning for this run at the given effort. Translated per provider (effort field, or the Qwen-style enable_thinking switch where levels collapse to on); silently dropped for models the app cannot control. None (default) keeps each model's default behavior.
              */
-            reasoning_effort?: ("high" | "medium" | "low") | null;
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             /** Schema Id */
             schema_id?: string | null;
             /**
@@ -21410,7 +22491,7 @@ export type components = {
              * Reasoning Effort
              * @description Reasoning opt-in for a reasoning-capable model; null = off
              */
-            reasoning_effort?: ("high" | "medium" | "low") | null;
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             /**
              * Sample Commonality Threshold
              * @description Minimum share (0..1) of the combined field-path set every sample must cover (default 0.5) — mixed entity types hard-fail with HTTP 400 before any LLM call.
@@ -21813,7 +22894,7 @@ export type components = {
              * Reasoning Effort
              * @description Enable model thinking/reasoning for this run at the given effort. Translated per provider (effort field, or the Qwen-style enable_thinking switch where levels collapse to on); silently dropped for models the app cannot control. None (default) keeps each model's default behavior.
              */
-            reasoning_effort?: ("high" | "medium" | "low") | null;
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             /** Schema Id */
             schema_id?: string | null;
             /**
@@ -21868,7 +22949,7 @@ export type components = {
              * Reasoning Effort
              * @description Reasoning opt-in for a reasoning-capable model; null = off
              */
-            reasoning_effort?: ("high" | "medium" | "low") | null;
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             /**
              * Sample Commonality Threshold
              * @description Minimum share (0..1) of the combined field-path set every sample must cover (default 0.5) — mixed entity types hard-fail with HTTP 400 before any LLM call.
@@ -21938,7 +23019,7 @@ export type components = {
              * Reasoning Effort
              * @description Reasoning opt-in for a reasoning-capable model; null = off
              */
-            reasoning_effort?: ("high" | "medium" | "low") | null;
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             /**
              * Request
              * @description What the sample should contain, in free text: the kind of entity (optionally a specific instance), the properties it must include, size/depth budgets, structural preferences. Binding for the generation — it overrides the generator's default choices; only the output contract (JSON-only, naming convention, quantity units, single-language samples, one instance per sample) cannot be overridden. The NUMBER of samples is sample_count, never part of this text: a request for 'three samples' does not produce three — each sample is exactly one instance. When the request is materially ambiguous the job may pause on clarification questions (see auto_answer). Required unless attachment_ids is set, where the attached document is the request and this text only narrows it.
@@ -22820,8 +23901,10 @@ export type BatchDeleteResponse = components['schemas']['BatchDeleteResponse'];
 export type BatchDeleteSkip = components['schemas']['BatchDeleteSkip'];
 export type BatchEnrichmentJobResponse = components['schemas']['BatchEnrichmentJobResponse'];
 export type BatchEnrichmentRequest = components['schemas']['BatchEnrichmentRequest'];
+export type BatchEntityOutcome = components['schemas']['BatchEntityOutcome'];
 export type BatchFetchRequest = components['schemas']['BatchFetchRequest'];
 export type BatchFetchResponse = components['schemas']['BatchFetchResponse'];
+export type BatchJobResult = components['schemas']['BatchJobResult'];
 export type BatchRestoreRequest = components['schemas']['BatchRestoreRequest'];
 export type BenchmarkReferenceMeta = components['schemas']['BenchmarkReferenceMeta'];
 export type BenchmarkResultResponse = components['schemas']['BenchmarkResultResponse'];
@@ -22846,6 +23929,7 @@ export type BulkSchemaGenerationRequest = components['schemas']['BulkSchemaGener
 export type BulkToggleRequest = components['schemas']['BulkToggleRequest'];
 export type BulkToggleResult = components['schemas']['BulkToggleResult'];
 export type BulkUpdateResult = components['schemas']['BulkUpdateResult'];
+export type CapabilityProbeOutcome = components['schemas']['CapabilityProbeOutcome'];
 export type ChangeOrganizationRequest = components['schemas']['ChangeOrganizationRequest'];
 export type CheckoutSessionResponse = components['schemas']['CheckoutSessionResponse'];
 export type ClassificationContext = components['schemas']['ClassificationContext'];
@@ -22915,6 +23999,8 @@ export type DatabaseSyncOutcome = components['schemas']['DatabaseSyncOutcome'];
 export type DatabaseSyncRelationalMapResponse = components['schemas']['DatabaseSyncRelationalMapResponse'];
 export type DatabaseSyncUpdateRequest = components['schemas']['DatabaseSyncUpdateRequest'];
 export type DatabaseSyncValidationResult = components['schemas']['DatabaseSyncValidationResult'];
+export type DbModelClassificationJobResult = components['schemas']['DbModelClassificationJobResult'];
+export type DbModelFlagChange = components['schemas']['DbModelFlagChange'];
 export type DbModelScopeResponse = components['schemas']['DbModelScopeResponse'];
 export type DeclaredUnknown = components['schemas']['DeclaredUnknown'];
 export type DefaultModelSelection = components['schemas']['DefaultModelSelection'];
@@ -23042,6 +24128,7 @@ export type MigrationStartRequest = components['schemas']['MigrationStartRequest
 export type MigrationStatusResponse = components['schemas']['MigrationStatusResponse'];
 export type MissingAttachment = components['schemas']['MissingAttachment'];
 export type ModelBenchmarkScores = components['schemas']['ModelBenchmarkScores'];
+export type ModelCapabilityProbeResult = components['schemas']['ModelCapabilityProbeResult'];
 export type ModelChange = components['schemas']['ModelChange'];
 export type ModelCostRow = components['schemas']['ModelCostRow'];
 export type ModelCostStats = components['schemas']['ModelCostStats'];
@@ -23055,8 +24142,11 @@ export type ModelUpdate = components['schemas']['ModelUpdate'];
 export type ModelUsage = components['schemas']['ModelUsage'];
 export type ModelUsageRequest = components['schemas']['ModelUsageRequest'];
 export type ModelUsageResponse = components['schemas']['ModelUsageResponse'];
+export type ModelValidationJobResult = components['schemas']['ModelValidationJobResult'];
 export type ModelValidationRequest = components['schemas']['ModelValidationRequest'];
 export type ModelValidationResponse = components['schemas']['ModelValidationResponse'];
+export type ModelValidationResult = components['schemas']['ModelValidationResult'];
+export type ModelValidationSummary = components['schemas']['ModelValidationSummary'];
 export type NestRegionRequest = components['schemas']['NestRegionRequest'];
 export type NestRegionResponse = components['schemas']['NestRegionResponse'];
 export type OAuthGrantListItem = components['schemas']['OAuthGrantListItem'];
@@ -23142,6 +24232,7 @@ export type RunBenchmarkJobResponse = components['schemas']['RunBenchmarkJobResp
 export type RunBenchmarkRequest = components['schemas']['RunBenchmarkRequest'];
 export type SampleConformanceResponse = components['schemas']['SampleConformanceResponse'];
 export type SampleConformanceSite = components['schemas']['SampleConformanceSite'];
+export type SampleGenerationResult = components['schemas']['SampleGenerationResult'];
 export type SampleGenTaskParams = components['schemas']['SampleGenTaskParams'];
 export type SampleRubricDetail = components['schemas']['SampleRubricDetail'];
 export type SampleSetRequest = components['schemas']['SampleSetRequest'];
@@ -23151,6 +24242,7 @@ export type SavedSchemaListResponse = components['schemas']['SavedSchemaListResp
 export type SavedSchemaResponse = components['schemas']['SavedSchemaResponse'];
 export type SavedSchemaUpdate = components['schemas']['SavedSchemaUpdate'];
 export type SchemaAnnotateRequest = components['schemas']['SchemaAnnotateRequest'];
+export type SchemaAnnotationResult = components['schemas']['SchemaAnnotationResult'];
 export type SchemaAnnotationScopeRequest = components['schemas']['SchemaAnnotationScopeRequest'];
 export type SchemaAnnotationScopeResponse = components['schemas']['SchemaAnnotationScopeResponse'];
 export type SchemaComparisonDetail = components['schemas']['SchemaComparisonDetail'];
@@ -23162,6 +24254,7 @@ export type SchemaIdentityScope = components['schemas']['SchemaIdentityScope'];
 export type SchemaPromptRequest = components['schemas']['SchemaPromptRequest'];
 export type SchemaPromptResponse = components['schemas']['SchemaPromptResponse'];
 export type SchemaPromptStreamRequest = components['schemas']['SchemaPromptStreamRequest'];
+export type SchemaPromptStreamResponse = components['schemas']['SchemaPromptStreamResponse'];
 export type SchemaPropertyAddRequest = components['schemas']['SchemaPropertyAddRequest'];
 export type SchemaPropertyMoveRequest = components['schemas']['SchemaPropertyMoveRequest'];
 export type SchemaPropertyUpdateRequest = components['schemas']['SchemaPropertyUpdateRequest'];
@@ -23197,7 +24290,10 @@ export type SseAttachmentCoherence = components['schemas']['SSEAttachmentCoheren
 export type SseAttachmentFile = components['schemas']['SSEAttachmentFile'];
 export type SseAttempt = components['schemas']['SSEAttempt'];
 export type SseBatchCompleted = components['schemas']['SSEBatchCompleted'];
+export type SseBatchJobCompleted = components['schemas']['SSEBatchJobCompleted'];
 export type SseBatchStarted = components['schemas']['SSEBatchStarted'];
+export type SseBenchmarkRunCompleted = components['schemas']['SSEBenchmarkRunCompleted'];
+export type SseBenchmarkRunStarted = components['schemas']['SSEBenchmarkRunStarted'];
 export type SseClassificationCompleted = components['schemas']['SSEClassificationCompleted'];
 export type SseClassificationMismatchPause = components['schemas']['SSEClassificationMismatchPause'];
 export type SseClassificationMismatchTimeout = components['schemas']['SSEClassificationMismatchTimeout'];
@@ -23205,12 +24301,15 @@ export type SseClassificationStarted = components['schemas']['SSEClassificationS
 export type SseConflictsDetected = components['schemas']['SSEConflictsDetected'];
 export type SseDatabaseRejected = components['schemas']['SSEDatabaseRejected'];
 export type SseDatabaseSaved = components['schemas']['SSEDatabaseSaved'];
+export type SseDbModelClassificationJobCompleted = components['schemas']['SSEDbModelClassificationJobCompleted'];
+export type SseEnrichmentJobCompleted = components['schemas']['SSEEnrichmentJobCompleted'];
 export type SseEntityCompleted = components['schemas']['SSEEntityCompleted'];
 export type SseEntitySkipped = components['schemas']['SSEEntitySkipped'];
 export type SseEntityStarted = components['schemas']['SSEEntityStarted'];
 export type SseExpertiseCompleted = components['schemas']['SSEExpertiseCompleted'];
 export type SseExpertiseStarted = components['schemas']['SSEExpertiseStarted'];
 export type SseFusionCompleted = components['schemas']['SSEFusionCompleted'];
+export type SseFusionJobCompleted = components['schemas']['SSEFusionJobCompleted'];
 export type SseFusionStarted = components['schemas']['SSEFusionStarted'];
 export type SseJobCancelled = components['schemas']['SSEJobCancelled'];
 export type SseJobCompleted = components['schemas']['SSEJobCompleted'];
@@ -23221,24 +24320,35 @@ export type SseModelAutoSelected = components['schemas']['SSEModelAutoSelected']
 export type SseModelCompleted = components['schemas']['SSEModelCompleted'];
 export type SseModelsSkipped = components['schemas']['SSEModelsSkipped'];
 export type SseModelStarted = components['schemas']['SSEModelStarted'];
+export type SseModelValidated = components['schemas']['SSEModelValidated'];
+export type SseModelValidationJobCompleted = components['schemas']['SSEModelValidationJobCompleted'];
+export type SsePricingSyncJobCompleted = components['schemas']['SSEPricingSyncJobCompleted'];
 export type SseQueued = components['schemas']['SSEQueued'];
 export type SseQueuedBehind = components['schemas']['SSEQueuedBehind'];
 export type SseQueueMerged = components['schemas']['SSEQueueMerged'];
 export type SseResumed = components['schemas']['SSEResumed'];
 export type SseSampleClarificationPause = components['schemas']['SSESampleClarificationPause'];
+export type SseSampleGenerationJobCompleted = components['schemas']['SSESampleGenerationJobCompleted'];
 export type SseSampleInstanceProgress = components['schemas']['SSESampleInstanceProgress'];
 export type SseSampleInstanceRoster = components['schemas']['SSESampleInstanceRoster'];
 export type SseSampleQuestion = components['schemas']['SSESampleQuestion'];
 export type SseSampleQuestionOption = components['schemas']['SSESampleQuestionOption'];
+export type SseSchemaAnnotationJobCompleted = components['schemas']['SSESchemaAnnotationJobCompleted'];
+export type SseSchemaGenerationJobCompleted = components['schemas']['SSESchemaGenerationJobCompleted'];
 export type SseScoringCompleted = components['schemas']['SSEScoringCompleted'];
 export type SseScoringDegraded = components['schemas']['SSEScoringDegraded'];
 export type SseScoringFailed = components['schemas']['SSEScoringFailed'];
+export type SseScoringModelStarted = components['schemas']['SSEScoringModelStarted'];
 export type SseScoringProgress = components['schemas']['SSEScoringProgress'];
 export type SseScoringReferenceUpdated = components['schemas']['SSEScoringReferenceUpdated'];
 export type SseScoringStarted = components['schemas']['SSEScoringStarted'];
 export type SseScoringUnverifiedReference = components['schemas']['SSEScoringUnverifiedReference'];
 export type SseScoringWaiting = components['schemas']['SSEScoringWaiting'];
+export type SseSourceCompleted = components['schemas']['SSESourceCompleted'];
+export type SseSourceStarted = components['schemas']['SSESourceStarted'];
 export type SseStarted = components['schemas']['SSEStarted'];
+export type SseStepCompleted = components['schemas']['SSEStepCompleted'];
+export type SseStepStarted = components['schemas']['SSEStepStarted'];
 export type SseStrategySelected = components['schemas']['SSEStrategySelected'];
 export type StrategyInfo = components['schemas']['StrategyInfo'];
 export type StreamEnrichRequest = components['schemas']['StreamEnrichRequest'];
@@ -29883,7 +30993,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringWaiting"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEScoringReferenceUpdated"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEStarted"] | components["schemas"]["SSEAttempt"] | components["schemas"]["SSEResumed"] | components["schemas"]["SSEModelsSkipped"] | components["schemas"]["SSEJobRunning"] | components["schemas"]["SSEQueued"] | components["schemas"]["SSEQueueMerged"] | components["schemas"]["SSEExpertiseStarted"] | components["schemas"]["SSEClassificationMismatchTimeout"])[];
+                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEClassificationMismatchTimeout"] | components["schemas"]["SSEResumed"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseStarted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEStepStarted"] | components["schemas"]["SSEStepCompleted"] | components["schemas"]["SSEAttempt"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringWaiting"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringModelStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEScoringReferenceUpdated"] | components["schemas"]["SSEBenchmarkRunStarted"] | components["schemas"]["SSEBenchmarkRunCompleted"] | components["schemas"]["SSEModelsSkipped"] | components["schemas"]["SSEQueued"] | components["schemas"]["SSEQueueMerged"] | components["schemas"]["SSESourceStarted"] | components["schemas"]["SSESourceCompleted"] | components["schemas"]["SSEModelValidated"] | components["schemas"]["SSEStarted"] | components["schemas"]["SSEJobRunning"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEEnrichmentJobCompleted"] | components["schemas"]["SSEFusionJobCompleted"] | components["schemas"]["SSEBatchJobCompleted"] | components["schemas"]["SSESampleGenerationJobCompleted"] | components["schemas"]["SSESchemaGenerationJobCompleted"] | components["schemas"]["SSESchemaAnnotationJobCompleted"] | components["schemas"]["SSEDbModelClassificationJobCompleted"] | components["schemas"]["SSEModelValidationJobCompleted"] | components["schemas"]["SSEPricingSyncJobCompleted"])[];
                 };
             };
         };
