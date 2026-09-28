@@ -11,8 +11,25 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** No Frontend */
-        get: operations["no_frontend__get"];
+        /** Serve Index */
+        get: operations["serve_index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve Spa */
+        get: operations["serve_spa__path__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3961,16 +3978,18 @@ export type paths = {
         };
         /**
          * Export Catalog
-         * @description The read-only global catalog: every GLOBAL provider/model plus
-         *     `llm_specs`, for any owner-or-above key — no admin role required.
+         * @description The read-only global catalog: every GLOBAL provider/model with its
+         *     global override, plus `llm_specs`, for any owner-or-above key — no admin
+         *     role required.
          *
          *     This is the same global data an owner already reads on the Model
          *     Management page (`list_providers` / `list_all_models` fuse it into an
          *     owner's view there); this route just hands it back raw, in `/export`'s
          *     format. It never carries organization rows, and — unlike `/export` — it
-         *     is not meant to be re-imported: it exists for a reader that only wants
-         *     to mirror the global catalog, such as another deployment's environment
-         *     sync, without holding a source key any more privileged than an owner's.
+         *     is not meant to be re-imported by hand: it exists for a reader that
+         *     mirrors the global catalog whole, such as another deployment's
+         *     environment sync, without holding a source key any more privileged than
+         *     an owner's.
          */
         get: operations["export_catalog_api_providers_catalog_get"];
         put?: never;
@@ -4027,8 +4046,10 @@ export type paths = {
          * Import Config
          * @description Import providers, models, and specs from JSON (always an upsert).
          *
-         *     Existing rows are matched by natural key and updated in place; missing ones
-         *     are created. Nothing is deleted and no API keys are touched.
+         *     Existing rows are matched by natural key and updated in place with the
+         *     file's values; missing ones are created. Nothing is deleted and no API
+         *     keys are touched. A model's `override` lands as the override row of its
+         *     base in the model's own scope.
          *
          *     Scope rules (driven by each row's `scope`, never a concrete org UUID):
          *     - "organization" rows always go into the IMPORTER's own organization — for
@@ -8616,7 +8637,7 @@ export type components = {
             specs?: components["schemas"]["SpecExport"][];
             /**
              * Version
-             * @default 4.0
+             * @default 5.0
              */
             version: string;
         };
@@ -12790,6 +12811,11 @@ export type components = {
              */
             models_updated: number;
             /**
+             * Overrides Imported
+             * @default 0
+             */
+            overrides_imported: number;
+            /**
              * Providers Created
              * @default 0
              */
@@ -13577,16 +13603,19 @@ export type components = {
         };
         /**
          * ModelExport
-         * @description Export format for a single model.
+         * @description Export format for a single base model row.
          *
-         *     Inherits every config column of `llm_models` from `LLMModelFields`, plus the
-         *     identity/lifecycle columns needed for a faithful round-trip. API keys are
+         *     Adds the identity columns needed for a faithful round-trip. API keys are
          *     never part of this model (they live in `provider_keys`, a separate table).
          *
          *     `is_active` is exported for human readability, but it is a *generated* column
          *     (`deactivated_at IS NULL`) — the source of truth is the `deactivated_at` /
          *     `deactivation_reason` pair, which travels alongside it so an inactive model
          *     round-trips with its original reason instead of a generic re-stamp on import.
+         *
+         *     `override` is the global override row a system admin's edits created on
+         *     this base row (NULL = field not overridden). Only `/catalog` fills it —
+         *     the portable `/export` file leaves the tuning layer out.
          */
         ModelExport: {
             /** Cache Creation Price Per Million 1Hr */
@@ -13595,6 +13624,12 @@ export type components = {
             cache_read_price_per_million?: number | null;
             /** Cache Write Price Per Million */
             cache_write_price_per_million?: number | null;
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: {
+                    [key: string]: boolean;
+                };
+            } | null;
             /** Context Length */
             context_length?: number | null;
             /** Deactivated At */
@@ -13625,10 +13660,11 @@ export type components = {
             output_price_per_million?: number | null;
             /** Output Reasoning Token Price Per Million */
             output_reasoning_token_price_per_million?: number | null;
-            /** Requires Streaming */
-            requires_streaming?: boolean | null;
+            override?: components["schemas"]["ModelRowExport"] | null;
             /** Rpm */
             rpm?: number | null;
+            /** Schema Generation Disabled */
+            schema_generation_disabled?: boolean | null;
             /**
              * Scope
              * @default organization
@@ -13641,32 +13677,6 @@ export type components = {
             source_identifier?: string | null;
             /** Supported Reasoning Efforts */
             supported_reasoning_efforts?: string[] | null;
-            /** Supports Audio Input */
-            supports_audio_input?: boolean | null;
-            /** Supports Audio Output */
-            supports_audio_output?: boolean | null;
-            /** Supports Pdf Input */
-            supports_pdf_input?: boolean | null;
-            /** Supports Prompt Caching */
-            supports_prompt_caching?: boolean | null;
-            /** Supports Reasoning */
-            supports_reasoning?: boolean | null;
-            /** Supports Reasoning Effort */
-            supports_reasoning_effort?: boolean | null;
-            /** Supports Response Schema */
-            supports_response_schema?: boolean | null;
-            /** Supports Strict Structured Output */
-            supports_strict_structured_output?: boolean | null;
-            /** Supports Tool Calls */
-            supports_tool_calls?: boolean | null;
-            /** Supports Tool Choice */
-            supports_tool_choice?: boolean | null;
-            /** Supports Video Input */
-            supports_video_input?: boolean | null;
-            /** Supports Vision */
-            supports_vision?: boolean | null;
-            /** Supports Web Search */
-            supports_web_search?: boolean | null;
             /** Time To First Answer Token Ms */
             time_to_first_answer_token_ms?: number | null;
             /** Time To First Token Ms */
@@ -13976,6 +13986,80 @@ export type components = {
             unavailable_reason?: "no_api_key" | "model_not_found" | "unsupported" | null;
             /** Updated At */
             updated_at: string | null;
+            /** Web Search Billing Unit */
+            web_search_billing_unit?: string | null;
+            /** Web Search Price Per Query */
+            web_search_price_per_query?: number | null;
+            /** Web Search Pricing Details */
+            web_search_pricing_details?: {
+                [key: string]: number;
+            } | null;
+        };
+        /**
+         * ModelRowExport
+         * @description Every data column of one `llm_models` row, as stored.
+         *
+         *     Capabilities travel as the stored route-keyed map — measurements under
+         *     the route they were taken on, claims under '*' — never as the flat
+         *     `supports_*` view, which cannot say which route a verdict belongs to.
+         *     A deliberate test pins that this covers every sync-managed and
+         *     app-managed column, so a column added later cannot silently stay home.
+         */
+        ModelRowExport: {
+            /** Cache Creation Price Per Million 1Hr */
+            cache_creation_price_per_million_1hr?: number | null;
+            /** Cache Read Price Per Million */
+            cache_read_price_per_million?: number | null;
+            /** Cache Write Price Per Million */
+            cache_write_price_per_million?: number | null;
+            /** Capabilities */
+            capabilities?: {
+                [key: string]: {
+                    [key: string]: boolean;
+                };
+            } | null;
+            /** Context Length */
+            context_length?: number | null;
+            /** Deactivated At */
+            deactivated_at?: string | null;
+            /** Deactivation Reason */
+            deactivation_reason?: string | null;
+            /** Deprecation Date */
+            deprecation_date?: string | null;
+            /**
+             * Display Name
+             * @description Human-readable model name
+             */
+            display_name?: string | null;
+            /** Input Price Per Million */
+            input_price_per_million?: number | null;
+            /** Max Input Tokens */
+            max_input_tokens?: number | null;
+            /** Max Output Tokens */
+            max_output_tokens?: number | null;
+            /**
+             * Model
+             * @description Model identifier for API
+             */
+            model: string;
+            /** Output Price Per Million */
+            output_price_per_million?: number | null;
+            /** Output Reasoning Token Price Per Million */
+            output_reasoning_token_price_per_million?: number | null;
+            /** Rpm */
+            rpm?: number | null;
+            /** Schema Generation Disabled */
+            schema_generation_disabled?: boolean | null;
+            /** Supported Reasoning Efforts */
+            supported_reasoning_efforts?: string[] | null;
+            /** Time To First Answer Token Ms */
+            time_to_first_answer_token_ms?: number | null;
+            /** Time To First Token Ms */
+            time_to_first_token_ms?: number | null;
+            /** Tokens Per Second */
+            tokens_per_second?: number | null;
+            /** Tpm */
+            tpm?: number | null;
             /** Web Search Billing Unit */
             web_search_billing_unit?: string | null;
             /** Web Search Price Per Query */
@@ -24138,6 +24222,7 @@ export type ModelOverrideBaseSnapshot = components['schemas']['ModelOverrideBase
 export type ModelOverrideListResponse = components['schemas']['ModelOverrideListResponse'];
 export type ModelOverrideResponse = components['schemas']['ModelOverrideResponse'];
 export type ModelResponse = components['schemas']['ModelResponse'];
+export type ModelRowExport = components['schemas']['ModelRowExport'];
 export type ModelUpdate = components['schemas']['ModelUpdate'];
 export type ModelUsage = components['schemas']['ModelUsage'];
 export type ModelUsageRequest = components['schemas']['ModelUsageRequest'];
@@ -24404,7 +24489,7 @@ export type WebhookTestResponse = components['schemas']['WebhookTestResponse'];
 export type WebhookTypeInfo = components['schemas']['WebhookTypeInfo'];
 export type $defs = Record<string, never>;
 export interface operations {
-    no_frontend__get: {
+    serve_index__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -24420,6 +24505,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    serve_spa__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
