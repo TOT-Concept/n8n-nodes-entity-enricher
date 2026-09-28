@@ -11,25 +11,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Serve Index */
-        get: operations["serve_index__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/{path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve Spa */
-        get: operations["serve_spa__path__get"];
+        /** No Frontend */
+        get: operations["no_frontend__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -18679,11 +18662,6 @@ export type components = {
              * @default false
              */
             auto_outlier: boolean;
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
             /** Cache Read Tokens */
             cache_read_tokens?: number | null;
             /**
@@ -18691,38 +18669,10 @@ export type components = {
              * @description LLM calls made (one per level, then per item)
              */
             calls?: number | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
             /** Cost Usd */
             cost_usd?: number | null;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default arbitration_completed
@@ -18730,23 +18680,12 @@ export type components = {
              */
             event: "arbitration_completed";
             /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
              * Fallback To Rule Based
              * @default false
              */
             fallback_to_rule_based: boolean;
             /** Input Tokens */
             input_tokens?: number | null;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -18757,46 +18696,13 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
             /** Output Tokens */
             output_tokens?: number | null;
             /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -18804,16 +18710,6 @@ export type components = {
             status: string;
             /** Success */
             success: boolean;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -18834,60 +18730,16 @@ export type components = {
              */
             auto_outlier: boolean;
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
              * Conflict Count
              * @description Questions the rules could not settle — what the arbiter is asked
              */
             conflict_count: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default arbitration_started
              * @constant
              */
             event: "arbitration_started";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -18899,68 +18751,25 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
              * Levels
              * @description Nesting levels the questions span: the root level is asked in one call, each deeper level in parallel calls per array item
              */
             levels?: number | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
             /**
              * Paths
              * @description Question keys
              */
             paths?: string[] | null;
             /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -18978,39 +18787,6 @@ export type components = {
          */
         SSEAttachmentCoherence: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default attachment_coherence
              * @constant
@@ -19022,17 +18798,6 @@ export type components = {
              */
             excluded_attachments?: components["schemas"]["SSEAttachmentFile"][];
             /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
-            /**
              * Job Id
              * @description Unique job identifier
              */
@@ -19042,26 +18807,6 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
             /**
              * Mode
              * @description single_entity | instances_of_type | incoherent
@@ -19073,45 +18818,22 @@ export type components = {
              */
             object_type?: string | null;
             /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /**
              * Reason
              * @description Why the set is incoherent (incoherent mode only)
              */
             reason?: string | null;
             /** @description Value-source file (instances_of_type only) */
             reference_attachment?: components["schemas"]["SSEAttachmentFile"] | null;
-            /** Running Models */
-            running_models?: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -19140,61 +18862,19 @@ export type components = {
          *     what went wrong on the previous attempt, when the retry had a reason.
          */
         SSEAttempt: {
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
+            /** Current Attempt */
             current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
             /**
              * Entity Index
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
             /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default attempt
              * @constant
              */
             event: "attempt";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -19206,45 +18886,24 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
              * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             * @description The pipeline step the retry's error came from, when a staged run named it
              */
             last_error_step?: string | null;
             /**
              * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             * @description On `attempt`: the error that caused this retry (a hint, not an outcome). On a terminal event: the reason that status carries — null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null at the end; its per-attempt messages are kept on the record's prompts.
              */
             last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
+            /** Max Attempts */
             max_attempts: number;
             /** Model */
             model?: string | null;
             /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19255,16 +18914,6 @@ export type components = {
              * @description What this attempt belongs to, when named: a staged pipeline's step, or the expertise domain of a multi-expertise enrichment call.
              */
             step?: string | null;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -19277,38 +18926,11 @@ export type components = {
          */
         SSEBatchCompleted: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
              * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @description Entities fully processed with ≥1 successful model
              * @default 0
              */
             completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default batch_completed
@@ -19317,15 +18939,10 @@ export type components = {
             event: "batch_completed";
             /**
              * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
+             * @description Entities whose every model failed
              * @default 0
              */
             failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -19337,40 +18954,13 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
             /**
              * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @description Entities that yielded no enrichment (cancelled, quota/credit ran out, or discarded as a classification mismatch)
              * @default 0
              */
             skipped_entities: number;
@@ -19386,14 +18976,9 @@ export type components = {
             stopped_early_reason?: string | null;
             /**
              * Total Entities
-             * @description Batch jobs only: number of entities in the batch
+             * @description Number of entities in the batch
              */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
+            total_entities: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -19403,61 +18988,14 @@ export type components = {
         /**
          * SSEBatchStarted
          * @description Emitted when a batch enrichment job begins.
-         *
-         *     total_entities (and the other entity counters) come from the base job
-         *     state — always populated on batch jobs.
          */
         SSEBatchStarted: {
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default batch_started
              * @constant
              */
             event: "batch_started";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -19469,56 +19007,20 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
+            /** Total Entities */
+            total_entities: number;
             /**
              * Total Models
-             * @default 0
+             * @description Models run on each entity
              */
             total_models: number;
             /**
@@ -19532,65 +19034,21 @@ export type components = {
          * @description Emitted when pre-flight classification finishes.
          */
         SSEClassificationCompleted: {
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
             /** @description Classification result (None if failed) */
             classification?: components["schemas"]["ClassificationContext"] | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
             /**
              * Entity Index
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default classification_completed
              * @constant
              */
             event: "classification_completed";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -19602,48 +19060,15 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
              * Model
              * @description Classification model composite key
              */
             model: string;
             /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19651,16 +19076,6 @@ export type components = {
             status: string;
             /** Success */
             success: boolean;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -19672,57 +19087,13 @@ export type components = {
          * @description Emitted when classification detects a warning (mismatch, unknown, or ambiguous) and pauses for user decision.
          */
         SSEClassificationMismatchPause: {
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
             classification: components["schemas"]["ClassificationContext"];
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default classification_mismatch_pause
              * @constant
              */
             event: "classification_mismatch_pause";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -19734,43 +19105,10 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -19778,16 +19116,6 @@ export type components = {
             status: string;
             /** Timeout Seconds */
             timeout_seconds: number;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -19801,55 +19129,11 @@ export type components = {
          */
         SSEClassificationMismatchTimeout: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default classification_mismatch_timeout
              * @constant
              */
             event: "classification_mismatch_timeout";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -19860,61 +19144,18 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
             /** Reason */
             reason?: string | null;
-            /** Running Models */
-            running_models?: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -19927,60 +19168,16 @@ export type components = {
          */
         SSEClassificationStarted: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
              * Entity Index
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default classification_started
              * @constant
              */
             event: "classification_started";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -19992,63 +19189,20 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
              * Model
              * @description Classification model composite key
              */
             model: string;
             /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -20062,58 +19216,14 @@ export type components = {
         SSEConflictsDetected: {
             /** Agreed Fields */
             agreed_fields: number;
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
             /** Conflicted Fields */
             conflicted_fields: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default conflicts_detected
              * @constant
              */
             event: "conflicts_detected";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -20125,60 +19235,17 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
             /** Total Fields */
             total_fields: number;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -20192,29 +19259,6 @@ export type components = {
          *     database. `database.reason` / `database.missing_fields` say why.
          */
         SSEDatabaseRejected: {
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
             database: components["schemas"]["DatabaseSyncOutcome"];
             /**
              * Entity Index
@@ -20222,32 +19266,11 @@ export type components = {
              */
             entity_index?: number | null;
             /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default database_rejected
              * @constant
              */
             event: "database_rejected";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -20259,63 +19282,20 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /**
              * Record Id
              * @description Record whose output was refused
              */
             record_id: string;
-            /** Running Models */
-            running_models?: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -20332,29 +19312,6 @@ export type components = {
          *     re-sends them) — treat partial as a warning, not a success.
          */
         SSEDatabaseSaved: {
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
             database: components["schemas"]["DatabaseSyncOutcome"];
             /**
              * Entity Index
@@ -20362,32 +19319,11 @@ export type components = {
              */
             entity_index?: number | null;
             /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default database_saved
              * @constant
              */
             event: "database_saved";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -20399,63 +19335,20 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /**
              * Record Id
              * @description Record whose output the entity layer admitted
              */
             record_id: string;
-            /** Running Models */
-            running_models?: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -20469,27 +19362,15 @@ export type components = {
         SSEEntityCompleted: {
             /**
              * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             * @description Where the refused account is topped up (the provider's billing page).
              */
             billing_url?: string | null;
             /**
              * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @description Entities fully processed with ≥1 successful model
              * @default 0
              */
             completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
             /** Entity Index */
             entity_index: number;
             /** Entity Label */
@@ -20497,13 +19378,8 @@ export type components = {
             /** Error */
             error?: string | null;
             /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
              * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             * @description The provider::model whose failure is described, when one can be named — set the moment a provider refuses a call for lack of credit.
              */
             error_model?: string | null;
             /**
@@ -20514,15 +19390,10 @@ export type components = {
             event: "entity_completed";
             /**
              * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
+             * @description Entities whose every model failed
              * @default 0
              */
             failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -20535,44 +19406,22 @@ export type components = {
             job_type: string;
             /**
              * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             * @description 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
              */
             key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
             /**
              * Results
              * @description Per-model enrichment results
              */
             results?: components["schemas"]["SingleEnrichmentResponse"][];
-            /** Running Models */
-            running_models?: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
             /**
              * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @description Entities that yielded no enrichment (cancelled, quota/credit ran out, or discarded as a classification mismatch)
              * @default 0
              */
             skipped_entities: number;
@@ -20590,14 +19439,9 @@ export type components = {
             total_cost_usd: number;
             /**
              * Total Entities
-             * @description Batch jobs only: number of entities in the batch
+             * @description Number of entities in the batch
              */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
+            total_entities: number;
             /**
              * Total Processing Time Ms
              * @default 0
@@ -20619,47 +19463,20 @@ export type components = {
          */
         SSEEntitySkipped: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
              * Code
              * @enum {string}
              */
             code: "cancelled" | "prompt_limit_reached" | "insufficient_credits" | "classification_mismatch";
             /**
              * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
+             * @description Entities fully processed with ≥1 successful model
              * @default 0
              */
             completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
             /** Entity Index */
             entity_index: number;
             /** Entity Label */
             entity_label: string;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default entity_skipped
@@ -20668,15 +19485,10 @@ export type components = {
             event: "entity_skipped";
             /**
              * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
+             * @description Entities whose every model failed
              * @default 0
              */
             failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -20688,40 +19500,13 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
             /**
              * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @description Entities that yielded no enrichment (cancelled, quota/credit ran out, or discarded as a classification mismatch)
              * @default 0
              */
             skipped_entities: number;
@@ -20732,14 +19517,9 @@ export type components = {
             status: string;
             /**
              * Total Entities
-             * @description Batch jobs only: number of entities in the batch
+             * @description Number of entities in the batch
              */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
+            total_entities: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -20751,60 +19531,16 @@ export type components = {
          * @description Emitted when processing begins for a single entity in a batch.
          */
         SSEEntityStarted: {
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
             /** Entity Index */
             entity_index: number;
             /** Entity Label */
             entity_label: string;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default entity_started
              * @constant
              */
             event: "entity_started";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -20816,58 +19552,15 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -20880,50 +19573,17 @@ export type components = {
          *     model's run.
          */
         SSEExpertiseCompleted: {
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
             /** Completed Expertises */
             completed_expertises: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
             /** Cost Usd */
             cost_usd?: number | null;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
             /**
              * Entity Index
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default expertise_completed
@@ -20941,19 +19601,8 @@ export type components = {
             expertise_result?: {
                 [key: string]: unknown;
             } | null;
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
             /** Input Tokens */
             input_tokens?: number | null;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -20964,26 +19613,6 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
             /** Model */
             model: string;
             /** Output Tokens */
@@ -20998,23 +19627,10 @@ export type components = {
             /** Processing Time Ms */
             processing_time_ms?: number | null;
             /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -21022,18 +19638,8 @@ export type components = {
             status: string;
             /** Success */
             success: boolean;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
             /** Total Expertises */
             total_expertises: number;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -21045,46 +19651,13 @@ export type components = {
          * @description One expertise domain (or staged pipeline step) began.
          */
         SSEExpertiseStarted: {
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
             /** Completed Expertises */
             completed_expertises?: number | null;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
             /**
              * Entity Index
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default expertise_started
@@ -21096,17 +19669,6 @@ export type components = {
             /** Expertise Name */
             expertise_name?: string | null;
             /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
-            /**
              * Job Id
              * @description Unique job identifier
              */
@@ -21116,63 +19678,20 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
             /** Model */
             model?: string | null;
             /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
             /** Total Expertises */
             total_expertises?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -21184,32 +19703,9 @@ export type components = {
          * @description Emitted when fusion finishes. Contains the full FusionResponse fields flat.
          */
         SSEFusionCompleted: {
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
             conflict_report?: components["schemas"]["ConflictReport"] | null;
             /** Cost Usd */
             cost_usd?: number | null;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
             /** @description Entity-layer outcome of the fused write (None when database_sync was off, no schema is linked, or fusion failed) */
             database?: components["schemas"]["DatabaseSyncOutcome"] | null;
             /**
@@ -21217,37 +19713,16 @@ export type components = {
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default fusion_completed
              * @constant
              */
             event: "fusion_completed";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
             /** Input Tokens */
             input_tokens?: number | null;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -21259,26 +19734,6 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
              * Merged Result
              * @description The final fused output
              */
@@ -21289,26 +19744,13 @@ export type components = {
             output_tokens?: number | null;
             /** Processing Time Ms */
             processing_time_ms?: number | null;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
             /** Record Id */
             record_id?: string | null;
-            /** Running Models */
-            running_models?: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -21316,16 +19758,6 @@ export type components = {
             status: string;
             /** Success */
             success: boolean;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -21342,60 +19774,16 @@ export type components = {
             /** Arbitration Model */
             arbitration_model?: string | null;
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
              * Entity Index
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default fusion_started
              * @constant
              */
             event: "fusion_started";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -21407,43 +19795,10 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Source Record Ids
              * @description IDs of records being fused
@@ -21454,140 +19809,6 @@ export type components = {
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
-            /**
-             * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
-             */
-            ts?: number | null;
-        };
-        /**
-         * SSEHeartbeat
-         * @description Keep-alive emitted while a job runs and nothing else has happened.
-         */
-        SSEHeartbeat: {
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
-             * Event
-             * @default heartbeat
-             * @constant
-             */
-            event: "heartbeat";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
-            /**
-             * Job Id
-             * @description Unique job identifier
-             */
-            job_id: string;
-            /**
-             * Job Type
-             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
-             */
-            job_type: string;
-            /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
-             * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
-             */
-            seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
-            /**
-             * Status
-             * @description Job status: pending, running, paused, completed, failed, cancelled
-             */
-            status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -21600,55 +19821,11 @@ export type components = {
          */
         SSEJobCancelled: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default cancelled
              * @constant
              */
             event: "cancelled";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -21660,64 +19837,26 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
              * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             * @description On `attempt`: the error that caused this retry (a hint, not an outcome). On a terminal event: the reason that status carries — null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null at the end; its per-attempt messages are kept on the record's prompts.
              */
             last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
             /** Result */
             result?: {
                 [key: string]: unknown;
             }[] | {
                 [key: string]: unknown;
             } | null;
-            /** Running Models */
-            running_models?: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -21730,55 +19869,11 @@ export type components = {
          */
         SSEJobCompleted: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default completed
              * @constant
              */
             event: "completed";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -21790,31 +19885,6 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /**
              * Result
              * @description Accumulated results (if any). Batch jobs store their terminal summary here: entity/database-outcome counts plus a compact per-entity list with record IDs (see BatchJobResult).
              */
@@ -21823,34 +19893,16 @@ export type components = {
             }[] | {
                 [key: string]: unknown;
             } | null;
-            /** Running Models */
-            running_models?: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -21864,35 +19916,17 @@ export type components = {
         SSEJobFailed: {
             /**
              * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
+             * @description Where the refused account is topped up (the provider's billing page).
              */
             billing_url?: string | null;
             /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of the failure (see SSEJobSnapshot.error_code); null when unclassified
              */
             error_code?: string | null;
             /**
              * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
+             * @description The provider::model whose failure is described, when one can be named — set the moment a provider refuses a call for lack of credit.
              */
             error_model?: string | null;
             /**
@@ -21902,17 +19936,6 @@ export type components = {
              */
             event: "failed";
             /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
-            /**
              * Job Id
              * @description Unique job identifier
              */
@@ -21924,312 +19947,30 @@ export type components = {
             job_type: string;
             /**
              * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             * @description 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
              */
             key_source?: string | null;
             /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
              * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             * @description On `attempt`: the error that caused this retry (a hint, not an outcome). On a terminal event: the reason that status carries — null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null at the end; its per-attempt messages are kept on the record's prompts.
              */
             last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
             /** Result */
             result?: {
                 [key: string]: unknown;
             }[] | {
                 [key: string]: unknown;
             } | null;
-            /** Running Models */
-            running_models?: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
-            /**
-             * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
-             */
-            ts?: number | null;
-        };
-        /**
-         * SSEJobPaused
-         * @description Status transition emitted by `set_status`: the job is waiting for an
-         *     answer (classification mismatch, or a planner clarification).
-         */
-        SSEJobPaused: {
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
-             * Event
-             * @default paused
-             * @constant
-             */
-            event: "paused";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
-            /**
-             * Job Id
-             * @description Unique job identifier
-             */
-            job_id: string;
-            /**
-             * Job Type
-             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
-             */
-            job_type: string;
-            /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
-             * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
-             */
-            seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
-            /**
-             * Status
-             * @description Job status: pending, running, paused, completed, failed, cancelled
-             */
-            status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
-            /**
-             * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
-             */
-            ts?: number | null;
-        };
-        /**
-         * SSEJobPending
-         * @description Status transition emitted by `set_status`.
-         */
-        SSEJobPending: {
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
-             * Event
-             * @default pending
-             * @constant
-             */
-            event: "pending";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
-            /**
-             * Job Id
-             * @description Unique job identifier
-             */
-            job_id: string;
-            /**
-             * Job Type
-             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
-             */
-            job_type: string;
-            /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
-             * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
-             */
-            seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
-            /**
-             * Status
-             * @description Job status: pending, running, paused, completed, failed, cancelled
-             */
-            status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -22242,55 +19983,11 @@ export type components = {
          */
         SSEJobRunning: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default running
              * @constant
              */
             event: "running";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -22302,18 +19999,78 @@ export type components = {
              */
             job_type: string;
             /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
+             */
+            seq?: number | null;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
+             */
+            ts?: number | null;
+        };
+        /**
+         * SSEJobSnapshot
+         * @description A job's full state (LLMJob.snapshot()): what a client attaching at any
+         *     moment rebuilds its view from. Carried by `started` only.
+         */
+        SSEJobSnapshot: {
+            /**
+             * Billing Url
+             * @description Where the refused account is topped up (the provider's billing page).
+             */
+            billing_url?: string | null;
+            /**
+             * Completed Entities
+             * @description Batch jobs only
+             * @default 0
+             */
+            completed_entities: number;
+            /**
+             * Completed Models
+             * @description Not maintained on batch jobs — read the entity counters
+             * @default 0
+             */
+            completed_models: number;
+            /**
+             * Current Attempt
+             * @default 0
+             */
+            current_attempt: number;
+            /**
+             * Error Code
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             */
+            error_code?: string | null;
+            /**
+             * Error Model
+             * @description The provider::model whose failure is described, when one can be named — set the moment a provider refuses a call for lack of credit.
+             */
+            error_model?: string | null;
+            /**
+             * Failed Entities
+             * @description Batch jobs only
+             * @default 0
+             */
+            failed_entities: number;
+            /**
              * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             * @description 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
              */
             key_source?: string | null;
             /**
              * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
+             * @description The pipeline step `last_error_summary` came from, when named
              */
             last_error_step?: string | null;
             /**
              * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
+             * @description On `attempt`: the error that caused this retry (a hint, not an outcome). On a terminal event: the reason that status carries — null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null at the end; its per-attempt messages are kept on the record's prompts.
              */
             last_error_summary?: string | null;
             /**
@@ -22323,42 +20080,30 @@ export type components = {
             max_attempts: number;
             /**
              * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
+             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish; null once admitted, and for job types that never queue. Later changes arrive as `queued`.
              */
             queue_position?: number | null;
-            /** Running Models */
+            /**
+             * Running Models
+             * @description Models started and not yet completed (not maintained on batch jobs); later changes arrive as model_started / model_completed
+             */
             running_models?: string[];
             /**
-             * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
-             */
-            seq?: number | null;
-            /**
              * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
+             * @description Batch jobs only
              * @default 0
              */
             skipped_entities: number;
             /**
-             * Status
-             * @description Job status: pending, running, paused, completed, failed, cancelled
-             */
-            status: string;
-            /**
              * Total Entities
-             * @description Batch jobs only: number of entities in the batch
+             * @description Batch jobs only
              */
             total_entities?: number | null;
             /**
              * Total Models
-             * @default 0
+             * @description Models the job runs (per entity on a batch job)
              */
             total_models: number;
-            /**
-             * Ts
-             * @description When the event was emitted (Unix epoch milliseconds); null with seq.
-             */
-            ts?: number | null;
         };
         /**
          * SSEModelAutoSelected
@@ -22371,55 +20116,11 @@ export type components = {
          */
         SSEModelAutoSelected: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default model_auto_selected
              * @constant
              */
             event: "model_auto_selected";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -22430,26 +20131,6 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
             /**
              * Model
              * @description The concrete model composite key that will run
@@ -22467,13 +20148,6 @@ export type components = {
              */
             pinned: boolean;
             /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Scenario Count
              * @description How many scoring-source scenarios fed the score
              * @default 0
@@ -22483,15 +20157,9 @@ export type components = {
             scenario_names?: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Source
              * @description Scoring-source provenance: 'organization' or 'global' (None for an unscored pinned model)
@@ -22508,16 +20176,6 @@ export type components = {
              */
             task_type: string;
             /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
-            /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
              */
@@ -22530,35 +20188,17 @@ export type components = {
          */
         SSEModelCompleted: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
              * Cancelled
              * @default false
              */
             cancelled: boolean;
             /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
              * Completed Models
-             * @default 0
+             * @description Models the job has completed so far (null where a route reports per-entity models itself: batch)
              */
-            completed_models: number;
+            completed_models?: number | null;
             /** Cost Usd */
             cost_usd?: number | null;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
             /**
              * Entity Index
              * @description Entity index (batch only)
@@ -22566,16 +20206,11 @@ export type components = {
             entity_index?: number | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of this model's failure (same vocabulary as the job's)
              */
             error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default model_completed
@@ -22584,19 +20219,8 @@ export type components = {
             event: "model_completed";
             /** Expertise Breakdown */
             expertise_breakdown?: components["schemas"]["ExpertiseBreakdown"][] | null;
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
             /** Input Tokens */
             input_tokens?: number | null;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -22607,26 +20231,6 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
             /**
              * Model
              * @description Model composite key
@@ -22641,11 +20245,6 @@ export type components = {
             partial_success: boolean;
             /** Processing Time Ms */
             processing_time_ms?: number | null;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
             /** Record Id */
             record_id?: string | null;
             /**
@@ -22655,8 +20254,6 @@ export type components = {
             result?: {
                 [key: string]: unknown;
             } | null;
-            /** Running Models */
-            running_models?: string[];
             /**
              * Scoreable
              * @description Benchmark runs only: whether this model's result will be scored
@@ -22664,15 +20261,9 @@ export type components = {
             scoreable?: boolean | null;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -22680,16 +20271,6 @@ export type components = {
             status: string;
             /** Success */
             success: boolean;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -22703,55 +20284,11 @@ export type components = {
          */
         SSEModelsSkipped: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default models_skipped
              * @constant
              */
             event: "models_skipped";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -22763,60 +20300,22 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
+             * Models
+             * @description Model composite key → the capability it lacks
              */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /** Models */
-            models?: string[];
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
+            models?: {
+                [key: string]: string;
+            };
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -22829,60 +20328,16 @@ export type components = {
          */
         SSEModelStarted: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
              * Entity Index
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default model_started
              * @constant
              */
             event: "model_started";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -22894,63 +20349,20 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
              * Model
              * @description Model composite key
              */
             model: string;
             /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -22960,63 +20372,18 @@ export type components = {
         /**
          * SSEQueued
          * @description The job waits in its organization's lane (benchmark runs and scoring
-         *     passes execute one at a time). Re-emitted each time its place changes; the
-         *     envelope's `queue_position` carries the same place on every later event
-         *     until a `running` status admits the job.
+         *     passes execute one at a time). Re-emitted as the lane moves, until a
+         *     `running` status admits the job.
          */
         SSEQueued: {
             /** @description What the lane is running right now, when known. */
             behind?: components["schemas"]["SSEQueuedBehind"] | null;
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default queued
              * @constant
              */
             event: "queued";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -23028,63 +20395,20 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
              * Position
              * @description 1-based place in the lane's queue.
              */
             position: number;
             /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -23122,55 +20446,11 @@ export type components = {
              */
             added?: string[];
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default queue_merged
              * @constant
              */
             event: "queue_merged";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -23182,21 +20462,6 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
              * Launch
              * @description The job's launch context after the merge.
              */
@@ -23204,41 +20469,18 @@ export type components = {
                 [key: string]: unknown;
             } | null;
             /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
             /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
              * Total Models
-             * @default 0
+             * @description The job's model count after the merge.
              */
             total_models: number;
             /**
@@ -23253,55 +20495,11 @@ export type components = {
          */
         SSEResumed: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default resumed
              * @constant
              */
             event: "resumed";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -23313,58 +20511,15 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -23382,60 +20537,16 @@ export type components = {
          */
         SSESampleClarificationPause: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
              * Entity Title
              * @description Refined human title for the entity instance
              */
             entity_title: string;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default sample_clarification_pause
              * @constant
              */
             event: "sample_clarification_pause";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -23446,52 +20557,19 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
             /** Questions */
             questions: components["schemas"]["SSESampleQuestion"][];
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
             /**
              * Round
              * @description Zero-based planner loop round
              * @default 0
              */
             round: number;
-            /** Running Models */
-            running_models?: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Source Mode
              * @description knowledge (the generator itself asked, no attachment) | transcribe_data | structure_only | describe_subject (attachment planner)
@@ -23504,16 +20582,6 @@ export type components = {
             status: string;
             /** Timeout Seconds */
             timeout_seconds: number;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -23529,60 +20597,16 @@ export type components = {
          */
         SSESampleInstanceProgress: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
              * Completed
              * @description Samples finished so far, including the template
              */
             completed: number;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default sample_instance_progress
              * @constant
              */
             event: "sample_instance_progress";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -23594,43 +20618,10 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -23641,16 +20632,6 @@ export type components = {
              * @description Total samples requested for this job
              */
             total: number;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -23670,50 +20651,11 @@ export type components = {
          */
         SSESampleInstanceRoster: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default sample_instance_roster
              * @constant
              */
             event: "sample_instance_roster";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
             /**
              * First Instance
              * @description Identity of the sample that already ran
@@ -23725,11 +20667,6 @@ export type components = {
              */
             instances?: string[];
             /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
-            /**
              * Job Id
              * @description Unique job identifier
              */
@@ -23740,43 +20677,10 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -23787,16 +20691,6 @@ export type components = {
              * @description Total samples requested for this job
              */
             total: number;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -23866,55 +20760,11 @@ export type components = {
          */
         SSEScoringCompleted: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default scoring_completed
              * @constant
              */
             event: "scoring_completed";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -23926,48 +20776,15 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Scored
              * @description Results scored
              */
             scored: number;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -23978,16 +20795,6 @@ export type components = {
              * @description Results that were scoreable
              */
             total: number;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -24001,55 +20808,11 @@ export type components = {
          */
         SSEScoringDegraded: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default scoring_degraded
              * @constant
              */
             event: "scoring_degraded";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -24061,63 +20824,20 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /**
              * Reason
              * @description Why the embedder is unavailable
              */
             reason?: string | null;
-            /** Running Models */
-            running_models?: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -24130,58 +20850,14 @@ export type components = {
          *     The generation results are saved — the standalone Score action can retry.
          */
         SSEScoringFailed: {
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default scoring_failed
              * @constant
              */
             event: "scoring_failed";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -24193,58 +20869,15 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -24257,64 +20890,20 @@ export type components = {
          *     mean quality so the run modal can badge rows as they are scored.
          */
         SSEScoringProgress: {
-            /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
             /** Completeness */
             completeness?: number | null;
             /** Correctness */
             correctness?: number | null;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default scoring_progress
              * @constant
              */
             event: "scoring_progress";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
             /** Hallucination Rate */
             hallucination_rate?: number | null;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -24326,26 +20915,6 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
              * Model
              * @description Model composite key just scored
              */
@@ -24356,28 +20925,15 @@ export type components = {
              */
             overall?: number | null;
             /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Scored
              * @description Results scored so far
              */
             scored: number;
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -24394,16 +20950,6 @@ export type components = {
              * @description Scoreable results known so far
              */
             total: number;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -24422,60 +20968,16 @@ export type components = {
              */
             applied: number;
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
              * Error
              * @description Why the reference could not be updated at all (the scores are kept)
              */
             error?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default scoring_reference_updated
              * @constant
              */
             event: "scoring_reference_updated";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -24487,40 +20989,13 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /**
              * Reason
              * @description Why the pass deliberately applied nothing: 'reference_moved' when the author saved the reference while the pass ran (its findings answer a reference that no longer exists; re-score to raise them again)
              */
             reason?: string | null;
-            /** Running Models */
-            running_models?: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
             /**
@@ -24529,26 +21004,10 @@ export type components = {
              */
             skipped: number;
             /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
-            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -24565,55 +21024,11 @@ export type components = {
          */
         SSEScoringStarted: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default scoring_started
              * @constant
              */
             event: "scoring_started";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -24625,58 +21040,15 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Total Results
              * @description Number of results to score (upper bound)
@@ -24694,55 +21066,11 @@ export type components = {
          */
         SSEScoringUnverifiedReference: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default scoring_unverified_reference
              * @constant
              */
             event: "scoring_unverified_reference";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -24754,58 +21082,15 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -24821,55 +21106,11 @@ export type components = {
          */
         SSEScoringWaiting: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default scoring_waiting
              * @constant
              */
             event: "scoring_waiting";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -24886,58 +21127,15 @@ export type components = {
              */
             judge_provider: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
             status: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Total Results
              * @description Number of results to score (upper bound)
@@ -24957,55 +21155,13 @@ export type components = {
          */
         SSEStarted: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
-            /**
              * Event
              * @default started
              * @constant
              */
             event: "started";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
+            /** @description The job's full state at connect time */
+            job: components["schemas"]["SSEJobSnapshot"];
             /**
              * Job Id
              * @description Unique job identifier
@@ -25016,21 +21172,6 @@ export type components = {
              * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
              */
             job_type: string;
-            /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
             /**
              * Last Seq
              * @description seq of the job's latest logged event at connect time: what follows with seq <= last_seq is replayed history, anything beyond is live.
@@ -25045,28 +21186,10 @@ export type components = {
                 [key: string]: unknown;
             } | null;
             /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /** Running Models */
-            running_models?: string[];
-            /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
-            /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
             /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
@@ -25077,16 +21200,6 @@ export type components = {
              * @description What the job operates on (a saved schema, a benchmark scenario, …), when it has one.
              */
             subject_id?: string | null;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -25103,60 +21216,16 @@ export type components = {
          */
         SSEStrategySelected: {
             /**
-             * Billing Url
-             * @description Where the refused account is topped up (the provider's billing page), set together with key_source.
-             */
-            billing_url?: string | null;
-            /**
-             * Completed Entities
-             * @description Batch jobs only: entities fully processed with ≥1 successful model
-             * @default 0
-             */
-            completed_entities: number;
-            /**
-             * Completed Models
-             * @default 0
-             */
-            completed_models: number;
-            /**
-             * Current Attempt
-             * @default 0
-             */
-            current_attempt: number;
-            /** Current Model */
-            current_model?: string | null;
-            /**
              * Entity Index
              * @description Entity index (batch only)
              */
             entity_index?: number | null;
-            /**
-             * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
-             */
-            error_code?: string | null;
-            /**
-             * Error Model
-             * @description The provider::model whose failure `error_code` describes, when one can be named — also set the moment a provider refuses a call for lack of credit, before the job ends.
-             */
-            error_model?: string | null;
             /**
              * Event
              * @default strategy_selected
              * @constant
              */
             event: "strategy_selected";
-            /**
-             * Failed Entities
-             * @description Batch jobs only: entities whose every model failed
-             * @default 0
-             */
-            failed_entities: number;
-            /**
-             * Is Paused
-             * @default false
-             */
-            is_paused: boolean;
             /**
              * Job Id
              * @description Unique job identifier
@@ -25168,31 +21237,6 @@ export type components = {
              */
             job_type: string;
             /**
-             * Key Source
-             * @description Set when a provider refused a call because the account behind the key is out of credit (`provider_credits_exhausted`): 'organization' when the organization's own key was refused, 'global' when it was Entity Enricher's shared key — in which case adding an own key is the immediate remedy. Null for every other outcome.
-             */
-            key_source?: string | null;
-            /**
-             * Last Error Step
-             * @description The pipeline step `last_error_summary` came from, when a staged run named it. Staged steps overlap, so an unnamed retry message reads as if it belonged to whichever step merely started at the same moment. Null for a clean attempt, a single-call flow, or a terminal status (a terminal reason belongs to the job).
-             */
-            last_error_step?: string | null;
-            /**
-             * Last Error Summary
-             * @description While running: the error that caused the current retry (a hint, not an outcome). On a terminal status: the reason that status carries — null on 'completed', and null on a 'failed'/'cancelled' that had none. A retry hint never survives the run, so a job that burned attempts and then succeeded reports null here; its per-attempt messages are kept on the record's prompts.
-             */
-            last_error_summary?: string | null;
-            /**
-             * Max Attempts
-             * @default 0
-             */
-            max_attempts: number;
-            /**
-             * Queue Position
-             * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish (status 'pending'); null once admitted, and for job types that never queue.
-             */
-            queue_position?: number | null;
-            /**
              * Reason
              * @description Human-readable justification for the choice
              */
@@ -25202,11 +21246,9 @@ export type components = {
              * @description What the client asked for (usually 'auto')
              */
             requested: string;
-            /** Running Models */
-            running_models?: string[];
             /**
              * Seq
-             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` and `heartbeat` events, which are not logged.
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) or GET /api/llm/events/{job_id} (a poll) to receive only what you missed. Null on the per-connection `started` event, which is not logged.
              */
             seq?: number | null;
             /**
@@ -25217,12 +21259,6 @@ export type components = {
                 [key: string]: number;
             } | null;
             /**
-             * Skipped Entities
-             * @description Batch jobs only: entities never started (cancellation or quota/credit ran out)
-             * @default 0
-             */
-            skipped_entities: number;
-            /**
              * Status
              * @description Job status: pending, running, paused, completed, failed, cancelled
              */
@@ -25232,16 +21268,6 @@ export type components = {
              * @description The concrete strategy that will run
              */
             strategy: string;
-            /**
-             * Total Entities
-             * @description Batch jobs only: number of entities in the batch
-             */
-            total_entities?: number | null;
-            /**
-             * Total Models
-             * @default 0
-             */
-            total_models: number;
             /**
              * Ts
              * @description When the event was emitted (Unix epoch milliseconds); null with seq.
@@ -27186,13 +23212,11 @@ export type SseExpertiseCompleted = components['schemas']['SSEExpertiseCompleted
 export type SseExpertiseStarted = components['schemas']['SSEExpertiseStarted'];
 export type SseFusionCompleted = components['schemas']['SSEFusionCompleted'];
 export type SseFusionStarted = components['schemas']['SSEFusionStarted'];
-export type SseHeartbeat = components['schemas']['SSEHeartbeat'];
 export type SseJobCancelled = components['schemas']['SSEJobCancelled'];
 export type SseJobCompleted = components['schemas']['SSEJobCompleted'];
 export type SseJobFailed = components['schemas']['SSEJobFailed'];
-export type SseJobPaused = components['schemas']['SSEJobPaused'];
-export type SseJobPending = components['schemas']['SSEJobPending'];
 export type SseJobRunning = components['schemas']['SSEJobRunning'];
+export type SseJobSnapshot = components['schemas']['SSEJobSnapshot'];
 export type SseModelAutoSelected = components['schemas']['SSEModelAutoSelected'];
 export type SseModelCompleted = components['schemas']['SSEModelCompleted'];
 export type SseModelsSkipped = components['schemas']['SSEModelsSkipped'];
@@ -27270,7 +23294,7 @@ export type WebhookTestResponse = components['schemas']['WebhookTestResponse'];
 export type WebhookTypeInfo = components['schemas']['WebhookTypeInfo'];
 export type $defs = Record<string, never>;
 export interface operations {
-    serve_index__get: {
+    no_frontend__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -27286,37 +23310,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    serve_spa__path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -33890,7 +29883,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringWaiting"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEScoringReferenceUpdated"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEStarted"] | components["schemas"]["SSEHeartbeat"] | components["schemas"]["SSEAttempt"] | components["schemas"]["SSEResumed"] | components["schemas"]["SSEModelsSkipped"] | components["schemas"]["SSEJobPending"] | components["schemas"]["SSEJobRunning"] | components["schemas"]["SSEJobPaused"] | components["schemas"]["SSEQueued"] | components["schemas"]["SSEQueueMerged"] | components["schemas"]["SSEExpertiseStarted"] | components["schemas"]["SSEClassificationMismatchTimeout"])[];
+                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringWaiting"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringUnverifiedReference"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEScoringReferenceUpdated"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEStarted"] | components["schemas"]["SSEAttempt"] | components["schemas"]["SSEResumed"] | components["schemas"]["SSEModelsSkipped"] | components["schemas"]["SSEJobRunning"] | components["schemas"]["SSEQueued"] | components["schemas"]["SSEQueueMerged"] | components["schemas"]["SSEExpertiseStarted"] | components["schemas"]["SSEClassificationMismatchTimeout"])[];
                 };
             };
         };
