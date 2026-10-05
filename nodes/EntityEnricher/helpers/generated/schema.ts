@@ -2094,14 +2094,23 @@ export type paths = {
         };
         /**
          * Get Prompt History
-         * @description Get custom prompt execution history for the caller's organization.
+         * @description Get the playground history of the caller's organization, trashed runs excluded.
          *
-         *     Admins see cross-org history; other roles are scoped to `user.organization_id`.
+         *     Scoped to the organization for every role, a system admin included, so the
+         *     panel always lists exactly what `DELETE /history` clears; browsing other
+         *     organizations' records is the History page's `all_orgs`.
          */
         get: operations["get_prompt_history_api_custom_prompt_history_get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Clear Prompt History
+         * @description Move every playground run of the caller's organization to the trash.
+         *
+         *     A soft delete, like `/api/records/batch-delete`: a system admin can restore
+         *     the runs from the History page until the retention sweep removes them.
+         */
+        delete: operations["clear_prompt_history_api_custom_prompt_history_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3958,6 +3967,10 @@ export type paths = {
          *       skipped with an error.
          *     - An org provider whose name shadows a global one is skipped.
          *     - Specs are admin-only (owners do not manage the global spec table).
+         *
+         *     A file of another format version is refused: an older one lacks columns
+         *     (4.0 had no capability map), and importing it would erase them on every
+         *     row it matches.
          */
         post: operations["import_config_api_providers_import_post"];
         delete?: never;
@@ -8099,6 +8112,17 @@ export type components = {
             id: number;
             /** Source */
             source: string;
+        };
+        /**
+         * ClearPromptHistoryResponse
+         * @description Result of emptying the playground history.
+         */
+        ClearPromptHistoryResponse: {
+            /**
+             * Deleted
+             * @description Playground runs moved to the trash
+             */
+            deleted: number;
         };
         /**
          * CommonTypeCompare
@@ -12297,6 +12321,13 @@ export type components = {
              */
             enable_web_search: boolean;
             /**
+             * Existing Samples
+             * @description Extend a set of samples the caller already holds: every new sample reproduces the first existing sample's exact field set (pinned on the wire, no ambiguity check or restructuring — the shape is yours), and the instances already in the set are excluded from the new ones. Only the new samples are returned. Knowledge path only: refused with attachment_ids; request becomes optional context. Refused when the first sample is too large or too deep to pin (400).
+             */
+            existing_samples?: {
+                [key: string]: unknown;
+            }[] | null;
+            /**
              * Language
              * @description Output language code for generated sample values AND field names (e.g. 'en', 'fr'); an explicit code applies even when the attachment is in another language. Omitted (or 'auto', the default) → the generator follows the language the request itself is written in (the request text and named typical instances), else the attached document's language, else English.
              */
@@ -12326,7 +12357,7 @@ export type components = {
             request: string;
             /**
              * Sample Count
-             * @description How many samples of this entity type to generate in one job. Sample 1 defines the field set (full pipeline incl. the ambiguity check) and names the instances for the remaining slots; samples 2..N are parallel follow-up turns that keep the same fields and fill values for their named instance. Forced to 1 whenever attachment_ids is set.
+             * @description How many samples of this entity type to generate in one job. Sample 1 defines the field set (full pipeline incl. the ambiguity check) and names the instances for the remaining slots; samples 2..N are parallel follow-up turns that keep the same fields and fill values for their named instance. Forced to 1 whenever attachment_ids is set. With existing_samples it is the number of NEW samples, and the set may not exceed 20.
              * @default 1
              */
             sample_count: number;
@@ -22871,6 +22902,13 @@ export type components = {
              */
             enable_web_search: boolean;
             /**
+             * Existing Samples
+             * @description Extend a set of samples the caller already holds: every new sample reproduces the first existing sample's exact field set (pinned on the wire, no ambiguity check or restructuring — the shape is yours), and the instances already in the set are excluded from the new ones. Only the new samples are returned. Knowledge path only: refused with attachment_ids; request becomes optional context. Refused when the first sample is too large or too deep to pin (400).
+             */
+            existing_samples?: {
+                [key: string]: unknown;
+            }[] | null;
+            /**
              * Language
              * @description Output language code for generated sample values AND field names (e.g. 'en', 'fr'); an explicit code applies even when the attachment is in another language. Omitted (or 'auto', the default) → the generator follows the language the request itself is written in (the request text and named typical instances), else the attached document's language, else English.
              */
@@ -22900,7 +22938,7 @@ export type components = {
             request: string;
             /**
              * Sample Count
-             * @description How many samples of this entity type to generate in one job. Sample 1 defines the field set (full pipeline incl. the ambiguity check) and names the instances for the remaining slots; samples 2..N are parallel follow-up turns that keep the same fields and fill values for their named instance. Forced to 1 whenever attachment_ids is set.
+             * @description How many samples of this entity type to generate in one job. Sample 1 defines the field set (full pipeline incl. the ambiguity check) and names the instances for the remaining slots; samples 2..N are parallel follow-up turns that keep the same fields and fill values for their named instance. Forced to 1 whenever attachment_ids is set. With existing_samples it is the number of NEW samples, and the set may not exceed 20.
              * @default 1
              */
             sample_count: number;
@@ -23809,6 +23847,7 @@ export type CleanupDeactivatedModelInfo = components['schemas']['CleanupDeactiva
 export type CleanupDeactivatedRequest = components['schemas']['CleanupDeactivatedRequest'];
 export type CleanupDeactivatedResponse = components['schemas']['CleanupDeactivatedResponse'];
 export type CleanupSpecInfo = components['schemas']['CleanupSpecInfo'];
+export type ClearPromptHistoryResponse = components['schemas']['ClearPromptHistoryResponse'];
 export type CommonTypeCompare = components['schemas']['CommonTypeCompare'];
 export type ConceptAlias = components['schemas']['ConceptAlias'];
 export type ConceptCreateRequest = components['schemas']['ConceptCreateRequest'];
@@ -28489,7 +28528,6 @@ export interface operations {
     get_prompt_history_api_custom_prompt_history_get: {
         parameters: {
             query?: {
-                batch_id?: string | null;
                 model?: string | null;
                 page?: number;
                 page_size?: number;
@@ -28512,6 +28550,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_prompt_history_api_custom_prompt_history_delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClearPromptHistoryResponse"];
                 };
             };
             /** @description Validation Error */
