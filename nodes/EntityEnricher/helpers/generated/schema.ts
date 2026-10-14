@@ -3273,7 +3273,8 @@ export type paths = {
          * List Enrichments
          * @description The schema's past enrichments, oldest first: one per job and input — a
          *     batch job's entities each their own — with the record of each model and
-         *     the fused record, which the record detail route then serves.
+         *     the fused record, which the record detail route then serves, and the ids
+         *     of the documents attached to the run.
          */
         get: operations["list_enrichments_api_monitor_enrichments_get"];
         put?: never;
@@ -14291,6 +14292,11 @@ export type components = {
          *     job and one input: a batch job spans every entity of the batch.
          */
         MonitorEnrichment: {
+            /**
+             * Attachment Ids
+             * @description The documents attached to the run, in upload order; their metadata comes from POST /api/attachments/metadata
+             */
+            attachment_ids?: string[];
             /**
              * Ended At
              * Format: date-time
