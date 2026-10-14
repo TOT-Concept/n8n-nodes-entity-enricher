@@ -3262,6 +3262,73 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/monitor/enrichments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Enrichments
+         * @description The schema's past enrichments, oldest first: one per job and input — a
+         *     batch job's entities each their own — with the record of each model and
+         *     the fused record, which the record detail route then serves.
+         */
+        get: operations["list_enrichments_api_monitor_enrichments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/monitor/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Record Outputs
+         * @description The outputs of the records `ids` — one call for every record of the
+         *     enrichments the Monitor page stands on stage — with each run's metrics;
+         *     a record the organization does not own, or deleted, is left out.
+         */
+        get: operations["list_record_outputs_api_monitor_records_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/monitor/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream Enrichments
+         * @description Every event of the organization's enrichment jobs, live, on one SSE
+         *     connection — see `LLMJobManager.stream_enrichments`. It opens with each
+         *     job still running (`started`, then its log) and announces each job
+         *     launched later the same way; it ends when the client closes it.
+         */
+        get: operations["stream_enrichments_api_monitor_stream_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/oauth/clients": {
         parameters: {
             query?: never;
@@ -4664,6 +4731,8 @@ export type paths = {
          *     object named after it (carrying the regions hanging from it along, pair
          *     facts staying put) and shed the region's name tokens. Compact scalar
          *     occurrences instead all become references to one shared `$defs` object.
+         *     In a schema already using semantic IDs, the created object gets one under
+         *     generation's gates; no other object is touched.
          *     Saved mode persists
          *     through the ordinary save gate, marking renames when the schema is
          *     published; content mode returns the rewritten document and persists
@@ -14216,6 +14285,120 @@ export type components = {
             total: number;
         };
         /**
+         * MonitorEnrichment
+         * @description One enrichment of a schema — an entity enriched by 1..N models, fused
+         *     when several ran — as the Monitor page's timeline lists it. The run is one
+         *     job and one input: a batch job spans every entity of the batch.
+         */
+        MonitorEnrichment: {
+            /**
+             * Ended At
+             * Format: date-time
+             */
+            ended_at: string;
+            /**
+             * Entity Input Data
+             * @description The request's input values; null for records written before they were kept
+             */
+            entity_input_data?: {
+                [key: string]: unknown;
+            } | null;
+            /** Entity Label */
+            entity_label: string;
+            /**
+             * Fused Record Id
+             * @description The fused record of a multi-model run, once the merge is saved
+             */
+            fused_record_id?: string | null;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Languages
+             * @description The run's output languages, the primary first; empty for records written before they were kept
+             */
+            languages?: string[];
+            /** Models */
+            models: components["schemas"]["MonitorModelRun"][];
+            /**
+             * Origin
+             * @description The channel it was launched from; null before origin tracking
+             */
+            origin?: string | null;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+        };
+        /**
+         * MonitorEnrichmentsResponse
+         * @description The enrichments of a schema, oldest first.
+         */
+        MonitorEnrichmentsResponse: {
+            /** Enrichments */
+            enrichments: components["schemas"]["MonitorEnrichment"][];
+        };
+        /**
+         * MonitorModelRun
+         * @description One model's record of an enrichment run.
+         */
+        MonitorModelRun: {
+            /** Model Composite Key */
+            model_composite_key: string;
+            /** Model Name */
+            model_name: string;
+            /**
+             * Record Id
+             * Format: uuid
+             */
+            record_id: string;
+            /** Success */
+            success: boolean;
+        };
+        /**
+         * MonitorRecordOutput
+         * @description What the Monitor page draws a past enrichment's record with: its
+         *     output, and the run's own account of it.
+         */
+        MonitorRecordOutput: {
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /**
+             * Declared Unknown Fields
+             * @description Field paths the model declared it could not answer; null when not captured
+             */
+            declared_unknown_fields?: string[] | null;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /** Model Composite Key */
+            model_composite_key: string;
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Processing Time Ms */
+            processing_time_ms?: number | null;
+            /**
+             * Record Id
+             * Format: uuid
+             */
+            record_id: string;
+            /**
+             * Strategy
+             * @description The strategy that ran: single_pass is one call, without experts
+             */
+            strategy: string;
+            /** Structured Output */
+            structured_output: {
+                [key: string]: unknown;
+            };
+            /** Success */
+            success: boolean;
+        };
+        /** MonitorRecordOutputsResponse */
+        MonitorRecordOutputsResponse: {
+            /** Outputs */
+            outputs: components["schemas"]["MonitorRecordOutput"][];
+        };
+        /**
          * NestRegionRequest
          * @description Materialize a logical entity region in the physical schema.
          *
@@ -20087,6 +20270,13 @@ export type components = {
          */
         SSEEntityStarted: {
             /**
+             * Entity Data
+             * @description The entity's input values, as the batch received them: what the Monitor page shows as the request
+             */
+            entity_data: {
+                [key: string]: unknown;
+            };
+            /**
              * Entity Index
              * @description Position of the entity in the batch
              */
@@ -20674,6 +20864,11 @@ export type components = {
             last_error_summary: string | null;
             /** Max Attempts */
             max_attempts: number;
+            /**
+             * Origin
+             * @description The channel the job was launched from (web, api, mcp, n8n, make, demo); null on job types that record none
+             */
+            origin: string | null;
             /**
              * Queue Position
              * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish; null once admitted, and for job types that never queue. Later changes arrive as `queued`.
@@ -24058,6 +24253,11 @@ export type ModelValidationRequest = components['schemas']['ModelValidationReque
 export type ModelValidationResponse = components['schemas']['ModelValidationResponse'];
 export type ModelValidationResult = components['schemas']['ModelValidationResult'];
 export type ModelValidationSummary = components['schemas']['ModelValidationSummary'];
+export type MonitorEnrichment = components['schemas']['MonitorEnrichment'];
+export type MonitorEnrichmentsResponse = components['schemas']['MonitorEnrichmentsResponse'];
+export type MonitorModelRun = components['schemas']['MonitorModelRun'];
+export type MonitorRecordOutput = components['schemas']['MonitorRecordOutput'];
+export type MonitorRecordOutputsResponse = components['schemas']['MonitorRecordOutputsResponse'];
 export type NestRegionRequest = components['schemas']['NestRegionRequest'];
 export type NestRegionResponse = components['schemas']['NestRegionResponse'];
 export type OAuthGrantListItem = components['schemas']['OAuthGrantListItem'];
@@ -30800,6 +31000,116 @@ export interface operations {
             path: {
                 job_id: string;
             };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_enrichments_api_monitor_enrichments_get: {
+        parameters: {
+            query: {
+                /** @description Newest enrichments kept */
+                limit?: number;
+                saved_schema_id: string;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorEnrichmentsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_record_outputs_api_monitor_records_get: {
+        parameters: {
+            query: {
+                /** @description Record ids */
+                ids: string[];
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorRecordOutputsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stream_enrichments_api_monitor_stream_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
