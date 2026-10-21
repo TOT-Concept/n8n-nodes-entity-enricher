@@ -3160,12 +3160,33 @@ export type paths = {
         post?: never;
         /**
          * Revoke Sync Host
-         * @description Revoke a host and cascade to every credential it minted — revoking the
-         *     host means cutting the machine off, and the machine holds those per-database
-         *     refresh tokens. Classic pairings and host assignments are untouched (the
-         *     assignment survives, so a re-paired host resumes where this one stopped).
+         * @description Revoke a host and cut its machine off. The assignments survive, so a
+         *     re-paired host resumes where this one stopped.
          */
         delete: operations["revoke_sync_host_api_hosts__host_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hosts/{host_id}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate Sync Host
+         * @description Re-pair: mint a new pairing key for an existing host (a replaced laptop,
+         *     a forgotten pairing) — same name, same assignments. The old key stops
+         *     working at once and the machine is cut off like on revoke; its claimed
+         *     credentials are re-minted by the CLI's re-claim on the next `host run`.
+         */
+        post: operations["rotate_sync_host_api_hosts__host_id__rotate_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3295,8 +3316,10 @@ export type paths = {
         /**
          * List Record Outputs
          * @description The outputs of the records `ids` — one call for every record of the
-         *     enrichments the Monitor page stands on stage — with each run's metrics;
-         *     a record the organization does not own, or deleted, is left out.
+         *     enrichments the Monitor page stands on stage, a live one's read once its
+         *     model completes — with each run's metrics, the configuration of its first
+         *     call and the account of each call; a record the organization does not
+         *     own, or deleted, is left out.
          */
         get: operations["list_record_outputs_api_monitor_records_get"];
         put?: never;
@@ -14362,11 +14385,50 @@ export type components = {
             success: boolean;
         };
         /**
+         * MonitorPromptRun
+         * @description One call of a record, as the Monitor's panel accounts for it: how many
+         *     attempts it took, what the validator refused, how it ended — and what web
+         *     search cost it, told apart from the call's billed cost.
+         */
+        MonitorPromptRun: {
+            /** Attempts */
+            attempts: number;
+            /** Error Message */
+            error_message?: string | null;
+            /** Expertise Name */
+            expertise_name: string;
+            /** Success */
+            success: boolean;
+            /** Validation Errors */
+            validation_errors?: string[];
+            /**
+             * Web Search Calls
+             * @default 0
+             */
+            web_search_calls: number;
+            /** Web Search Cost Usd */
+            web_search_cost_usd?: number | null;
+        };
+        /**
          * MonitorRecordOutput
-         * @description What the Monitor page draws a past enrichment's record with: its
-         *     output, and the run's own account of it.
+         * @description What the Monitor page draws an enrichment's record with — a past one's,
+         *     or a live one's once its model completes: its output, and the run's own
+         *     account of it, metrics and configuration alike.
          */
         MonitorRecordOutput: {
+            /**
+             * Agent Metadata
+             * @description What was sent to pydantic-ai (model string, output channel, model settings), from the record's first call: every call of a record shares its configuration
+             */
+            agent_metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Cache Read Tokens
+             * @description Input tokens the provider served from its cache: what the caching chip reports
+             * @default 0
+             */
+            cache_read_tokens: number;
             /** Cost Usd */
             cost_usd?: number | null;
             /**
@@ -14380,24 +14442,48 @@ export type components = {
             model_composite_key: string;
             /** Output Tokens */
             output_tokens?: number | null;
-            /** Processing Time Ms */
+            /**
+             * Processing Time Ms
+             * @description The sum of the record's call durations
+             */
             processing_time_ms?: number | null;
+            /**
+             * Prompts
+             * @description The record's calls, in sequence order
+             */
+            prompts?: components["schemas"]["MonitorPromptRun"][];
             /**
              * Record Id
              * Format: uuid
              */
             record_id: string;
             /**
+             * Retries
+             * @description Validation retries over the record's calls
+             * @default 0
+             */
+            retries: number;
+            /**
              * Strategy
              * @description The strategy that ran: single_pass is one call, without experts
              */
             strategy: string;
+            /**
+             * Strategy Requested
+             * @description What the client asked for: 'auto' when the server chose
+             */
+            strategy_requested?: string | null;
             /** Structured Output */
             structured_output: {
                 [key: string]: unknown;
             };
             /** Success */
             success: boolean;
+            /**
+             * Wall Clock Ms
+             * @description From the first call's start to the last call's end: parallel calls overlap
+             */
+            wall_clock_ms?: number | null;
         };
         /** MonitorRecordOutputsResponse */
         MonitorRecordOutputsResponse: {
@@ -23176,7 +23262,7 @@ export type components = {
         };
         /**
          * SyncHostCreateResponse
-         * @description One-time response on creation — the only chance to read the pairing key.
+         * @description One-time response on creation or re-pair — the only chance to read the pairing key.
          */
         SyncHostCreateResponse: {
             host: components["schemas"]["SyncHostResponse"];
@@ -24262,6 +24348,7 @@ export type ModelValidationSummary = components['schemas']['ModelValidationSumma
 export type MonitorEnrichment = components['schemas']['MonitorEnrichment'];
 export type MonitorEnrichmentsResponse = components['schemas']['MonitorEnrichmentsResponse'];
 export type MonitorModelRun = components['schemas']['MonitorModelRun'];
+export type MonitorPromptRun = components['schemas']['MonitorPromptRun'];
 export type MonitorRecordOutput = components['schemas']['MonitorRecordOutput'];
 export type MonitorRecordOutputsResponse = components['schemas']['MonitorRecordOutputsResponse'];
 export type NestRegionRequest = components['schemas']['NestRegionRequest'];
@@ -30881,6 +30968,43 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rotate_sync_host_api_hosts__host_id__rotate_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                host_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncHostCreateResponse"];
+                };
             };
             /** @description Validation Error */
             422: {
