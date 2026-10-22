@@ -11,25 +11,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Serve Index */
-        get: operations["serve_index__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/{path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve Spa */
-        get: operations["serve_spa__path__get"];
+        /** No Frontend */
+        get: operations["no_frontend__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -20814,7 +20797,7 @@ export type components = {
             billing_url?: string | null;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, llm_request_timeout (a job delegating its LLM calls to the MCP client got no answer in time), or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code: string | null;
             /**
@@ -20926,7 +20909,7 @@ export type components = {
             current_attempt: number;
             /**
              * Error Code
-             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
+             * @description Typed reason of a 'failed' status, the same vocabulary the blocking routes return: insufficient_credits (the organization's own Entity Enricher balance is exhausted — add credits), provider_credits_exhausted (the provider account behind the key), rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, llm_request_timeout (a job delegating its LLM calls to the MCP client got no answer in time), or a flow's own code (incoherent_attachments). Null while running, on a success, on a cancellation, and on an unclassified failure.
              */
             error_code: string | null;
             /**
@@ -20962,6 +20945,11 @@ export type components = {
              */
             origin: string | null;
             /**
+             * Pending Llm Requests
+             * @description On a job that delegates its LLM calls to the MCP client: how many requests wait for an answer (the job is `paused` while this is non-zero). 0 on every other job.
+             */
+            pending_llm_requests: number;
+            /**
              * Queue Position
              * @description 1-based place in the organization's lane while the job waits for an earlier benchmark run or scoring pass to finish; null once admitted, and for job types that never queue. Later changes arrive as `queued`.
              */
@@ -20986,6 +20974,193 @@ export type components = {
              * @description Units the job runs (models per entity on a batch)
              */
             total_models: number;
+        };
+        /**
+         * SSELLMRequestAnswered
+         * @description The MCP client answered a pending request; the job goes on (status restored
+         *     when no other request is pending).
+         */
+        SSELLMRequestAnswered: {
+            /**
+             * Entity Index
+             * @description Index of the batch entity this event belongs to (batch jobs only)
+             */
+            entity_index?: number;
+            /**
+             * Event
+             * @constant
+             */
+            event: "llm_request_answered";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Model
+             * @description The model the client reports having used
+             */
+            model: string;
+            /**
+             * Purpose
+             * @description What the call is for, as the agent runner labels it (model and step)
+             */
+            purpose: string;
+            /**
+             * Request Id
+             * @description Identifies the pending request in `llm_requests` and in answer_llm_request
+             */
+            request_id: string;
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Stop Reason
+             * @description MCP stopReason: endTurn, toolUse, maxTokens, …
+             */
+            stop_reason: string | null;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
+        };
+        /**
+         * SSELLMRequestPause
+         * @description A job delegating its LLM calls to the MCP client parked one request (status
+         *     `paused` while any is pending). The event is the compact envelope; the full
+         *     request (messages, systemPrompt, tools, toolChoice, maxTokens, attachments)
+         *     is read from the job's status (`llm_requests`), not from the event log.
+         */
+        SSELLMRequestPause: {
+            /** Attachment Count */
+            attachment_count: number;
+            /**
+             * Entity Index
+             * @description Index of the batch entity this event belongs to (batch jobs only)
+             */
+            entity_index?: number;
+            /**
+             * Event
+             * @constant
+             */
+            event: "llm_request";
+            /**
+             * Expires At
+             * @description ISO-8601 deadline; past it the job fails
+             */
+            expires_at: string;
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /** Message Count */
+            message_count: number;
+            /**
+             * Purpose
+             * @description What the call is for, as the agent runner labels it (model and step)
+             */
+            purpose: string;
+            /**
+             * Request Id
+             * @description Identifies the pending request in `llm_requests` and in answer_llm_request
+             */
+            request_id: string;
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Timeout Seconds
+             * @description How long the job waits before its timeout rule applies
+             */
+            timeout_seconds: number;
+            /**
+             * Tool Names
+             * @description Tools the request declares, the output tool first
+             */
+            tool_names: string[];
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
+        };
+        /**
+         * SSELLMRequestTimeout
+         * @description Nobody answered a pending request before `expires_at`: every pending request
+         *     of the job is failed and the job ends `failed` with `error_code: llm_request_timeout`.
+         */
+        SSELLMRequestTimeout: {
+            /**
+             * Entity Index
+             * @description Index of the batch entity this event belongs to (batch jobs only)
+             */
+            entity_index?: number;
+            /**
+             * Event
+             * @constant
+             */
+            event: "llm_request_timeout";
+            /**
+             * Job Id
+             * @description Unique job identifier
+             */
+            job_id: string;
+            /**
+             * Job Type
+             * @description Job type: single_enrichment, batch_enrichment, fusion, etc.
+             */
+            job_type: string;
+            /**
+             * Purpose
+             * @description What the call is for, as the agent runner labels it (model and step)
+             */
+            purpose: string;
+            /**
+             * Request Id
+             * @description Identifies the pending request in `llm_requests` and in answer_llm_request
+             */
+            request_id: string;
+            /**
+             * Seq
+             * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
+             */
+            seq?: number;
+            /**
+             * Status
+             * @description Job status: pending, running, paused, completed, failed, cancelled
+             */
+            status: string;
+            /**
+             * Ts
+             * @description When the event was emitted (Unix epoch milliseconds)
+             */
+            ts?: number;
         };
         /**
          * SSEModelAutoSelected
@@ -24519,6 +24694,9 @@ export type SseJobCompleted = components['schemas']['SSEJobCompleted'];
 export type SseJobFailed = components['schemas']['SSEJobFailed'];
 export type SseJobRunning = components['schemas']['SSEJobRunning'];
 export type SseJobSnapshot = components['schemas']['SSEJobSnapshot'];
+export type SsellmRequestAnswered = components['schemas']['SSELLMRequestAnswered'];
+export type SsellmRequestPause = components['schemas']['SSELLMRequestPause'];
+export type SsellmRequestTimeout = components['schemas']['SSELLMRequestTimeout'];
 export type SseModelAutoSelected = components['schemas']['SSEModelAutoSelected'];
 export type SseModelCompleted = components['schemas']['SSEModelCompleted'];
 export type SseModelsSkipped = components['schemas']['SSEModelsSkipped'];
@@ -24606,7 +24784,7 @@ export type WebhookTestResponse = components['schemas']['WebhookTestResponse'];
 export type WebhookTypeInfo = components['schemas']['WebhookTypeInfo'];
 export type $defs = Record<string, never>;
 export interface operations {
-    serve_index__get: {
+    no_frontend__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -24622,37 +24800,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    serve_spa__path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -31110,7 +31257,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEClassificationMismatchTimeout"] | components["schemas"]["SSEResumed"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseStarted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEStepStarted"] | components["schemas"]["SSEStepCompleted"] | components["schemas"]["SSEAttempt"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringWaiting"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringModelStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEScoringReferenceUpdated"] | components["schemas"]["SSEBenchmarkRunStarted"] | components["schemas"]["SSEBenchmarkRunCompleted"] | components["schemas"]["SSEModelsSkipped"] | components["schemas"]["SSEQueued"] | components["schemas"]["SSEQueueMerged"] | components["schemas"]["SSESourceStarted"] | components["schemas"]["SSESourceCompleted"] | components["schemas"]["SSEModelValidated"] | components["schemas"]["SSEStarted"] | components["schemas"]["SSEJobRunning"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEEnrichmentJobCompleted"] | components["schemas"]["SSEFusionJobCompleted"] | components["schemas"]["SSEBatchJobCompleted"] | components["schemas"]["SSESampleGenerationJobCompleted"] | components["schemas"]["SSESchemaGenerationJobCompleted"] | components["schemas"]["SSESchemaAnnotationJobCompleted"] | components["schemas"]["SSEDbModelClassificationJobCompleted"] | components["schemas"]["SSEModelValidationJobCompleted"] | components["schemas"]["SSEPricingSyncJobCompleted"])[];
+                    "application/json": (components["schemas"]["SSEClassificationStarted"] | components["schemas"]["SSEClassificationCompleted"] | components["schemas"]["SSEClassificationMismatchPause"] | components["schemas"]["SSESampleClarificationPause"] | components["schemas"]["SSEClassificationMismatchTimeout"] | components["schemas"]["SSEResumed"] | components["schemas"]["SSELLMRequestPause"] | components["schemas"]["SSELLMRequestAnswered"] | components["schemas"]["SSELLMRequestTimeout"] | components["schemas"]["SSEAttachmentCoherence"] | components["schemas"]["SSESampleInstanceRoster"] | components["schemas"]["SSESampleInstanceProgress"] | components["schemas"]["SSEStrategySelected"] | components["schemas"]["SSEModelAutoSelected"] | components["schemas"]["SSEModelStarted"] | components["schemas"]["SSEModelCompleted"] | components["schemas"]["SSEExpertiseStarted"] | components["schemas"]["SSEExpertiseCompleted"] | components["schemas"]["SSEStepStarted"] | components["schemas"]["SSEStepCompleted"] | components["schemas"]["SSEAttempt"] | components["schemas"]["SSEFusionStarted"] | components["schemas"]["SSEConflictsDetected"] | components["schemas"]["SSEArbitrationStarted"] | components["schemas"]["SSEArbitrationCompleted"] | components["schemas"]["SSEFusionCompleted"] | components["schemas"]["SSEDatabaseSaved"] | components["schemas"]["SSEDatabaseRejected"] | components["schemas"]["SSEBatchStarted"] | components["schemas"]["SSEEntityStarted"] | components["schemas"]["SSEEntityCompleted"] | components["schemas"]["SSEEntitySkipped"] | components["schemas"]["SSEBatchCompleted"] | components["schemas"]["SSEScoringWaiting"] | components["schemas"]["SSEScoringStarted"] | components["schemas"]["SSEScoringModelStarted"] | components["schemas"]["SSEScoringProgress"] | components["schemas"]["SSEScoringDegraded"] | components["schemas"]["SSEScoringFailed"] | components["schemas"]["SSEScoringCompleted"] | components["schemas"]["SSEScoringReferenceUpdated"] | components["schemas"]["SSEBenchmarkRunStarted"] | components["schemas"]["SSEBenchmarkRunCompleted"] | components["schemas"]["SSEModelsSkipped"] | components["schemas"]["SSEQueued"] | components["schemas"]["SSEQueueMerged"] | components["schemas"]["SSESourceStarted"] | components["schemas"]["SSESourceCompleted"] | components["schemas"]["SSEModelValidated"] | components["schemas"]["SSEStarted"] | components["schemas"]["SSEJobRunning"] | components["schemas"]["SSEJobFailed"] | components["schemas"]["SSEJobCancelled"] | components["schemas"]["SSEJobCompleted"] | components["schemas"]["SSEEnrichmentJobCompleted"] | components["schemas"]["SSEFusionJobCompleted"] | components["schemas"]["SSEBatchJobCompleted"] | components["schemas"]["SSESampleGenerationJobCompleted"] | components["schemas"]["SSESchemaGenerationJobCompleted"] | components["schemas"]["SSESchemaAnnotationJobCompleted"] | components["schemas"]["SSEDbModelClassificationJobCompleted"] | components["schemas"]["SSEModelValidationJobCompleted"] | components["schemas"]["SSEPricingSyncJobCompleted"])[];
                 };
             };
         };
