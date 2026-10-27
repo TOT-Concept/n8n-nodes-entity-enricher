@@ -3266,7 +3266,7 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/monitor/enrichments": {
+    "/api/monitor/jobs": {
         parameters: {
             query?: never;
             header?: never;
@@ -3274,13 +3274,19 @@ export type paths = {
             cookie?: never;
         };
         /**
-         * List Enrichments
-         * @description The schema's past enrichments, oldest first: one per job and input — a
-         *     batch job's entities each their own — with the record of each model and
-         *     the fused record, which the record detail route then serves, and the ids
-         *     of the documents attached to the run.
+         * List Jobs
+         * @description The schema's past jobs — the organization's, with no schema given —
+         *     each list oldest first. Its enrichments: one per job and input — a batch
+         *     job's entities each their own — with the record of each model and the
+         *     fused record, and the ids of the documents attached to the run. Its
+         *     staged runs: the sample generation that seeded it, the generation that
+         *     made it, its annotation passes and its database-model classifications,
+         *     one record each; the outputs route then serves every record's account, a
+         *     staged record's with each step's decision. Each job names its schema,
+         *     null for a sample generation no schema was generated from yet and for the
+         *     jobs of a deleted schema, listed with the organization's.
          */
-        get: operations["list_enrichments_api_monitor_enrichments_get"];
+        get: operations["list_jobs_api_monitor_jobs_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3299,10 +3305,11 @@ export type paths = {
         /**
          * List Record Outputs
          * @description The outputs of the records `ids` — one call for every record of the
-         *     enrichments the Monitor page stands on stage, a live one's read once its
-         *     model completes — with each run's metrics, the configuration of its first
-         *     call and the account of each call; a record the organization does not
-         *     own, or deleted, is left out.
+         *     jobs the Monitor page stands on stage, a live one's read once it
+         *     completes — with each run's metrics, the configuration of its first call
+         *     and the account of each call; a staged record's calls are its steps, each
+         *     with its key and decision, what the page replays the run from. A record
+         *     the organization does not own, or deleted, is left out.
          */
         get: operations["list_record_outputs_api_monitor_records_get"];
         put?: never;
@@ -3321,13 +3328,16 @@ export type paths = {
             cookie?: never;
         };
         /**
-         * Stream Enrichments
-         * @description Every event of the organization's enrichment jobs, live, on one SSE
-         *     connection — see `LLMJobManager.stream_enrichments`. It opens with each
-         *     job still running (`started`, then its log) and announces each job
-         *     launched later the same way; it ends when the client closes it.
+         * Stream Monitored Jobs
+         * @description Every event of the organization's monitored jobs — its enrichments, and
+         *     the sample generations, schema generations, annotation passes and
+         *     database-model classifications of its schemas — live, on one SSE
+         *     connection: see
+         *     `LLMJobManager.stream_monitored_jobs`. It opens with each job still
+         *     running (`started`, then its log) and announces each job launched later
+         *     the same way; it ends when the client closes it.
          */
-        get: operations["stream_enrichments_api_monitor_stream_get"];
+        get: operations["stream_monitored_jobs_api_monitor_stream_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6054,6 +6064,10 @@ export type paths = {
          *
          *     Attachments are resolved here, org-scoped, and forwarded as inline content only —
          *     the relay and Hermes never receive an attachment id, path or URL.
+         *
+         *     The plan's daily quota is checked before anything is resolved and the question is
+         *     counted once it is accepted, before the relay is called: a question the relay then
+         *     fails to answer still counts, which keeps the count out of the SSE generator.
          */
         post: operations["stream_support_chat_api_support_chat_stream_post"];
         delete?: never;
@@ -14337,18 +14351,27 @@ export type components = {
              */
             origin?: string | null;
             /**
+             * Saved Schema Id
+             * @description The schema enriched against; null once that schema was deleted
+             */
+            saved_schema_id?: string | null;
+            /**
              * Started At
              * Format: date-time
              */
             started_at: string;
         };
         /**
-         * MonitorEnrichmentsResponse
-         * @description The enrichments of a schema, oldest first.
+         * MonitorJobsResponse
+         * @description The jobs of a schema's timeline — of the organization's, asked with no
+         *     schema — each list oldest first: its enrichments, and the staged jobs
+         *     that built it or classified it.
          */
-        MonitorEnrichmentsResponse: {
+        MonitorJobsResponse: {
             /** Enrichments */
             enrichments: components["schemas"]["MonitorEnrichment"][];
+            /** Staged Runs */
+            staged_runs: components["schemas"]["MonitorStagedRun"][];
         };
         /**
          * MonitorModelRun
@@ -14371,15 +14394,39 @@ export type components = {
          * MonitorPromptRun
          * @description One call of a record, as the Monitor's panel accounts for it: how many
          *     attempts it took, what the validator refused, how it ended — and what web
-         *     search cost it, told apart from the call's billed cost.
+         *     search cost it, told apart from the call's billed cost. For a staged
+         *     record (a schema generation, an annotation, a classification) the call is
+         *     a pipeline step: its key and its decision — the step's structured output,
+         *     the same dict its `step_completed` carried — are what the page replays
+         *     the run from.
          */
         MonitorPromptRun: {
             /** Attempts */
             attempts: number;
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /**
+             * Decision
+             * @description A staged step's structured output, as its step_completed carried it; null on an enrichment
+             */
+            decision?: {
+                [key: string]: unknown;
+            } | null;
             /** Error Message */
             error_message?: string | null;
             /** Expertise Name */
             expertise_name: string;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Processing Time Ms */
+            processing_time_ms?: number | null;
+            /**
+             * Step Key
+             * @description A staged record's step key (schema_flags_2, db_model_owned); null on an enrichment
+             */
+            step_key?: string | null;
             /** Success */
             success: boolean;
             /** Validation Errors */
@@ -14463,6 +14510,11 @@ export type components = {
             /** Success */
             success: boolean;
             /**
+             * Type
+             * @description The record type: enrichment, arbitration, or a staged kind
+             */
+            type: string;
+            /**
              * Wall Clock Ms
              * @description From the first call's start to the last call's end: parallel calls overlap
              */
@@ -14472,6 +14524,58 @@ export type components = {
         MonitorRecordOutputsResponse: {
             /** Outputs */
             outputs: components["schemas"]["MonitorRecordOutput"][];
+        };
+        /**
+         * MonitorStagedRun
+         * @description One staged job of a schema — the sample generation that seeded it, the
+         *     generation that made it, an annotation pass, a database-model
+         *     classification — as the Monitor page's timeline lists it: one record,
+         *     whose prompts hold each step's decision (GET /api/monitor/records).
+         */
+        MonitorStagedRun: {
+            /** Cancelled */
+            cancelled: boolean;
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /**
+             * Ended At
+             * Format: date-time
+             */
+            ended_at: string;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "sample_generation" | "schema_generation" | "schema_annotation" | "db_classification";
+            /** Model Composite Key */
+            model_composite_key: string;
+            /** Model Name */
+            model_name: string;
+            /**
+             * Origin
+             * @description The channel it was launched from; null before origin tracking
+             */
+            origin?: string | null;
+            /**
+             * Record Id
+             * Format: uuid
+             */
+            record_id: string;
+            /**
+             * Saved Schema Id
+             * @description The schema the run belongs to; null for a sample generation no schema was generated from yet, and once the schema was deleted
+             */
+            saved_schema_id?: string | null;
+            /**
+             * Started At
+             * Format: date-time
+             * @description The record's time less its wall clock
+             */
+            started_at: string;
+            /** Success */
+            success: boolean;
         };
         /**
          * NestRegionRequest
@@ -17860,6 +17964,11 @@ export type components = {
             output_tokens?: number | null;
             /** Processing Time Ms */
             processing_time_ms?: number | null;
+            /**
+             * Record Id
+             * @description The run's record, holding every call as its own prompt row; what a schema generation names as sample_record_id to link the run to the schema it seeds
+             */
+            record_id?: string | null;
             /**
              * Samples
              * @description The generated sample objects
@@ -22870,6 +22979,11 @@ export type components = {
                 [key: string]: unknown;
             } | null;
             /**
+             * Sample Record Id
+             * @description The sample_generation record the samples came from (the record_id of its result). Linked to the saved schema, so the schema's Monitor timeline starts with the run that seeded it; 400 when it is not a sample-generation record of the organization.
+             */
+            sample_record_id?: string | null;
+            /**
              * Save Schema
              * @description Auto-save the generated schema as a saved schema (default). False skips the save AND the ambiguity post-pass — used when the schema is a throwaway draft, e.g. generating a benchmark gold reference.
              * @default true
@@ -23327,6 +23441,11 @@ export type components = {
             sample_inputs?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Sample Record Id
+             * @description The sample_generation record the samples came from (the record_id of its result). Linked to the saved schema, so the schema's Monitor timeline starts with the run that seeded it; 400 when it is not a sample-generation record of the organization.
+             */
+            sample_record_id?: string | null;
             /**
              * Save Schema
              * @description Auto-save the generated schema as a saved schema (default). False skips the save AND the ambiguity post-pass — used when the schema is a throwaway draft, e.g. generating a benchmark gold reference.
@@ -24521,11 +24640,12 @@ export type ModelValidationResponse = components['schemas']['ModelValidationResp
 export type ModelValidationResult = components['schemas']['ModelValidationResult'];
 export type ModelValidationSummary = components['schemas']['ModelValidationSummary'];
 export type MonitorEnrichment = components['schemas']['MonitorEnrichment'];
-export type MonitorEnrichmentsResponse = components['schemas']['MonitorEnrichmentsResponse'];
+export type MonitorJobsResponse = components['schemas']['MonitorJobsResponse'];
 export type MonitorModelRun = components['schemas']['MonitorModelRun'];
 export type MonitorPromptRun = components['schemas']['MonitorPromptRun'];
 export type MonitorRecordOutput = components['schemas']['MonitorRecordOutput'];
 export type MonitorRecordOutputsResponse = components['schemas']['MonitorRecordOutputsResponse'];
+export type MonitorStagedRun = components['schemas']['MonitorStagedRun'];
 export type NestRegionRequest = components['schemas']['NestRegionRequest'];
 export type NestRegionResponse = components['schemas']['NestRegionResponse'];
 export type OAuthGrantListItem = components['schemas']['OAuthGrantListItem'];
@@ -31301,12 +31421,13 @@ export interface operations {
             };
         };
     };
-    list_enrichments_api_monitor_enrichments_get: {
+    list_jobs_api_monitor_jobs_get: {
         parameters: {
-            query: {
-                /** @description Newest enrichments kept */
+            query?: {
+                /** @description Newest jobs kept, per list */
                 limit?: number;
-                saved_schema_id: string;
+                /** @description The schema whose jobs to list; omitted, every job of the organization */
+                saved_schema_id?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
@@ -31325,7 +31446,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MonitorEnrichmentsResponse"];
+                    "application/json": components["schemas"]["MonitorJobsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -31376,7 +31497,7 @@ export interface operations {
             };
         };
     };
-    stream_enrichments_api_monitor_stream_get: {
+    stream_monitored_jobs_api_monitor_stream_get: {
         parameters: {
             query?: {
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
