@@ -11,8 +11,25 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** No Frontend */
-        get: operations["no_frontend__get"];
+        /** Serve Index */
+        get: operations["serve_index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve Spa */
+        get: operations["serve_spa__path__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6049,6 +6066,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/support/admin/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List All Conversations
+         * @description Every thread of every organization, newest activity first (system admin only).
+         */
+        get: operations["list_all_conversations_api_support_admin_conversations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/support/chat/stream": {
         parameters: {
             query?: never;
@@ -6062,14 +6099,100 @@ export type paths = {
          * Stream Support Chat
          * @description Relay one authenticated product question while keeping Hermes private from the browser.
          *
-         *     Attachments are resolved here, org-scoped, and forwarded as inline content only —
-         *     the relay and Hermes never receive an attachment id, path or URL.
-         *
-         *     The plan's daily quota is checked before anything is resolved and the question is
-         *     counted once it is accepted, before the relay is called: a question the relay then
-         *     fails to answer still counts, which keeps the count out of the SSE generator.
+         *     The plan's daily quota is checked before anything is resolved. The question is stored
+         *     before the relay is called and Rupert's answer once the stream ends, in the caller's
+         *     thread (a new one when the body names none — the first frame says which); it is counted
+         *     against the quota at the same point, so a question the relay then fails to answer still
+         *     counts, which keeps the count out of the SSE generator. Attachments are resolved here,
+         *     org-scoped, and forwarded as inline content only — the relay and Hermes never receive an
+         *     attachment id, path or URL. ``origin`` (the ``X-Client-Origin`` rule) is kept on a thread
+         *     this call opens, so the admin inbox tells an agent's thread (``mcp``) from a person's.
          */
         post: operations["stream_support_chat_api_support_chat_stream_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/support/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Conversations
+         * @description The caller's own threads, newest activity first.
+         */
+        get: operations["list_conversations_api_support_conversations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/support/conversations/{conversation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Conversation
+         * @description A thread with its messages. Opening it is reading it: the caller's watermark moves.
+         */
+        get: operations["get_conversation_api_support_conversations__conversation_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Conversation
+         * @description Delete one of the caller's own threads, messages included.
+         */
+        delete: operations["delete_conversation_api_support_conversations__conversation_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/support/conversations/{conversation_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Admin Message
+         * @description A system admin's follow-up on a user's thread; the user's bell picks it up.
+         */
+        post: operations["add_admin_message_api_support_conversations__conversation_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/support/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Notifications
+         * @description The threads with something new for the caller — what the top-bar bell lists.
+         */
+        get: operations["get_notifications_api_support_notifications_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -23273,19 +23396,29 @@ export type components = {
             sort_order: number;
         };
         /**
+         * SupportAdminMessageRequest
+         * @description A system admin's follow-up on a user's thread.
+         */
+        SupportAdminMessageRequest: {
+            /** Text */
+            text: string;
+        };
+        /**
          * SupportChatRequest
          * @description A product-support question from an authenticated Entity Enricher user.
          *
-         *     Attachments are ordinary uploads (``POST /api/attachments``) referenced by id;
-         *     the backend resolves them itself and forwards only inline content to the relay,
-         *     never an id, a path or a URL. ``page`` is the SPA route the user is on — a path
-         *     only, so Rupert can answer in the context of the screen being looked at.
+         *     ``conversation_id`` is a thread the caller owns, or null to open a new one — the
+         *     stream's first frame then names the thread the question landed in. Attachments
+         *     are ordinary uploads (``POST /api/attachments``) referenced by id; the backend
+         *     resolves them itself and forwards only inline content to the relay, never an id,
+         *     a path or a URL. ``page`` is the SPA route the user is on — a path only, so Rupert
+         *     can answer in the context of the screen being looked at.
          */
         SupportChatRequest: {
             /** Attachment Ids */
             attachment_ids?: string[];
             /** Conversation Id */
-            conversation_id: string;
+            conversation_id?: string | null;
             /**
              * Message
              * @default
@@ -23293,6 +23426,141 @@ export type components = {
             message: string;
             /** Page */
             page?: string | null;
+        };
+        /**
+         * SupportConversation
+         * @description A thread's header row, as both the user's history and the admin inbox list it.
+         */
+        SupportConversation: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Last Message At
+             * Format: date-time
+             */
+            last_message_at: string;
+            /** Message Count */
+            message_count: number;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** Organization Name */
+            organization_name: string;
+            /** Origin */
+            origin: string;
+            /** Title */
+            title: string;
+            /** Unread For Admin */
+            unread_for_admin: boolean;
+            /** Unread For User */
+            unread_for_user: boolean;
+            /** User Display Name */
+            user_display_name?: string | null;
+            /** User Email */
+            user_email: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /** SupportConversationDetail */
+        SupportConversationDetail: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Last Message At
+             * Format: date-time
+             */
+            last_message_at: string;
+            /** Message Count */
+            message_count: number;
+            /** Messages */
+            messages: components["schemas"]["SupportMessage"][];
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** Organization Name */
+            organization_name: string;
+            /** Origin */
+            origin: string;
+            /** Title */
+            title: string;
+            /** Unread For Admin */
+            unread_for_admin: boolean;
+            /** Unread For User */
+            unread_for_user: boolean;
+            /** User Display Name */
+            user_display_name?: string | null;
+            /** User Email */
+            user_email: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
+         * SupportMessage
+         * @description One turn of a thread, as the browser showed it.
+         */
+        SupportMessage: {
+            /** Attachments */
+            attachments?: components["schemas"]["AttachmentRef"][];
+            /** Author Name */
+            author_name?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Page */
+            page?: string | null;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "assistant" | "admin";
+            /** Text */
+            text: string;
+        };
+        /**
+         * SupportNotifications
+         * @description What the top-bar bell shows: the threads with something new for the caller.
+         *
+         *     ``replies`` are the caller's own threads with an unread admin follow-up; ``questions``
+         *     are the threads with an unread user question — always empty for a non-admin.
+         */
+        SupportNotifications: {
+            /** Questions */
+            questions: components["schemas"]["SupportConversation"][];
+            /** Replies */
+            replies: components["schemas"]["SupportConversation"][];
         };
         /**
          * SyncEnrichRequest
@@ -24860,7 +25128,12 @@ export type SubscriptionPlan = components['schemas']['SubscriptionPlan'];
 export type SubscriptionPlanAdmin = components['schemas']['SubscriptionPlanAdmin'];
 export type SubscriptionPlanInput = components['schemas']['SubscriptionPlanInput'];
 export type SubscriptionPlanWithLimits = components['schemas']['SubscriptionPlanWithLimits'];
+export type SupportAdminMessageRequest = components['schemas']['SupportAdminMessageRequest'];
 export type SupportChatRequest = components['schemas']['SupportChatRequest'];
+export type SupportConversation = components['schemas']['SupportConversation'];
+export type SupportConversationDetail = components['schemas']['SupportConversationDetail'];
+export type SupportMessage = components['schemas']['SupportMessage'];
+export type SupportNotifications = components['schemas']['SupportNotifications'];
 export type SyncEnrichRequest = components['schemas']['SyncEnrichRequest'];
 export type SyncGenerateRequest = components['schemas']['SyncGenerateRequest'];
 export type SyncGenerateSampleRequest = components['schemas']['SyncGenerateSampleRequest'];
@@ -24904,7 +25177,7 @@ export type WebhookTestResponse = components['schemas']['WebhookTestResponse'];
 export type WebhookTypeInfo = components['schemas']['WebhookTypeInfo'];
 export type $defs = Record<string, never>;
 export interface operations {
-    no_frontend__get: {
+    serve_index__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -24920,6 +25193,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    serve_spa__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -36572,6 +36876,41 @@ export interface operations {
             };
         };
     };
+    list_all_conversations_api_support_admin_conversations_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportConversation"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     stream_support_chat_api_support_chat_stream_post: {
         parameters: {
             query?: {
@@ -36582,6 +36921,7 @@ export interface operations {
                 "Accept-Language"?: string | null;
                 authorization?: string | null;
                 "X-API-Key"?: string | null;
+                "X-Client-Origin"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -36599,6 +36939,189 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_conversations_api_support_conversations_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportConversation"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_conversation_api_support_conversations__conversation_id__get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportConversationDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_conversation_api_support_conversations__conversation_id__delete: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_admin_message_api_support_conversations__conversation_id__messages_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupportAdminMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_notifications_api_support_notifications_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportNotifications"];
                 };
             };
             /** @description Validation Error */
