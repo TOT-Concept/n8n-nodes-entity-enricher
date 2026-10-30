@@ -391,10 +391,15 @@ jobs:
           name: n8n-connector-dist
           path: dist
 
+      # Trusted publishing: npm trusts this workflow's OIDC identity (configured on
+      # npmjs.com, package Settings → Trusted Publisher: this repo, ci.yml, environment
+      # npm), so no NPM_TOKEN is needed and nothing expires. It needs npm >= 11.5.1,
+      # newer than the one Node 22 ships with.
+      - name: Update npm for trusted publishing
+        run: npm install -g npm@latest && npm --version
+
       - name: Publish to npm with provenance
         run: npm publish --access public --ignore-scripts --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Verify published package with @n8n/scan-community-package@beta
         # Wait briefly for npm CDN propagation, then run the official n8n verification
