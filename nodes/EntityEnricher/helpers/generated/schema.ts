@@ -7150,7 +7150,7 @@ export type components = {
              * Reasoning Effort
              * @description Enable model thinking/reasoning for every entity in the batch at the given effort. Translated per provider (effort field, or the Qwen-style enable_thinking switch where levels collapse to on); silently dropped for models the app cannot control. None (default) keeps each model's default behavior.
              */
-            reasoning_effort?: ("high" | "medium" | "low") | null;
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             /**
              * Schema Id
              * @description Saved schema ID (alternative to inline target_schema)
@@ -7629,7 +7629,7 @@ export type components = {
              * Reasoning Effort
              * @description Reasoning opt-in applied to every model the scenario runs; null = off
              */
-            reasoning_effort?: ("high" | "medium" | "low") | null;
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             /**
              * Repetitions
              * @description Run each model N times per run; keep the mean + consistency spread
@@ -7722,7 +7722,7 @@ export type components = {
             /** Name */
             name: string;
             /** Reasoning Effort */
-            reasoning_effort?: ("high" | "medium" | "low") | null;
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             /** Reference Base Hash */
             reference_base_hash?: string | null;
             reference_meta?: components["schemas"]["BenchmarkReferenceMeta"] | null;
@@ -7820,7 +7820,7 @@ export type components = {
             /** Name */
             name: string;
             /** Reasoning Effort */
-            reasoning_effort?: ("high" | "medium" | "low") | null;
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             /** Reference Base Hash */
             reference_base_hash?: string | null;
             reference_meta?: components["schemas"]["BenchmarkReferenceMeta"] | null;
@@ -7913,7 +7913,7 @@ export type components = {
             /** Name */
             name?: string | null;
             /** Reasoning Effort */
-            reasoning_effort?: ("high" | "medium" | "low") | null;
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             /** Repetitions */
             repetitions?: number | null;
             sample_params?: components["schemas"]["SampleGenTaskParams"] | null;
@@ -9459,10 +9459,9 @@ export type components = {
         DatabaseModelClassifyRequest: {
             /**
              * Model
-             * @description Model composite key. 'auto' (default) resolves to the org's schema-generation default (pinned model, else best benchmark score).
-             * @default auto
+             * @description Model composite key for this pass. Omitted or 'auto': the schema's own model when it names one that is available, else the org's schema-generation default (pinned model, else best benchmark score).
              */
-            model: string;
+            model?: string | null;
         };
         /**
          * DatabasePreflightReport
@@ -18232,8 +18231,19 @@ export type components = {
              * @description Key-language pre-selection for multilingual database keys. Generation stamps the run's resolved language here (the request's, else the one scoping detected — auto mode included), so a schema arrives with its key language chosen; the owner can still change it until a database link or entity state locks it.
              */
             key_language?: string | null;
+            /**
+             * Model
+             * @description The schema's own model: every LLM pass on the saved schema (regeneration, annotation, ambiguity check, database-model classification) runs on it unless the call names another. 'auto' = the organization's schema-generation default (pinned model, else best benchmark score).
+             * @default auto
+             */
+            model: string;
             /** Name */
             name: string;
+            /**
+             * Reasoning Effort
+             * @description Reasoning opt-in for the schema's LLM passes (low/medium/high); null = off. Dropped on models whose reasoning cannot be controlled.
+             */
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             schema_content: components["schemas"]["GeneratedJsonSchema-Input"];
             /** Tags */
             tags?: string[];
@@ -18336,6 +18346,12 @@ export type components = {
              * @description Key-language lock for multilingual database keys: the language the '{prop}_key' identity tokens are written in. Stamped by the first enrichment that writes entity state (or adopted at database link time); read-only.
              */
             key_language?: string | null;
+            /**
+             * Model
+             * @description The schema's own model: every LLM pass on the saved schema (regeneration, annotation, ambiguity check, database-model classification) runs on it unless the call names another. 'auto' = the organization's schema-generation default (pinned model, else best benchmark score).
+             * @default auto
+             */
+            model: string;
             /** Name */
             name: string;
             /**
@@ -18351,6 +18367,11 @@ export type components = {
             published_by_id?: string | null;
             /** @description The published contract enrichment and database sync run against (docs/ENTITY_LAYER.md → publish model). NULL while the schema is a draft (not linked to any database). schema_content stays the free working copy the editor autosaves. */
             published_content?: components["schemas"]["GeneratedJsonSchema-Output"] | null;
+            /**
+             * Reasoning Effort
+             * @description Reasoning opt-in for the schema's LLM passes (low/medium/high); null = off. Dropped on models whose reasoning cannot be controlled.
+             */
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             schema_content: components["schemas"]["GeneratedJsonSchema-Output"];
             /** Tags */
             tags: string[];
@@ -18382,8 +18403,18 @@ export type components = {
              * @description Pre-set the key language for multilingual database keys ahead of a database link (migration preparation). Settable only while the schema has no linked database and no entity state — afterwards the lock is immutable (identity tokens embed the language).
              */
             key_language?: string | null;
+            /**
+             * Model
+             * @description The schema's own model: every LLM pass on the saved schema (regeneration, annotation, ambiguity check, database-model classification) runs on it unless the call names another. 'auto' = the organization's schema-generation default (pinned model, else best benchmark score).
+             */
+            model?: string | null;
             /** Name */
             name?: string | null;
+            /**
+             * Reasoning Effort
+             * @description Reasoning opt-in for the schema's LLM passes (low/medium/high); null = off. Dropped on models whose reasoning cannot be controlled. Sent explicitly as null, turns reasoning off.
+             */
+            reasoning_effort?: ("low" | "medium" | "high") | null;
             schema_content?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
             /** Tags */
             tags?: string[] | null;
@@ -18418,10 +18449,9 @@ export type components = {
             generate_semantic_ids: boolean;
             /**
              * Model
-             * @description Model composite key. 'auto' (default) resolves to the org's schema-generation default (pinned model, else best benchmark score).
-             * @default auto
+             * @description Model composite key for this pass. Omitted or 'auto': on a saved schema, its own model when it names one that is available; otherwise the org's schema-generation default (pinned model, else best benchmark score).
              */
-            model: string;
+            model?: string | null;
             /** @description Content mode (POST /api/schema/annotate only): the schema document to annotate — either spelling, the model validator translates the conformant wire form. The job returns the annotated content without persisting anything — the import flow saves it afterwards, which is what lets a pasted schema whose repeating items carry no identifying member pass the save gate: the pass chooses the keys before the first save. */
             schema_content?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
         };
@@ -34841,7 +34871,7 @@ export interface operations {
         parameters: {
             query?: {
                 force?: boolean;
-                model?: string;
+                model?: string | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
