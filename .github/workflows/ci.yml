@@ -63,7 +63,7 @@ jobs:
           SCAN_DIR="$RUNNER_TEMP/n8n-scan"
           mkdir -p "$SCAN_DIR"
           ( cd "$SCAN_DIR" && npm init -y > /dev/null && npm install --no-audit --no-fund @n8n/scan-community-package@beta )
-          SCANNER="$SCAN_DIR/node_modules/@n8n/scan-community-package/scanner/scanner.mjs" \
+          SCANNER="$SCAN_DIR/node_modules/@n8n/scan-community-package/dist/scanner.js" \
           PACKAGE_DIR="$PWD" \
           node --input-type=module -e '
             const { pathToFileURL } = await import("node:url");
