@@ -11,25 +11,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Serve Index */
-        get: operations["serve_index__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/{path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Serve Spa */
-        get: operations["serve_spa__path__get"];
+        /** No Frontend */
+        get: operations["no_frontend__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -14478,6 +14461,12 @@ export type components = {
              */
             saved_schema_id?: string | null;
             /**
+             * Schema Trashed
+             * @description Its schema is in the trash: restorable, until then unreadable
+             * @default false
+             */
+            schema_trashed: boolean;
+            /**
              * Started At
              * Format: date-time
              */
@@ -14690,6 +14679,12 @@ export type components = {
              * @description The schema the run belongs to; null for a sample generation no schema was generated from yet, and once the schema was deleted
              */
             saved_schema_id?: string | null;
+            /**
+             * Schema Trashed
+             * @description Its schema is in the trash: restorable, until then unreadable
+             * @default false
+             */
+            schema_trashed: boolean;
             /**
              * Started At
              * Format: date-time
@@ -25207,7 +25202,7 @@ export type WebhookTestResponse = components['schemas']['WebhookTestResponse'];
 export type WebhookTypeInfo = components['schemas']['WebhookTypeInfo'];
 export type $defs = Record<string, never>;
 export interface operations {
-    serve_index__get: {
+    no_frontend__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -25223,37 +25218,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-        };
-    };
-    serve_spa__path__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
