@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added — SQL Server replicas
+
+A database sync can be registered on SQL Server (2022 or later) beside PostgreSQL; `dialect` on every *List Database Syncs* item says which, and the deltas come in that SQL. The README explains how to apply a SQL Server window (one batch per delta, in one transaction) with the Microsoft SQL node, and what to change in a workflow when the target database of a sync changes. *List Database Syncs* also returns `target_generation`, the number of such changes.
+
+### Changed — regenerated API types
+
+Regenerated from the backend OpenAPI schema: the `sqlserver` dialect, `POST /api/databases/{id}/retarget`, `target_generation`, `physical_changes` on a publish preview, the `unserved` list of a publish and its preview, the `unserved` list and `fk_enforced` flag of the relational map, and no separate demo classification model.
+
 ### Fixed — Generate Sample reports why a generation failed
 
 A failed sample generation used to come out as a generic "No sample generation result received": the node matched only a successful result, so the job's own reason was dropped. The output item now carries the job's `error_message`, its typed `error_code` (`incoherent_attachments`, `rate_limited`, `provider_credits_exhausted`, …) and, when several attachments were refused as unrelated, the `attachment_coherence` verdict that explains it. A cancelled generation says so.

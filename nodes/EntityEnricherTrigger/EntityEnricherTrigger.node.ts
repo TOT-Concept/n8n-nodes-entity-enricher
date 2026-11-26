@@ -109,7 +109,7 @@ export class EntityEnricherTrigger implements INodeType {
 			categories: ['Data & Storage', 'Development'],
 			alias: [
 				'enrichment', 'entity', 'webhook',
-				'database sync', 'database replication', 'delta', 'cdc', 'postgresql', 'mysql', 'sqlite',
+				'database sync', 'database replication', 'delta', 'cdc', 'postgresql', 'sql server', 'mssql',
 			],
 			resources: {
 				primaryDocumentation: [
@@ -190,7 +190,7 @@ export class EntityEnricherTrigger implements INodeType {
 				name: 'fetchOnFire',
 				type: 'boolean',
 				default: true,
-				description: 'Whether to fetch and lease the pending deltas when notified (one item per delta). Disable to receive only the notification.',
+				description: 'Whether to fetch and lease the pending deltas when notified (one item per delta, to apply in one transaction; on SQL Server each delta is a batch of its own). Disable to receive only the notification.',
 				displayOptions: { show: { event: ['delta_available'] } },
 			},
 			{

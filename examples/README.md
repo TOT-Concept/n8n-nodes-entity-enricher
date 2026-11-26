@@ -28,7 +28,8 @@ enrich, and keep your own database converged. See [The full arc](#the-full-arc-0
    - `PASTE_YOUR_SCHEMA_ID` — just re-pick the schema from the **Schema** dropdown.
    - `PASTE_YOUR_DATABASE_SYNC_ID` (workflow 06) — copy it from the **Database Sync ▸ List Database
      Syncs** operation, or from the app's Database Sync page.
-4. Workflow 06 also needs a **Postgres credential** on its *Apply to your replica* node.
+4. Workflow 06 also needs a **Postgres credential** on its *Apply to your replica* node (a
+   **Microsoft SQL** one when the sync is registered as SQL Server).
 
 The workflows reference the node as `n8n-nodes-entity-enricher.entityEnricher`, which is how it is
 registered when installed from npm (**Settings ▸ Community Nodes**). If you run the node as a local
@@ -155,9 +156,10 @@ Entity Enricher Trigger (Database Deltas Available)  →  Code (aggregate)  → 
 ```
 
 Register the database on the schema first (**Database Sync** page in the app, or over MCP / the REST
-API) and publish the schema — a linked-but-unpublished schema queues nothing. Then activate this
-workflow: the trigger registers its webhook on the linked schema, so every enrichment that queues
-deltas wakes it up.
+API) and publish the schema — a linked-but-unpublished schema queues nothing. Create an empty
+database, download the sync's snapshot and apply it there: it creates the tables, which the feed does
+not ([the commands](../README.md#database-sync)). Then activate this workflow: the trigger registers
+its webhook on the linked schema, so every enrichment that queues deltas wakes it up.
 
 With **Fetch Deltas on Fire** enabled (the default), the trigger doesn't just notify — it fetches and
 **leases** the next FIFO window and emits **one item per delta**, each carrying `id`, `sql`, `kind`,
@@ -184,6 +186,52 @@ can branch a notification off it.
 > them. This workflow is for when a CLI can't run where your database lives, or when you want the
 > deltas to fan out into something else (a warehouse queue, an audit log, a Slack alert on schema
 > migrations).
+
+### The same workflow on SQL Server
+
+When the sync's `dialect` is `sqlserver`, two nodes change: the Code node, and the node that applies.
+
+**Code node.** Each delta is a batch of its own: SQL Server compiles a batch as a whole, so a data
+delta joined to the schema delta that adds its columns does not compile. `EXEC` gives each delta its
+batch while the window stays one query, hence one transaction. `TRY … CATCH` is what rolls back when
+a delta does not parse:
+
+```js
+const deltas = $input.all().map((item) => item.json);
+if (!deltas.length) return [];
+const statements = deltas.map((d) => `EXEC(N'${d.sql.replace(/'/g, "''")}');`);
+return [{
+  json: {
+    sql: [
+      'SET XACT_ABORT ON;',
+      'BEGIN TRY',
+      'BEGIN TRANSACTION;',
+      ...statements,
+      'COMMIT;',
+      'END TRY',
+      'BEGIN CATCH',
+      'IF @@TRANCOUNT > 0 ROLLBACK;',
+      'THROW;',
+      'END CATCH',
+    ].join('\n'),
+    up_to_id: Math.max(...deltas.map((d) => Number(d.id))),
+    delta_count: deltas.length,
+    schema_migrations: deltas.filter((d) => d.kind === 'schema').length,
+  },
+}];
+```
+
+**Apply to your replica.** Replace it with a **Microsoft SQL** node, *Execute Query*, whose Query is
+`{{ $json.sql }}` — typed as is. Written as an expression (`={{ $json.sql }}`), n8n would evaluate any
+`{{ … }}` it finds in your data too. Raise the credential's **Request Timeout**, 15 seconds by
+default, for windows that carry a migration of a large table.
+
+The replica needs SQL Server 2022 or later, and its text columns compare exactly, case included: see
+[SQL Server](../README.md#sql-server).
+
+> **After "Change target database"**, this workflow still writes to the previous database until you
+> point its node at the new one and apply the new snapshot there:
+> [the steps](../README.md#when-the-target-database-of-a-sync-changes).
 
 **The other two trigger events** need no polling either: *Enrichment Result* fires on every completed
 enrichment of a schema, and *Rejected for Database Save* fires only on enrichments the database

@@ -18,7 +18,7 @@ The enrichment is the easy half. What you normally end up building yourself — 
 
 - **A designed schema, not a JSON dump.** Register a database on a schema and Entity Enricher derives the relational model from it: a table per entity type, `PRIMARY KEY`s, real `FOREIGN KEY`s, child tables for the parts an entity owns, junction tables for entities it merely references (one row many parents point at, not a copy per parent), typed columns, and indexes on what a list screen actually filters and sorts on. An LLM classification pass proposes each column's SQL contract at link time; you curate it in the Model tab.
 - **Migrations you don't write.** Edit the schema and publish: the change is diffed against what each database has actually shipped and travels down the same feed as the data — additive DDL applied silently, riskier transforms (a re-key, a type change, a renamed column) held for your confirmation. No hand-written `ALTER`, no drift between the schema and the database.
-- **Synced by an open-source client you run.** [`ee-database`](https://github.com/TOT-Concept/ee-database) is an MIT-licensed Go binary that lives next to *your* PostgreSQL, MySQL or SQLite. It connects **outward** over WSS — no inbound firewall hole — and **your connection string never leaves the machine**: Entity Enricher never holds a credential to your database. It bootstraps from a `.sql` snapshot, applies each leased batch transactionally, acknowledges it, and halts loudly on a failing delta rather than skipping it. Releases are **Sigstore-signed** and the installer verifies that signature against the publishing workflow's identity before the binary is ever executable.
+- **Synced by an open-source client you run.** [`ee-database`](https://github.com/TOT-Concept/ee-database) is an MIT-licensed Go binary that lives next to *your* PostgreSQL or SQL Server. It connects **outward** over WSS — no inbound firewall hole — and **your connection string never leaves the machine**: Entity Enricher never holds a credential to your database. It bootstraps from a `.sql` snapshot, applies each leased batch transactionally and acknowledges it; a batch the database refuses is rolled back and set aside in quarantine, never skipped silently. Releases are **Sigstore-signed** and the installer verifies that signature against the publishing workflow's identity before the binary is ever executable.
 
 ```
   your schema ──┬──▶ relational model   tables, PK/FK, child + junction tables, indexes
@@ -30,10 +30,10 @@ The enrichment is the easy half. What you normally end up building yourself — 
                     ee-database  ──  MIT-licensed, Sigstore-signed, outbound WSS only
                              │       (your DSN never leaves your machine)
                              ▼
-              your PostgreSQL · MySQL · SQLite
+              your PostgreSQL · SQL Server
 ```
 
-n8n reaches the same feed without a CLI, and without polling: the **Entity Enricher Trigger** fires the moment new deltas exist and hands them over already leased, so a workflow can apply them with the native Postgres node and acknowledge — see [Database Sync](#database-sync).
+n8n reaches the same feed without a CLI, and without polling: the **Entity Enricher Trigger** fires the moment new deltas exist and hands them over already leased, so a workflow can apply them with n8n's own Postgres or Microsoft SQL node and acknowledge — see [Database Sync](#database-sync).
 
 **Ready-made workflows:** see [`examples/`](examples/) — six importable workflows, including PDF-in, photo-in, and the full schema → database-sync arc.
 
@@ -234,24 +234,63 @@ Example workflows: [`05-samples-to-schema.json`](examples/05-samples-to-schema.j
 
 ## Database Sync
 
-Register a **database sync** on a schema (in the app, or over MCP / the REST API) and every enrichment queues SQL deltas for it — the designed tables, their migrations, and the rows, in one ordered feed ([what that gives you](#enrichments-become-a-real-database--yours)). The node drains it into *your own* PostgreSQL, MySQL or SQLite:
+Register a **database sync** on a schema (in the app, or over MCP / the REST API) and every enrichment queues SQL deltas for it — the designed tables, their migrations, and the rows, in one ordered feed ([what that gives you](#enrichments-become-a-real-database--yours)). The node drains it into *your own* PostgreSQL or SQL Server (2022 or later) — the SQL is that of the database type the sync was registered with:
 
 | Operation | Role |
 |---|---|
-| **List Database Syncs** | The databases registered on a schema, with their pending delta counts and linked schemas |
+| **List Database Syncs** | The databases registered on a schema, with their type (`dialect`: `postgres` or `sqlserver`), pending delta counts, linked schemas and `snapshot_required` |
 | **Fetch Deltas** | The next FIFO window, one item per delta (`id`, `sql`, `kind`, `op`, `entity_type`, `revision`). **Claim** leases the window; disable it for a replayable read |
 | **Acknowledge Deltas** | Releases the lease up to a delta id, and purges delivered rows per the sync's options |
 
+Before the first run:
+
+1. Publish the schema from the sync's Model tab (a linked but unpublished schema queues nothing).
+2. Create an empty database of the sync's type.
+3. Download the snapshot and apply it. It creates the tables, which the feed does not:
+
+   ```bash
+   curl -H "X-API-Key: $KEY" https://entityenricher.ai/api/databases/{id}/snapshot -o snapshot.sql
+   psql "postgres://user:pass@host:5432/mydb" -v ON_ERROR_STOP=1 -f snapshot.sql        # PostgreSQL
+   sqlcmd -S host,1433 -d mydb -U user -I -b -x -i snapshot.sql                         # SQL Server
+   ```
+
+   For `sqlcmd`, `-d` names the target database (without it `sqlcmd` writes to the login's default database, usually `master`); `-I` turns quoted identifiers on, `-b` stops at the first error, `-x` leaves `$(…)` in your data alone. Add `-C` when the server's certificate is self-signed.
+4. Activate the workflow.
+
 Two rules decide whether the replica stays correct:
 
-1. **One window = one transaction.** All deltas of one enrichment share a batch, and the projected tables carry `DEFERRABLE INITIALLY DEFERRED` foreign keys — splitting a batch across transactions fails on the constraint. A fetched window never splits a batch, so join the window's `sql` and run it as one statement (PostgreSQL treats a multi-statement query as a single implicit transaction).
+1. **One window = one transaction.** All deltas of one enrichment share a batch, and a fetched window never splits a batch, so the window is the unit: all of it or none of it. How to run it depends on the database type:
+   - **PostgreSQL** — join the window's `sql` and run it as one query (PostgreSQL treats a multi-statement query as a single implicit transaction). The projected tables carry `DEFERRABLE INITIALLY DEFERRED` foreign keys, so a batch split across transactions fails on the constraint.
+   - **SQL Server** — each delta is a batch of its own: run them in order, on one connection, inside one transaction. Never join them into one batch — see [SQL Server](#sql-server).
 2. **Acknowledge after the apply, never before.** An ack on an apply that then failed loses those deltas permanently.
 
 Deltas of `kind: "schema"` are DDL migrations and arrive **before** the data rows that need them — apply them in order, never filter them out.
 
 > For a database the CLI can reach, [`ee-database`](https://github.com/TOT-Concept/ee-database) is the better client: it bootstraps from the `.sql` snapshot, applies batches over a WebSocket and acks them. Use n8n when a CLI can't run where the database lives, or to route deltas into something other than a database.
 
-Example workflow: [`06-delta-sync-to-postgres.json`](examples/06-delta-sync-to-postgres.json).
+Example workflow: [`06-delta-sync-to-postgres.json`](examples/06-delta-sync-to-postgres.json), with the [two nodes to change for SQL Server](examples/README.md#the-same-workflow-on-sql-server).
+
+### SQL Server
+
+- **One batch per delta.** SQL Server compiles a batch as a whole, so a data delta joined to the `kind: "schema"` delta that adds its columns fails on an unknown column name. The [example](examples/README.md#the-same-workflow-on-sql-server) wraps each delta in `EXEC(N'…')`, inside one transaction, in one query. Each delta turns `XACT_ABORT` and `QUOTED_IDENTIFIER` on itself.
+- **Scripts are `sqlcmd` scripts.** The snapshot (`GET /api/databases/{id}/snapshot`) and the feed read over REST with `format=sql` are cut into batches by lines holding only `GO`, which is not T-SQL: a node that runs SQL refuses them. Run `sqlcmd -S host,1433 -d mydb -U user -I -b -x -i script.sql`. The snapshot opens and commits its own transaction. The `format=sql` feed does not: add `BEGIN TRANSACTION;` and `GO` before it, `GO` and `COMMIT;` after it. Without `sqlcmd`, split the script on the `GO` lines, run the batches in order on one connection and stop at the first error.
+- **Text compares exactly, case included.** Text columns use the binary collation `Latin1_General_100_BIN2`, so `WHERE title = 'alien'` does not find `Alien`. A join with a column of another collation fails until one side is converted, e.g. `ON film.title COLLATE DATABASE_DEFAULT = mine.title`.
+- **What else differs from a PostgreSQL replica.**
+  - A required column outside the keys is enforced by a check `nn_<table>_<column>`; the catalog lists the column as nullable.
+  - Key and indexed text holds 400 characters, each item of a text list included, and a key (or an item of an unordered text list) cannot end with a space: a value that does not fit refuses the whole enrichment, with the table and column named. This limit and declared lengths count UTF-16 units, so an emoji counts as two.
+  - Numeric columns keep 10 decimals; a property whose database type is `double` is not limited to them.
+  - An indexed multilingual field has one column per language, `<field>_<language>` (its first 400 characters). Filter on that column: a filter on `JSON_VALUE` does not use the index.
+  - Index names starting with `idx_` or `uq_` are reserved for the sync: a migration may drop an index with such a name, so give yours another prefix.
+
+### When the target database of a sync changes
+
+"Change target database", in the app, restarts a sync on a new, empty database — of the same type or the other one — and discards the queued deltas. Entity Enricher revokes the credential of an `ee-database` client, but it cannot know which database a workflow writes to: **a workflow left as it is applies the new feed to the previous database.**
+
+1. Create the new, empty database.
+2. Deactivate the workflow, then change the target in the app.
+3. Select the credential of the new database in the node that applies the SQL — and, if the type changed, replace that node and the way the window is run (above).
+4. Download the snapshot (`GET /api/databases/{id}/snapshot`, with the same API key) and apply it to the new database, with the `psql` or `sqlcmd` command of the first run (above). Until it is downloaded, `snapshot_required` is true on *List Database Syncs* and *Fetch Deltas* returns nothing.
+5. Reactivate the workflow.
 
 ## Entity Enricher Trigger
 

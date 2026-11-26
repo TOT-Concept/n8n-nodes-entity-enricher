@@ -43,7 +43,7 @@ export class EntityEnricher implements INodeType {
 			alias: [
 				'enrichment', 'translation', 'llm', 'data enrichment', 'multi-model', 'fusion', 'entity',
 				'ai', 'agent', 'ai agent', 'structured output', 'knowledge extraction',
-				'database sync', 'database replication', 'postgresql', 'mysql', 'sqlite', 'sql', 'cdc', 'etl', 'master data',
+				'database sync', 'database replication', 'postgresql', 'sql server', 'mssql', 'sql', 'cdc', 'etl', 'master data',
 			],
 			resources: {
 				primaryDocumentation: [
@@ -277,7 +277,7 @@ export class EntityEnricher implements INodeType {
 					{
 						name: 'Fetch Deltas',
 						value: 'fetchDeltas',
-						description: 'Fetch the next window of database deltas (SQL + JSON), optionally leasing them',
+						description: 'Fetch the next window of database deltas (SQL + JSON), optionally leasing them. The SQL is that of the registered database type; on SQL Server each delta is a batch of its own.',
 						action: 'Fetch database deltas',
 					},
 					{

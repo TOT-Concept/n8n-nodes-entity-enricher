@@ -11,8 +11,25 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** No Frontend */
-        get: operations["no_frontend__get"];
+        /** Serve Index */
+        get: operations["serve_index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Serve Spa */
+        get: operations["serve_spa__path__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2099,6 +2116,32 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/database-sync/apply-error": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Snapshot Apply Error
+         * @description The paired client reports that the snapshot failed to apply.
+         *
+         *     A request rather than the WebSocket's `apply_error` frame: no socket is
+         *     open during a first bootstrap, and opening one would start the delivery of
+         *     deltas to a database that has no tables. The error shows on the Sync
+         *     client card until the client downloads the snapshot again or acknowledges
+         *     a window.
+         */
+        post: operations["report_snapshot_apply_error_api_database_sync_apply_error_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/database-sync/cancel/{user_code}": {
         parameters: {
             query?: never;
@@ -2134,6 +2177,9 @@ export type paths = {
          *     minted earlier — re-claim = rotation). A live classic pairing is never
          *     evicted by a claim; moving a database under a host is an explicit owner
          *     action (revoke, then assign), not something automation may do silently.
+         *
+         *     A host too old for the registration is refused (426
+         *     client_upgrade_required) before anything is minted.
          */
         post: operations["claim_database_api_database_sync_claim_post"];
         delete?: never;
@@ -2194,7 +2240,11 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Exchange Token */
+        /**
+         * Exchange Token
+         * @description Every run of a paired client starts here, so this is where a client too
+         *     old for its registration is refused (426 client_upgrade_required).
+         */
         post: operations["exchange_token_api_database_sync_exchange_post"];
         delete?: never;
         options?: never;
@@ -2569,10 +2619,51 @@ export type paths = {
          * Get Database Relational Map
          * @description Merged projection of every linked schema: shared entity types appear
          *     once with the union of their columns, badged with the feeding schemas.
+         *     `unserved` lists what the schemas declare and this database's dialect does
+         *     not create.
          */
         get: operations["get_database_relational_map_api_databases__database_id__relational_map_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/databases/{database_id}/retarget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retarget Database
+         * @description Change the target database: restart the sync on a new, empty database
+         *     of another type, or of the same one.
+         *
+         *     The registration keeps its name, schemas, keys, options and webhooks. The
+         *     deltas written for the current database are discarded, the sync-client
+         *     credential is revoked, and the next client — or the assigned host —
+         *     bootstraps the new database from a snapshot of the whole entity state. The
+         *     current database is left as it is and stops receiving changes.
+         *
+         *     A paused schema's held changes are discarded with the queue: its current
+         *     state is sent in the first snapshot, and the switch keeps holding later
+         *     changes.
+         *
+         *     The sync host that manages the registration keeps it when it can serve
+         *     the new database (same database type, a current ee-database), unless
+         *     `target_host` names another one.
+         *
+         *     An API-key consumer (n8n, Make, MCP, REST) is not disconnected: a workflow
+         *     still pointed at the current database would apply the new feed there, so
+         *     point it at the new database before it downloads the snapshot.
+         */
+        post: operations["retarget_database_api_databases__database_id__retarget_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5266,8 +5357,9 @@ export type paths = {
          *     → publish model): enrichment and the linked databases' projections follow
          *     the published content only, so structural edits take effect here — never
          *     on autosave. Transform-grade changes (re-key, type change) additionally
-         *     require confirm_transforms=true: they ship replica-side migrations whose
-         *     data guards pause the feed until any named data problem is fixed.
+         *     require confirm_transforms=true: they ship replica-side migrations, and one
+         *     whose data guard refuses is quarantined with the named problem, to re-drive
+         *     once it is fixed.
          */
         post: operations["publish_schema_api_schema_saved__schema_id__publish_post"];
         delete?: never;
@@ -5473,10 +5565,11 @@ export type paths = {
         /**
          * Get Relational Map
          * @description The schema→relational projection (tables, columns, junctions) for the ER
-         *     diagram. No registration stands behind a bare schema, so nullability is
-         *     reported as the automatic options of the default rung would ship it
-         *     (skip_children → propagate_not_null on, reference FKs nullable), on the
-         *     natural shape this map draws.
+         *     diagram. The map is no registration's, so nullability is reported as the
+         *     automatic options of the default rung would ship it (skip_children →
+         *     propagate_not_null on, reference FKs nullable), on the natural shape this
+         *     map draws. Its types are those of the databases the schema is linked to:
+         *     PostgreSQL's when there is none, or one of each.
          */
         get: operations["get_relational_map_api_schemas__schema_id__relational_map_get"];
         put?: never;
@@ -9043,6 +9136,11 @@ export type components = {
         /** CronJobInfo */
         CronJobInfo: {
             /**
+             * Configured
+             * @description False when the settings the job needs are missing: its runs are skipped
+             */
+            configured: boolean;
+            /**
              * Cron
              * @description The expression in force, defaulted from the registry
              */
@@ -9279,6 +9377,12 @@ export type components = {
             dialect?: string | null;
             /** Expires In */
             expires_in: number;
+            /**
+             * Target Generation
+             * @description How many times the registration's target database was changed. The client stores it with its pairing: another value on a later pairing means the saved DSN points at the previous database
+             * @default 0
+             */
+            target_generation: number;
         };
         /**
          * DatabaseCredentialCreateResponse
@@ -9323,11 +9427,14 @@ export type components = {
              * @default false
              */
             is_connected: boolean;
-            /** Last Apply Delta Id */
+            /**
+             * Last Apply Delta Id
+             * @description The delta that failed; null when the snapshot is what failed
+             */
             last_apply_delta_id?: number | null;
             /**
              * Last Apply Error
-             * @description Last SQL apply failure reported by the client — explains a stalled queue head
+             * @description Last SQL apply failure reported by the client: a delta its database refused (explains a stalled queue head) or a snapshot that did not apply (explains a replica that never bootstraps). Cleared by the next acknowledged window; a snapshot failure is also cleared by the client's next snapshot download
              */
             last_apply_error?: string | null;
             /** Last Apply Error At */
@@ -9401,6 +9508,12 @@ export type components = {
              * @enum {string}
              */
             status: "pending" | "ok" | "expired" | "cancelled" | "not_found";
+            /**
+             * Target Generation
+             * @description The registration's target_generation (see the exchange response)
+             * @default 0
+             */
+            target_generation: number;
         };
         /**
          * DatabaseMigrationPreview
@@ -9421,6 +9534,11 @@ export type components = {
              * @description Why no migration can be rendered for this database (unsupported transform)
              */
             error?: string | null;
+            /**
+             * Physical Changes
+             * @description Changes this migration makes to the physical type of a column the schema did not retype — on SQL Server, a text column that becomes a key or gets an index is narrowed to 400 characters. Each needs the same confirmation as a transform: it fails on the replica when a stored value does not fit
+             */
+            physical_changes?: string[];
             /** Pk Strategy */
             pk_strategy: string;
             /**
@@ -9458,7 +9576,7 @@ export type components = {
         DatabasePreflightReport: {
             /**
              * Create Db
-             * @description Server-level right to create databases (CREATEDB / global CREATE)
+             * @description Server-level right to create databases (CREATEDB on PostgreSQL, CREATE ANY DATABASE on SQL Server)
              */
             create_db?: boolean | null;
             /** Database */
@@ -9495,8 +9613,11 @@ export type components = {
              * Format: date-time
              */
             created_at: string;
-            /** Dialect */
-            dialect: string;
+            /**
+             * Dialect
+             * @enum {string}
+             */
+            dialect: "postgres" | "sqlserver";
             /**
              * Entity Count
              * @description Total entities feeding this database across every linked schema (0 = nothing to snapshot or checksum yet)
@@ -9596,10 +9717,16 @@ export type components = {
             shape_shipped: boolean;
             /**
              * Snapshot Required
-             * @description The replica must re-pull the .sql snapshot before data deltas resume (set on re-link — rows enriched while unlinked are only in the snapshot; cleared by a snapshot download)
+             * @description Set when the replica must (re)apply the snapshot: a re-linked schema, or a changed target database. Data deltas resume once the snapshot is downloaded
              * @default false
              */
             snapshot_required: boolean;
+            /**
+             * Target Generation
+             * @description How many times the target database of this registration was changed (0 = never). Send it back as expected_generation to POST /api/databases/{id}/retarget
+             * @default 0
+             */
+            target_generation: number;
             /**
              * Updated At
              * Format: date-time
@@ -9629,10 +9756,11 @@ export type components = {
         DatabaseSyncCreateRequest: {
             /**
              * Dialect
+             * @description Type of the target database: 'postgres' (PostgreSQL) or 'sqlserver' (SQL Server 2022 or later). The snapshot and the delta feed are rendered in its SQL. Changed after registration only by POST /api/databases/{id}/retarget, which restarts the sync on a new database
              * @default postgres
-             * @constant
+             * @enum {string}
              */
-            dialect: "postgres";
+            dialect: "postgres" | "sqlserver";
             /**
              * Index Scalars
              * @description Which index classes the replica materializes (docs/ENTITY_LAYER.md → indexing): 'none' = identity and feed only, 'keys' = + natural keys and the access paths child/junction tables have no other way to answer, 'filterable' (default) = + closed sets (enum refs, booleans, dates) and properties flagged `indexed`, 'all' = + every remaining scalar column. Widening queues CREATE INDEX, narrowing queues DROP INDEX — both as ordinary schema deltas; indexes you created yourself are never touched
@@ -9674,13 +9802,13 @@ export type components = {
             page_limit: number;
             /**
              * Pattern Index Localized Keys
-             * @description Emit a per-language pattern-match companion index on every LOCALIZED column of the `key` class (identity/label columns already indexed at every tier). The extra index is `((lower(col->>'lang')) text_pattern_ops)` — a stock btree, no extension needed — which answers left-anchored `LIKE 'foo%'` regardless of the database collation. Autocomplete stays case-insensitive by lowering both sides in the query: `WHERE lower(col->>'lang') LIKE lower('litt%')`. Off by default because every extra index is paid on every write, and only the consumer's list-screen search box says these indexes earn their cost. Widening queues CREATE INDEX, narrowing queues DROP INDEX — like index_scalars, an ordinary index-set change
+             * @description Emit a per-language pattern-match companion index on every LOCALIZED column of the `key` class (identity/label columns already indexed at every tier). PostgreSQL only: the extra index is `((lower(col->>'lang')) text_pattern_ops)` — a stock btree, no extension needed — which answers left-anchored `LIKE 'foo%'` regardless of the database collation. Autocomplete stays case-insensitive by lowering both sides in the query: `WHERE lower(col->>'lang') LIKE lower('litt%')`. Refused on a SQL Server database (400 option_not_served), and turned off by a change of target database to SQL Server. Off by default because every extra index is paid on every write, and only the consumer's list-screen search box says these indexes earn their cost. Widening queues CREATE INDEX, narrowing queues DROP INDEX — like index_scalars, an ordinary index-set change
              * @default false
              */
             pattern_index_localized_keys: boolean;
             /**
              * Pk Strategy
-             * @description Physical PRIMARY KEY shape (docs/ENTITY_LAYER.md → pk_strategy). 'surrogate' (default) — every projected table gets a synthetic `_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY` (underscored so a schema property literally named `id` does not collide) and the schema's database key becomes a composite UNIQUE + NOT NULL. ORM-friendly (Django/Rails/Prisma model one PK column); children reference `_(parent_table)_id` (junctions `_source_id` / `_target_id`) BIGINT FKs onto the parent's `_id`; database-key changes stay migratable after publication (children reference the immutable `_id`). 'natural' — schema database keys are the PRIMARY KEY (no synthetic column and one less index per table, but owned tables copy their owner's full key — nested schemas project leaner under surrogate); database keys are FROZEN after first publication (re-keys would have to re-point every child, refused at publish). Decide at registration: locked once the replica shape has shipped — no DDL travels on the toggle. Mutable freely until first ship.
+             * @description Physical PRIMARY KEY shape (docs/ENTITY_LAYER.md → pk_strategy). 'surrogate' (default) — every projected table gets a synthetic `_id` primary key (`BIGINT GENERATED ALWAYS AS IDENTITY` on PostgreSQL, `BIGINT IDENTITY(1,1)` on SQL Server; underscored so a schema property literally named `id` does not collide) and the schema's database key becomes a composite UNIQUE + NOT NULL. ORM-friendly (Django/Rails/Prisma model one PK column); children reference `_(parent_table)_id` (junctions `_source_id` / `_target_id`) BIGINT FKs onto the parent's `_id`; database-key changes stay migratable after publication (children reference the immutable `_id`). 'natural' — schema database keys are the PRIMARY KEY (no synthetic column and one less index per table, but owned tables copy their owner's full key — nested schemas project leaner under surrogate); a database-key change after publication also rewrites the copies of the key in every dependent table. Decide at registration: locked once the replica shape has shipped — no DDL travels on the toggle. Mutable freely until first ship.
              * @default surrogate
              * @enum {string}
              */
@@ -9928,6 +10056,50 @@ export type components = {
             root_entity_types: string[];
             /** Tables */
             tables: components["schemas"]["RelationalTable"][];
+            /**
+             * Unserved
+             * @description Indexes and foreign keys the schemas declare that this database's dialect does not create — always empty on PostgreSQL
+             */
+            unserved?: components["schemas"]["UnservedIntent"][];
+        };
+        /**
+         * DatabaseSyncRetargetRequest
+         * @description Change of target database. A paused schema's held changes are discarded
+         *     with the queue: its current state is sent in the first snapshot, and the
+         *     switch keeps holding later changes.
+         */
+        DatabaseSyncRetargetRequest: {
+            /**
+             * Dialect
+             * @description Type of the new target database. The same type as today is allowed: the sync restarts on a fresh database.
+             * @enum {string}
+             */
+            dialect: "postgres" | "sqlserver";
+            /**
+             * Expected Generation
+             * @description The registration's target_generation as the caller last read it. A retarget that happened in between is refused (409 target_changed), so a repeated request never restarts the sync twice.
+             */
+            expected_generation: number;
+            /**
+             * Force
+             * @description Required when purge_entity_state is on and deliveries were acknowledged: entities already purged cannot be sent to the new target.
+             * @default false
+             */
+            force: boolean;
+            /**
+             * Target Host
+             * @description Sync host (id or name) that provisions the new target. Omitted: the host the registration is assigned to keeps it when it can serve the new target (same database type, a current ee-database); otherwise one is auto-assigned when exactly one eligible host is connected, and the registration is left unassigned when none or several are.
+             */
+            target_host?: string | null;
+        };
+        /** DatabaseSyncRetargetResponse */
+        DatabaseSyncRetargetResponse: {
+            database: components["schemas"]["DatabaseSync"];
+            /**
+             * Discarded Deltas
+             * @description Deltas written for the previous target, deleted by the change
+             */
+            discarded_deltas: number;
         };
         /** DatabaseSyncUpdateRequest */
         DatabaseSyncUpdateRequest: {
@@ -10017,6 +10189,32 @@ export type components = {
             valid: boolean;
         };
         /**
+         * DatabaseUnservedIntents
+         * @description What one linked database, once the schema is published, does not create
+         *     of what its schemas declare.
+         */
+        DatabaseUnservedIntents: {
+            /**
+             * Database Id
+             * Format: uuid
+             */
+            database_id: string;
+            /** Database Name */
+            database_name: string;
+            /**
+             * Dialect
+             * @enum {string}
+             */
+            dialect: "postgres" | "sqlserver";
+            /** Intents */
+            intents: components["schemas"]["UnservedIntent"][];
+            /**
+             * Notices
+             * @description One sentence per kind: how many, and what their absence costs
+             */
+            notices: string[];
+        };
+        /**
          * DbModelClassificationJobResult
          * @description A completed database-model classification pass.
          */
@@ -10027,7 +10225,7 @@ export type components = {
             changed: components["schemas"]["DbModelFlagChange"][];
             /**
              * Column Types
-             * @description Resolved SQL type per column path
+             * @description Type of the column each schema path gets, as the linked databases create it; named per database type when they differ. A path with no column of its own (an array of objects, which is a table) is absent
              */
             column_types: {
                 [key: string]: string;
@@ -10292,7 +10490,7 @@ export type components = {
             };
             /**
              * Snapshot Required
-             * @description Delivery is paused until the replica re-applies the .sql snapshot (publish model: rows written while a schema was unlinked exist only in the snapshot). When true the batch is empty — re-bootstrap, then poll again.
+             * @description Set when the replica must (re)apply the snapshot: a re-linked schema, or a changed target database. Delivery is paused until then: when true the batch is empty — re-bootstrap, then poll again.
              * @default false
              */
             snapshot_required: boolean;
@@ -11044,8 +11242,6 @@ export type components = {
          * @description What the admin page reads — never the Turnstile secret.
          */
         DemoSettingsResponse: {
-            /** Classification Model */
-            classification_model: string | null;
             /** Credit Balance */
             credit_balance: number;
             /** Daily Ip Cap */
@@ -11080,8 +11276,6 @@ export type components = {
          * @description PUT body: every field optional; an empty secret string clears it.
          */
         DemoSettingsUpdate: {
-            /** Classification Model */
-            classification_model?: string | null;
             /** Daily Ip Cap */
             daily_ip_cap?: number | null;
             /** Enabled */
@@ -12635,9 +12829,15 @@ export type components = {
             server_url: string;
             /**
              * Suggested Database Name
-             * @description Snake_cased registration name — the conventional physical database name the host composes with its base DSN (locally overridable)
+             * @description Snake_cased registration name, followed by `__<n>` after the n-th change of target database — the conventional physical database name the host composes with its base DSN (locally overridable)
              */
             suggested_database_name: string;
+            /**
+             * Target Generation
+             * @description How many times the registration's target database was changed; a local profile claimed at another value belongs to the previous target
+             * @default 0
+             */
+            target_generation: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -15539,7 +15739,7 @@ export type components = {
             $ref?: string | null;
             /**
              * Additionalproperties
-             * @description True = this object property is FREE-FORM: the enrichment returns whatever JSON the `description` asks for, with no per-key contract, and the projection stores it whole as a JSONB column. For the part of an entity whose shape is genuinely open — a raw payload, a vendor blob, notes whose keys differ per instance.
+             * @description True = this object property is FREE-FORM: the enrichment returns whatever JSON the `description` asks for, with no per-key contract, and the projection stores it whole in one JSON column (JSONB on PostgreSQL, checked JSON text on SQL Server). For the part of an entity whose shape is genuinely open — a raw payload, a vendor blob, notes whose keys differ per instance.
              *
              *     Object properties only, and mutually exclusive with `properties`: a site is either a typed object or a free-form one. JSON Schema itself composes the two ('these keys, plus anything'), but a half-typed site is neither reviewable as a contract nor storable as one column, so this codebase refuses the mix (validate_free_form).
              *
@@ -15562,7 +15762,7 @@ export type components = {
             database_key_reason?: string | null;
             /**
              * Db Name
-             * @description Physical identifier segment this property contributes to a consumer database (docs/ENTITY_LAYER.md → physical naming). None = use the property name verbatim, which is the case for almost every property. On an OBJECT it renames the flattening prefix of the whole subtree — so every property of that object, and of its descendants, carries the same shortened prefix; on a scalar or array it renames just that column / child table. Stamped automatically when a flattened path would exceed the 63-byte identifier limit PostgreSQL truncates at (MySQL rejects at 64), and editable under each property row in the Database Sync page's Model tab. Once stamped it is NEVER recomputed: deleting the long property that forced it must not rename the columns its siblings already have.
+             * @description Physical identifier segment this property contributes to a consumer database (docs/ENTITY_LAYER.md → physical naming). None = use the property name verbatim, which is the case for almost every property. On an OBJECT it renames the flattening prefix of the whole subtree — so every property of that object, and of its descendants, carries the same shortened prefix; on a scalar or array it renames just that column / child table. Stamped automatically when a flattened path would exceed the 63-byte identifier limit PostgreSQL truncates at (the strictest of the supported databases), and editable under each property row in the Database Sync page's Model tab. Once stamped it is NEVER recomputed: deleting the long property that forced it must not rename the columns its siblings already have.
              */
             db_name?: string | null;
             /**
@@ -15619,7 +15819,7 @@ export type components = {
             identity_scoping?: components["schemas"]["IdentityScopingInfo"] | null;
             /**
              * Index
-             * @description Why this property's column should be indexed in consumer databases, stated as intent — never as a physical index type (btree/GiST is the renderer's per-dialect call; docs/ENTITY_LAYER.md → indexing). 'search': a consumer app substring-searches this text column (%text% in a search box) — string properties only; projects as a pg_trgm trigram index on PostgreSQL (per language on localized columns, uncapped), nothing on other dialects; policy tier 'explicit'. Plain filter/sort btrees are NOT a per-property role: they are declared as entity-level query-shaped indexes (EntityDefinition.indexes), ordered like the query they serve. 'lat'/'lon' (+ optional 'alt'): one role of a geographic position — a complete pair under one parent object projects as one spatial index; a lone role emits nothing. 'range_start'/'range_end': one bound of an interval (validity period, band) — a complete pair projects as one overlap-queryable range index. None = no explicit request; identity properties (identifying/database_key are indexed by identity) and date-ish columns (indexed by type) keep their own derived classes. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the link-time classification pass — roles seeded from obvious names, bounded against the samples (coordinates in range, start <= end) — and curated in the Database Sync page's Model tab. Stripped from every enrichment prompt.
+             * @description Why this property's column should be indexed in consumer databases, stated as intent — never as a physical index type (btree/GiST is the renderer's per-dialect call; docs/ENTITY_LAYER.md → indexing). 'search': a consumer app substring-searches this text column (%text% in a search box) — string properties only; projects as a pg_trgm trigram index on PostgreSQL (per language on localized columns, uncapped), nothing on SQL Server; policy tier 'explicit'. Plain filter/sort btrees are NOT a per-property role: they are declared as entity-level query-shaped indexes (EntityDefinition.indexes), ordered like the query they serve. 'lat'/'lon' (+ optional 'alt'): one role of a geographic position — a complete pair under one parent object projects as one spatial index; a lone role emits nothing. 'range_start'/'range_end': one bound of an interval (validity period, band) — a complete pair projects as one overlap-queryable range index. None = no explicit request; identity properties (identifying/database_key are indexed by identity) and date-ish columns (indexed by type) keep their own derived classes. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the link-time classification pass — roles seeded from obvious names, bounded against the samples (coordinates in range, start <= end) — and curated in the Database Sync page's Model tab. Stripped from every enrichment prompt.
              */
             index?: ("search" | "lat" | "lon" | "alt" | "range_start" | "range_end") | null;
             /** @description For array types: schema of array items */
@@ -15782,7 +15982,7 @@ export type components = {
             $ref?: string | null;
             /**
              * Additionalproperties
-             * @description True = this object property is FREE-FORM: the enrichment returns whatever JSON the `description` asks for, with no per-key contract, and the projection stores it whole as a JSONB column. For the part of an entity whose shape is genuinely open — a raw payload, a vendor blob, notes whose keys differ per instance.
+             * @description True = this object property is FREE-FORM: the enrichment returns whatever JSON the `description` asks for, with no per-key contract, and the projection stores it whole in one JSON column (JSONB on PostgreSQL, checked JSON text on SQL Server). For the part of an entity whose shape is genuinely open — a raw payload, a vendor blob, notes whose keys differ per instance.
              *
              *     Object properties only, and mutually exclusive with `properties`: a site is either a typed object or a free-form one. JSON Schema itself composes the two ('these keys, plus anything'), but a half-typed site is neither reviewable as a contract nor storable as one column, so this codebase refuses the mix (validate_free_form).
              *
@@ -15805,7 +16005,7 @@ export type components = {
             database_key_reason?: string | null;
             /**
              * Db Name
-             * @description Physical identifier segment this property contributes to a consumer database (docs/ENTITY_LAYER.md → physical naming). None = use the property name verbatim, which is the case for almost every property. On an OBJECT it renames the flattening prefix of the whole subtree — so every property of that object, and of its descendants, carries the same shortened prefix; on a scalar or array it renames just that column / child table. Stamped automatically when a flattened path would exceed the 63-byte identifier limit PostgreSQL truncates at (MySQL rejects at 64), and editable under each property row in the Database Sync page's Model tab. Once stamped it is NEVER recomputed: deleting the long property that forced it must not rename the columns its siblings already have.
+             * @description Physical identifier segment this property contributes to a consumer database (docs/ENTITY_LAYER.md → physical naming). None = use the property name verbatim, which is the case for almost every property. On an OBJECT it renames the flattening prefix of the whole subtree — so every property of that object, and of its descendants, carries the same shortened prefix; on a scalar or array it renames just that column / child table. Stamped automatically when a flattened path would exceed the 63-byte identifier limit PostgreSQL truncates at (the strictest of the supported databases), and editable under each property row in the Database Sync page's Model tab. Once stamped it is NEVER recomputed: deleting the long property that forced it must not rename the columns its siblings already have.
              */
             db_name?: string | null;
             /**
@@ -15862,7 +16062,7 @@ export type components = {
             identity_scoping?: components["schemas"]["IdentityScopingInfo"] | null;
             /**
              * Index
-             * @description Why this property's column should be indexed in consumer databases, stated as intent — never as a physical index type (btree/GiST is the renderer's per-dialect call; docs/ENTITY_LAYER.md → indexing). 'search': a consumer app substring-searches this text column (%text% in a search box) — string properties only; projects as a pg_trgm trigram index on PostgreSQL (per language on localized columns, uncapped), nothing on other dialects; policy tier 'explicit'. Plain filter/sort btrees are NOT a per-property role: they are declared as entity-level query-shaped indexes (EntityDefinition.indexes), ordered like the query they serve. 'lat'/'lon' (+ optional 'alt'): one role of a geographic position — a complete pair under one parent object projects as one spatial index; a lone role emits nothing. 'range_start'/'range_end': one bound of an interval (validity period, band) — a complete pair projects as one overlap-queryable range index. None = no explicit request; identity properties (identifying/database_key are indexed by identity) and date-ish columns (indexed by type) keep their own derived classes. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the link-time classification pass — roles seeded from obvious names, bounded against the samples (coordinates in range, start <= end) — and curated in the Database Sync page's Model tab. Stripped from every enrichment prompt.
+             * @description Why this property's column should be indexed in consumer databases, stated as intent — never as a physical index type (btree/GiST is the renderer's per-dialect call; docs/ENTITY_LAYER.md → indexing). 'search': a consumer app substring-searches this text column (%text% in a search box) — string properties only; projects as a pg_trgm trigram index on PostgreSQL (per language on localized columns, uncapped), nothing on SQL Server; policy tier 'explicit'. Plain filter/sort btrees are NOT a per-property role: they are declared as entity-level query-shaped indexes (EntityDefinition.indexes), ordered like the query they serve. 'lat'/'lon' (+ optional 'alt'): one role of a geographic position — a complete pair under one parent object projects as one spatial index; a lone role emits nothing. 'range_start'/'range_end': one bound of an interval (validity period, band) — a complete pair projects as one overlap-queryable range index. None = no explicit request; identity properties (identifying/database_key are indexed by identity) and date-ish columns (indexed by type) keep their own derived classes. Every index is paid on each write, so this is a deliberate read/write trade, not a default. Proposed by the link-time classification pass — roles seeded from obvious names, bounded against the samples (coordinates in range, start <= end) — and curated in the Database Sync page's Model tab. Stripped from every enrichment prompt.
              */
             index?: ("search" | "lat" | "lon" | "alt" | "range_start" | "range_end") | null;
             /** @description For array types: schema of array items */
@@ -16493,6 +16693,11 @@ export type components = {
             /** Entity Type */
             entity_type: string;
             /**
+             * Nullable Columns
+             * @description Columns that start accepting NULL: a linked database holds them NOT NULL and this publish lifts it
+             */
+            nullable_columns?: string[];
+            /**
              * Removed Indexes
              * @description Columns that stop being indexed — the one removal that is NOT soft: an index holds no data, so it is dropped rather than left costing a write forever (docs/ENTITY_LAYER.md → indexing). Only on databases whose index policy materialized it in the first place
              */
@@ -16511,7 +16716,7 @@ export type components = {
              * Kind
              * @enum {string}
              */
-            kind: "key_set" | "key_multilinguality" | "column_type" | "ownership" | "semantic_identity" | "rename" | "item_order";
+            kind: "key_set" | "key_multilinguality" | "column_type" | "ownership" | "semantic_identity" | "rename" | "item_order" | "reference_target";
         };
         /**
          * QualityArrayScore
@@ -16612,7 +16817,7 @@ export type components = {
             delta_ids?: number[] | null;
             /**
              * Entity Ids
-             * @description Entities to reinject or delete. Omit for every quarantined entity of the database. Reinjecting entities that reference each other in ONE call lets the deferred foreign keys settle at COMMIT
+             * @description Entities to reinject or delete. Omit for every quarantined entity of the database. Entities that reference each other are best reinjected in ONE call: they land in one batch, ordered target before referrer, and on PostgreSQL the deferred foreign keys settle at COMMIT
              */
             entity_ids?: string[] | null;
         };
@@ -16626,7 +16831,7 @@ export type components = {
         QuarantinedEntity: {
             /**
              * Apply Error
-             * @description That delta's SQL error (SQLSTATE, constraint and offending line, as the client reported it)
+             * @description That delta's SQL error as the client reported it: the engine's message with its code (SQLSTATE on PostgreSQL, error number and state on SQL Server), the constraint and the offending line
              */
             apply_error?: string | null;
             /** Batch Ids */
@@ -17584,7 +17789,9 @@ export type components = {
          *     this registration took (chosen or default), and its concrete effect
          *     computed from the linked schema. `locked_after_ship` separates the option
          *     that truly locks (pk_strategy) from one changeable later at migration cost
-         *     (propagate_not_null, option 3).
+         *     (propagate_not_null, option 3). A `dialect` notice counts one kind of index
+         *     or foreign key the schema declares that the chosen database type does not
+         *     create.
          */
         RegistrationNotice: {
             /**
@@ -17634,6 +17841,12 @@ export type components = {
         };
         /** RelationalColumn */
         RelationalColumn: {
+            /**
+             * Fk Enforced
+             * @description False when the column references `references_table` but the replica holds no FOREIGN KEY for it: on SQL Server, a reference inside a cycle of references gets none, because a constraint cannot be deferred to the end of the transaction there. The column and its values are the same; only the constraint is absent
+             * @default true
+             */
+            fk_enforced: boolean;
             /**
              * Indexed
              * @default false
@@ -18253,6 +18466,11 @@ export type components = {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Database Names
+             * @default []
+             */
+            database_names: string[];
             /**
              * Id
              * Format: uuid
@@ -18927,7 +19145,7 @@ export type components = {
             renames?: string[];
             /**
              * Requires Confirm
-             * @description The diff contains supported transform migrations — publish must be called with confirm_transforms=true
+             * @description The diff contains supported transform migrations, or a linked database narrows a column the schema did not retype (migration_sql[].physical_changes) — publish must be called with confirm_transforms=true
              * @default false
              */
             requires_confirm: boolean;
@@ -18943,6 +19161,11 @@ export type components = {
              */
             suggested_key_language?: string | null;
             /**
+             * Unserved
+             * @description Per linked database: the indexes and foreign keys the schemas declare that its dialect does not create. Never blocking — the data is delivered all the same — and always empty for a PostgreSQL database
+             */
+            unserved?: components["schemas"]["DatabaseUnservedIntents"][];
+            /**
              * Warnings
              * @description Non-blocking notices — a `renamed_from` marker that matches no published property (ignored), a concept type pinned to keep minted semantic ids converging across a rename
              */
@@ -18955,7 +19178,7 @@ export type components = {
         SchemaPublishRequest: {
             /**
              * Confirm Transforms
-             * @description Acknowledge that this publish ships a transform migration (re-key / type change) executed against the replicas' own data — a failing data guard pauses their feed until the named problem is fixed. Required whenever the diff contains transforms.
+             * @description Acknowledge that this publish ships a transform migration (re-key / type change) executed against the replicas' own data — a failing data guard quarantines the migration with the named problem, to re-drive once it is fixed. Required whenever the diff contains transforms.
              * @default false
              */
             confirm_transforms: boolean;
@@ -18979,6 +19202,11 @@ export type components = {
             /** Published */
             published: boolean;
             saved_schema: components["schemas"]["SavedSchemaResponse"];
+            /**
+             * Unserved
+             * @description Per linked database: the indexes and foreign keys the schemas declare that its dialect does not create. Never blocking — the data is delivered all the same — and always empty for a PostgreSQL database
+             */
+            unserved?: components["schemas"]["DatabaseUnservedIntents"][];
         };
         /**
          * SchemaRegionMatch
@@ -19473,6 +19701,17 @@ export type components = {
             source_models?: string[] | null;
             /** Success */
             success: boolean;
+        };
+        /**
+         * SnapshotApplyErrorRequest
+         * @description What the ee-database client reports when a snapshot fails to apply.
+         */
+        SnapshotApplyErrorRequest: {
+            /**
+             * Message
+             * @description The database's error, as the client's driver describes it
+             */
+            message: string;
         };
         /**
          * SourceRowRaw
@@ -24176,6 +24415,30 @@ export type components = {
             path: string;
         };
         /**
+         * UnservedIntent
+         * @description Something the linked schemas ask for that the database's dialect does
+         *     not create. The data is delivered all the same; the index or constraint is
+         *     simply absent from the replica.
+         */
+        UnservedIntent: {
+            /**
+             * Columns
+             * @description The columns it would cover, in order
+             */
+            columns: string[];
+            /**
+             * Kind
+             * @description 'search_index' — a substring-search index (`index: 'search'`); 'geo_index' — a point index over a coordinate pair; 'range_index' — a range index over a start/end pair; 'pattern_index' — a per-language prefix-search index (`pattern_index_localized_keys`); 'unbounded_text_index' — an index on a text column the dialect cannot bound to an index key; 'language_index_name_collision' — a per-language index whose computed column would take the name of an existing column; 'cycle_foreign_key' — a FOREIGN KEY inside a cycle of references
+             * @enum {string}
+             */
+            kind: "search_index" | "geo_index" | "range_index" | "pattern_index" | "unbounded_text_index" | "language_index_name_collision" | "cycle_foreign_key";
+            /**
+             * Table
+             * @description Physical table the index or constraint belongs to
+             */
+            table: string;
+        };
+        /**
          * UserApprovalRequest
          * @description Request to approve or reject a pending user.
          */
@@ -24782,8 +25045,11 @@ export type DatabaseSyncLinkValidationResult = components['schemas']['DatabaseSy
 export type DatabaseSyncListResponse = components['schemas']['DatabaseSyncListResponse'];
 export type DatabaseSyncOutcome = components['schemas']['DatabaseSyncOutcome'];
 export type DatabaseSyncRelationalMapResponse = components['schemas']['DatabaseSyncRelationalMapResponse'];
+export type DatabaseSyncRetargetRequest = components['schemas']['DatabaseSyncRetargetRequest'];
+export type DatabaseSyncRetargetResponse = components['schemas']['DatabaseSyncRetargetResponse'];
 export type DatabaseSyncUpdateRequest = components['schemas']['DatabaseSyncUpdateRequest'];
 export type DatabaseSyncValidationResult = components['schemas']['DatabaseSyncValidationResult'];
+export type DatabaseUnservedIntents = components['schemas']['DatabaseUnservedIntents'];
 export type DbModelClassificationJobResult = components['schemas']['DbModelClassificationJobResult'];
 export type DbModelFlagChange = components['schemas']['DbModelFlagChange'];
 export type DbModelScopeResponse = components['schemas']['DbModelScopeResponse'];
@@ -25072,6 +25338,7 @@ export type SharedEntityConflict = components['schemas']['SharedEntityConflict']
 export type SharedEntityFieldConflict = components['schemas']['SharedEntityFieldConflict'];
 export type SingleEnrichmentResponse = components['schemas']['SingleEnrichmentResponse'];
 export type SingleEnrichmentSyncResponse = components['schemas']['SingleEnrichmentSyncResponse'];
+export type SnapshotApplyErrorRequest = components['schemas']['SnapshotApplyErrorRequest'];
 export type SourceRowRaw = components['schemas']['SourceRowRaw'];
 export type SourceSyncSummary = components['schemas']['SourceSyncSummary'];
 export type SpecExport = components['schemas']['SpecExport'];
@@ -25177,6 +25444,7 @@ export type UnifyProposal = components['schemas']['UnifyProposal'];
 export type UnifyResolveRequest = components['schemas']['UnifyResolveRequest'];
 export type UnifyResolveResponse = components['schemas']['UnifyResolveResponse'];
 export type UnpinReferenceRequest = components['schemas']['UnpinReferenceRequest'];
+export type UnservedIntent = components['schemas']['UnservedIntent'];
 export type UserApprovalRequest = components['schemas']['UserApprovalRequest'];
 export type UserProfileUpdate = components['schemas']['UserProfileUpdate'];
 export type UserResponse = components['schemas']['UserResponse'];
@@ -25202,7 +25470,7 @@ export type WebhookTestResponse = components['schemas']['WebhookTestResponse'];
 export type WebhookTypeInfo = components['schemas']['WebhookTypeInfo'];
 export type $defs = Record<string, never>;
 export interface operations {
-    no_frontend__get: {
+    serve_index__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -25218,6 +25486,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    serve_spa__path__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -29456,6 +29755,37 @@ export interface operations {
             };
         };
     };
+    report_snapshot_apply_error_api_database_sync_apply_error_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SnapshotApplyErrorRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     cancel_device_code_api_database_sync_cancel__user_code__post: {
         parameters: {
             query?: never;
@@ -30394,6 +30724,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DatabaseSyncRelationalMapResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retarget_database_api_databases__database_id__retarget_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatabaseSyncRetargetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseSyncRetargetResponse"];
                 };
             };
             /** @description Validation Error */
