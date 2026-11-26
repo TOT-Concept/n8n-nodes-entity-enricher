@@ -14974,6 +14974,20 @@ export type components = {
             updated_at: string | null;
         };
         /**
+         * ModelRecordStats
+         * @description One model's share of the organization's live records.
+         */
+        ModelRecordStats: {
+            /** Avg Time Ms */
+            avg_time_ms?: number | null;
+            /** Cost Usd */
+            cost_usd: number;
+            /** Successful */
+            successful: number;
+            /** Total */
+            total: number;
+        };
+        /**
          * ModelResponse
          * @description Response model for an LLM model (resolved view: overrides, source fusion,
          *     spec attachment and vendor fill already applied).
@@ -18267,6 +18281,13 @@ export type components = {
              * @description Mean summed LLM time of the records that made a call
              */
             avg_processing_time_ms?: number | null;
+            /**
+             * By Model
+             * @description Per model composite key: records, successes, cost and mean LLM time (only with include_by_model=true)
+             */
+            by_model?: {
+                [key: string]: components["schemas"]["ModelRecordStats"];
+            } | null;
             /**
              * By Type
              * @description Record count per record type
@@ -26186,6 +26207,7 @@ export type ModelExport = components['schemas']['ModelExport'];
 export type ModelOverrideBaseSnapshot = components['schemas']['ModelOverrideBaseSnapshot'];
 export type ModelOverrideListResponse = components['schemas']['ModelOverrideListResponse'];
 export type ModelOverrideResponse = components['schemas']['ModelOverrideResponse'];
+export type ModelRecordStats = components['schemas']['ModelRecordStats'];
 export type ModelResponse = components['schemas']['ModelResponse'];
 export type ModelRowExport = components['schemas']['ModelRowExport'];
 export type ModelUpdate = components['schemas']['ModelUpdate'];
@@ -35877,6 +35899,8 @@ export interface operations {
     get_stats_api_records_stats_get: {
         parameters: {
             query?: {
+                /** @description Add the per-model breakdown (records, successes, cost, time) */
+                include_by_model?: boolean;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
