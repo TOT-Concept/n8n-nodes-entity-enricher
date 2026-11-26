@@ -9,7 +9,7 @@ import type {
 	SseEntityCompleted,
 	SseFusionCompleted,
 } from '../helpers/types';
-import { arbitrationAudit, isEntityCompleted, isFusionCompleted } from '../helpers/types';
+import { arbitrationAudit, isEntityCompleted, isFusionCompleted, isModelCompleted } from '../helpers/types';
 import { validateEntityInput } from '../helpers/validation';
 import {
 	deleteAttachmentsQuietly,
@@ -32,7 +32,8 @@ interface UploadedAttachmentsInfo {
  * Flow:
  * 1. Collect all input items as entities array
  * 2. POST /api/batch/start → get job_id
- * 3. Consume SSE stream, collecting entity_completed events
+ * 3. Consume SSE stream, collecting entity_completed, model_completed and
+ *    fusion_completed events
  * 4. Return one output item per entity
  */
 export async function execute(
@@ -222,8 +223,9 @@ export async function execute(
  * Extract entity results from SSE events.
  * Returns one output item per entity, ordered by entity_index.
  *
- * Fusion results arrive as separate fusion_completed events (with entity_index),
- * so we correlate them with entity_completed events.
+ * entity_completed names each model's outcome (record, cost, error) but not its
+ * output: a model's output rides its own model_completed event, and the fused
+ * output its fusion_completed — both stamped with entity_index, correlated here.
  */
 function buildBatchOutputItems(
 	events: SSEEvent[],
@@ -243,12 +245,18 @@ function buildBatchOutputItems(
 	const entityResults = new Map<number, SseEntityCompleted>();
 	// Collect fusion_completed events indexed by entity_index
 	const fusionResults = new Map<number, SseFusionCompleted>();
+	// Each model's output, by entity_index then model
+	const modelOutputs = new Map<number, Map<string, IDataObject | null>>();
 
 	for (const event of events) {
 		if (isEntityCompleted(event)) {
 			entityResults.set(event.entity_index, event);
 		} else if (isFusionCompleted(event) && event.entity_index != null) {
 			fusionResults.set(event.entity_index, event);
+		} else if (isModelCompleted(event) && event.entity_index != null) {
+			const outputs = modelOutputs.get(event.entity_index) ?? new Map<string, IDataObject | null>();
+			outputs.set(event.model, (event.result as IDataObject | null | undefined) ?? null);
+			modelOutputs.set(event.entity_index, outputs);
 		}
 	}
 
@@ -265,7 +273,7 @@ function buildBatchOutputItems(
 
 			const fullResult = fusionResult?.success
 				? fusionResult.merged_result as IDataObject
-				: (bestModelResult?.result as IDataObject) ?? null;
+				: (bestModelResult ? modelOutputs.get(i)?.get(bestModelResult.model) ?? null : null);
 			const resultData = { ...(fullResult ?? {}) } as IDataObject;
 			delete resultData._arbitration_metadata;
 

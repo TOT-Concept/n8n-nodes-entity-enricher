@@ -10,6 +10,14 @@ A database sync can be registered on SQL Server (2022 or later) beside PostgreSQ
 
 Regenerated from the backend OpenAPI schema: the `sqlserver` dialect, `POST /api/databases/{id}/retarget`, `target_generation`, `physical_changes` on a publish preview, the `unserved` list of a publish and its preview, the `unserved` list and `fk_enforced` flag of the relational map, and no separate demo classification model.
 
+### Fixed — List Schemas counts properties
+
+*List Schemas* returned `property_count` 0 for every schema; it now counts the root entity's top-level properties.
+
+### Changed — Get Schema Details omits an in-sync published contract
+
+The schema's `published_content` is no longer returned when `publish_state` is `in_sync`: the published contract is then `schema_content` itself. It is still returned while the schema has unpublished changes (`dirty`).
+
 ### Fixed — Generate Sample reports why a generation failed
 
 A failed sample generation used to come out as a generic "No sample generation result received": the node matched only a successful result, so the job's own reason was dropped. The output item now carries the job's `error_message`, its typed `error_code` (`incoherent_attachments`, `rate_limited`, `provider_credits_exhausted`, …) and, when several attachments were refused as unrelated, the `attachment_coherence` verdict that explains it. A cancelled generation says so.

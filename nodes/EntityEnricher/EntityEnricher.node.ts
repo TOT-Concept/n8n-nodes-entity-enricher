@@ -1519,7 +1519,7 @@ function formatScoreBreakdown(scores: ModelTaskScores | null | undefined): strin
 	if (scores.speed != null) parts.push(`Speed ${Math.round(scores.speed * 100)}`);
 	if (scores.cost != null) parts.push(`Cost ${Math.round(scores.cost * 100)}`);
 	if (parts.length === 0) return null;
-	const count = scores.scenario_count ?? 0;
+	const count = scores.scenarios?.length ?? 0;
 	return `${parts.join(' · ')} (${count} scoring benchmark${count === 1 ? '' : 's'})`;
 }
 

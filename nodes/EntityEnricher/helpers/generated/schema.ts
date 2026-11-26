@@ -513,7 +513,7 @@ export type paths = {
         };
         /**
          * List All Organizations
-         * @description List all organizations with stats (system admin only).
+         * @description List all organizations with stats, balance and plan (system admin only).
          */
         get: operations["list_all_organizations_api_admin_organizations_get"];
         put?: never;
@@ -601,6 +601,26 @@ export type paths = {
          *     `skipped` with their reason instead of failing the whole call.
          */
         post: operations["batch_delete_organizations_admin_api_admin_organizations_batch_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/organizations/names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Organization Names
+         * @description Every active organization's id and name, for a picker (system admin only).
+         */
+        get: operations["list_organization_names_api_admin_organizations_names_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1430,7 +1450,11 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** List Scenarios */
+        /**
+         * List Scenarios
+         * @description The organization's scenarios without their documents (input entity, input
+         *     samples, gold reference and its log) — `GET /api/benchmarks/{id}` has them.
+         */
         get: operations["list_scenarios_api_benchmarks_get"];
         put?: never;
         /** Create Scenario */
@@ -1448,7 +1472,11 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Get Scenario */
+        /**
+         * Get Scenario
+         * @description One scenario in full: configuration, input documents, gold reference and its
+         *     automatic-update log. Its results are `GET /api/benchmarks/{id}/results`.
+         */
         get: operations["get_scenario_api_benchmarks__scenario_id__get"];
         put?: never;
         post?: never;
@@ -1534,8 +1562,33 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** List Results */
+        /**
+         * List Results
+         * @description Every result with its scores, metrics and per-rep scalars — without the outputs
+         *     and scoring breakdowns (`/results/{result_id}` for one, `/results/export` for all).
+         */
         get: operations["list_results_api_benchmarks__scenario_id__results_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/benchmarks/{scenario_id}/results/{result_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Result
+         * @description One result in full (the expanded results row): output, scoring breakdown and
+         *     findings, every rep — its scores derived against the scenario's peers.
+         */
+        get: operations["get_result_api_benchmarks__scenario_id__results__result_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1555,6 +1608,27 @@ export type paths = {
         put?: never;
         /** Delete Results */
         post: operations["delete_results_api_benchmarks__scenario_id__results_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/benchmarks/{scenario_id}/results/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Results
+         * @description Every result in full — outputs, scoring breakdowns, every rep — for the portable
+         *     export and the environment sync.
+         */
+        get: operations["export_results_api_benchmarks__scenario_id__results_export_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2094,7 +2168,8 @@ export type paths = {
         };
         /**
          * Get Prompt History
-         * @description Get the playground history of the caller's organization, trashed runs excluded.
+         * @description The playground history of the caller's organization, trashed runs excluded:
+         *     one light row per run (`GET /history/{record_id}` loads a run whole).
          *
          *     Scoped to the organization for every role, a system admin included, so the
          *     panel always lists exactly what `DELETE /history` clears; browsing other
@@ -2111,6 +2186,27 @@ export type paths = {
          *     the runs from the History page until the retention sweep removes them.
          */
         delete: operations["clear_prompt_history_api_custom_prompt_history_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/custom-prompt/history/{record_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Prompt History Run
+         * @description One playground run of the caller's organization — prompts, response and
+         *     wire schema — to restore it into the playground.
+         */
+        get: operations["get_prompt_history_run_api_custom_prompt_history__record_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2377,8 +2473,10 @@ export type paths = {
         };
         /**
          * Fetch Changes
-         * @description Cursor-based delta feed. claim=true leases the FIFO window (ack required);
-         *     claim=false is a pure idempotent read, replayable at will.
+         * @description Cursor-based delta feed of the pending rows, oldest first — the sync-client
+         *     contract. claim=true leases the FIFO window (ack required); claim=false is a
+         *     pure idempotent read, replayable at will. The UI browses the outbox through
+         *     `GET /databases/{id}/deltas` instead.
          */
         get: operations["fetch_changes_api_databases__database_id__changes_get"];
         put?: never;
@@ -2448,6 +2546,48 @@ export type paths = {
         post: operations["create_database_credential_api_databases__database_id__credential_post"];
         /** Revoke Database Credential */
         delete: operations["revoke_database_credential_api_databases__database_id__credential_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/databases/{database_id}/deltas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Browse Deltas
+         * @description The outbox for the Deltas tab, newest first. Read-only: never leases, never
+         *     acknowledges, and is not gated by a pending snapshot. Rows are light — the
+         *     full SQL and payload of one row come from `GET .../deltas/{delta_id}`.
+         */
+        get: operations["browse_deltas_api_databases__database_id__deltas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/databases/{database_id}/deltas/{delta_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Delta
+         * @description The full SQL and payload of one delta (an expanded row of the Deltas tab).
+         */
+        get: operations["get_delta_api_databases__database_id__deltas__delta_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2752,28 +2892,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/databases/{database_id}/schemas/{schema_id}/validate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Validate Schema Link
-         * @description Dry-run of linking a schema to an existing database: cross-schema
-         *     errors, the merged (common) types, the new tables, and the key stamping
-         *     preview — common types adopt the existing table's database keys.
-         */
-        post: operations["validate_schema_link_api_databases__database_id__schemas__schema_id__validate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/databases/{database_id}/snapshot": {
         parameters: {
             query?: never;
@@ -2824,6 +2942,10 @@ export type paths = {
         /**
          * Get Config
          * @description What the landing page needs before any interaction.
+         *
+         *     Each schema's outline makes most of the body; it stays here because the JSON
+         *     card draws it the instant a run starts. Browsers keep the answer as long as this
+         *     process does, so a visitor moving between demo pages does not fetch it again.
          */
         get: operations["get_config_api_demo_config_get"];
         put?: never;
@@ -3425,8 +3547,9 @@ export type paths = {
          *     database-model classifications of its schemas — live, on one SSE
          *     connection: see
          *     `LLMJobManager.stream_monitored_jobs`. It opens with each job still
-         *     running (`started`, then its log) and announces each job launched later
-         *     the same way; it ends when the client closes it.
+         *     running (`started`, then its log after the client's cursor for it) and
+         *     announces each job launched later the same way; it ends when the client
+         *     closes it.
          */
         get: operations["stream_monitored_jobs_api_monitor_stream_get"];
         put?: never;
@@ -4258,6 +4381,9 @@ export type paths = {
          * List All Models
          * @description List all models across all providers with availability info.
          *
+         *     Serialized with ``exclude_none``: a field the catalog leaves unknown is
+         *     absent rather than null — most of the ~60 fields on most of ~3,000 rows.
+         *
          *     Source rows for the same (provider, model, scope) are **collapsed by default**
          *     into one merged row (same merge rule as /enrichment/options), which keeps the
          *     highest-priority source's identity and carries `source_rows_raw` for the
@@ -4269,6 +4395,9 @@ export type paths = {
          *                       If not set, owners see global + their org, admins see global only.
          *         split_sources: Expand the collapsed rows back to one row per sync source.
          *                        **System-admin only** — forced off for everyone else.
+         *         model_ids: Only the rows of these models (with every source row sharing
+         *                    their provider and model), rendered exactly as in the full
+         *                    list — the Models tab refreshes what a mutation touched.
          */
         get: operations["list_all_models_api_providers_models_all_get"];
         put?: never;
@@ -4427,6 +4556,28 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/providers/models/embeddings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Embedding Models
+         * @description Every embedding-capable model the user's organization sees, for the
+         *     semantic-ID embedding pickers. Inactive and keyless models are listed too,
+         *     so a stored choice still renders with its label.
+         */
+        get: operations["list_embedding_models_api_providers_models_embeddings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/providers/models/overrides": {
         parameters: {
             query?: never;
@@ -4442,6 +4593,29 @@ export type paths = {
          *     - Owners see only their own org's overrides (globals are admin-managed).
          */
         get: operations["list_model_overrides_endpoint_api_providers_models_overrides_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/providers/models/plan-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Plan Catalog
+         * @description The global catalog as the plan editor offers it: every global model,
+         *     available when it is active and its provider has a global key — a plan
+         *     only restricts access through global keys. Same sparse shape as
+         *     /enrichment/options (flags true or omitted).
+         */
+        get: operations["list_plan_catalog_api_providers_models_plan_catalog_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4469,6 +4643,27 @@ export type paths = {
          *     composite_key column is denormalised and shared across orgs).
          */
         post: operations["get_models_usage_api_providers_models_usage_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/providers/names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Provider Names
+         * @description Every provider the user can attach a key to (global + their org's),
+         *     identity only — for the provider pickers, which need nothing else.
+         */
+        get: operations["list_provider_names_api_providers_names_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4562,6 +4757,29 @@ export type paths = {
          * @description Get a single enrichment record by ID.
          */
         get: operations["get_record_api_records__record_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/records/{record_id}/prompts/{prompt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Record Prompt
+         * @description What one LLM call of a record sent and received — its prompts, raw
+         *     response, own output and wire schema. Read one call at a time: the record
+         *     detail carries only the calls' account. A plan that cannot view prompts
+         *     gets an upgrade message in place of the texts.
+         */
+        get: operations["get_record_prompt_api_records__record_id__prompts__prompt_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4966,7 +5184,9 @@ export type paths = {
         head?: never;
         /**
          * Update Saved Schema
-         * @description Update a saved schema (rename, tags, pin status). System admins can update any org's schemas.
+         * @description Update a saved schema (content, rename, tags, pin, settings). System admins can
+         *     update any org's schemas. Answers with an acknowledgement — the publish state
+         *     the write left, the gate's repairs — not the document the caller just sent.
          */
         patch: operations["update_saved_schema_api_schema_saved__schema_id__patch"];
         trace?: never;
@@ -5505,6 +5725,32 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/schemas/{schema_id}/databases/link-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link Candidates
+         * @description Dry-run of linking a schema to existing databases: per database, the
+         *     cross-schema errors, the merged (common) types, the new tables and the key
+         *     stamping preview — common types adopt the existing table's database keys.
+         *
+         *     The schema is read once for every candidate. Only one database per schema
+         *     (issue #62): a schema that already syncs somewhere names that database and
+         *     is compared against nothing.
+         */
+        post: operations["link_candidates_api_schemas__schema_id__databases_link_candidates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schemas/{schema_id}/databases/validate": {
         parameters: {
             query?: never;
@@ -5555,6 +5801,26 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/schemas/{schema_id}/entities/{entity_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Schema Entity
+         * @description One entity's current state, payload included (an expanded Entities tab row).
+         */
+        get: operations["get_schema_entity_api_schemas__schema_id__entities__entity_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schemas/{schema_id}/relational-map": {
         parameters: {
             query?: never;
@@ -5593,6 +5859,7 @@ export type paths = {
          *
          *     `concept_types` is repeatable: the page's type filter selects several slices at
          *     once, and every browse surface (list, export, review) reads the same filter.
+         *     The table opens a concept's aliases on demand (`GET /{concept_id}`).
          */
         get: operations["list_concepts_api_semantic_concepts_get"];
         put?: never;
@@ -6151,7 +6418,7 @@ export type paths = {
         };
         /**
          * List All Conversations
-         * @description Every thread of every organization, newest activity first (system admin only).
+         * @description The threads of every organization, newest activity first (system admin only).
          */
         get: operations["list_all_conversations_api_support_admin_conversations_get"];
         put?: never;
@@ -6642,6 +6909,51 @@ export type components = {
             target_organization_id: string;
             /** Target Organization Name */
             target_organization_name: string;
+        };
+        /**
+         * AdminOrganizationRow
+         * @description One row of the system admin's Organizations tab.
+         */
+        AdminOrganizationRow: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Credit Balance */
+            credit_balance: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Member Count
+             * @description Active members, as the Members column shows
+             */
+            member_count: number;
+            /** Name */
+            name: string;
+            /** Plan Id */
+            plan_id?: string | null;
+            /** Plan Name */
+            plan_name?: string | null;
+            /** Record Count */
+            record_count: number;
+            /** Slug */
+            slug: string;
+            /**
+             * Total Cost Usd
+             * @description Billed LLM cost of the organization's records
+             */
+            total_cost_usd: number;
+            /**
+             * User Count
+             * @description Every user row, deactivated and pending included: an organization is deletable only at 0
+             */
+            user_count: number;
         };
         /** AllocateCreditsRequest */
         AllocateCreditsRequest: {
@@ -7416,11 +7728,9 @@ export type components = {
         };
         /**
          * BenchmarkResultResponse
-         * @description One persisted result for a (scenario x model) pair.
-         *
-         *     With repetitions > 1 the scalar metric/quality columns hold the **mean** across the
-         *     successful runs and the **median-by-quality** representative run's structured output;
-         *     ``runs`` carries the full per-rep breakdown and ``quality_overall_min``/``max`` the spread.
+         * @description A result in full: the representative run's output and scoring breakdown, and
+         *     every rep with its own output — what the expanded results row, the portable
+         *     export and a scoring pass read.
          */
         BenchmarkResultResponse: {
             /**
@@ -7458,6 +7768,12 @@ export type components = {
             error_code?: string | null;
             /** Error Message */
             error_message?: string | null;
+            /**
+             * Has Output
+             * @description The representative run produced structured output (the result is scoreable)
+             * @default false
+             */
+            has_output: boolean;
             /**
              * Id
              * Format: uuid
@@ -7596,11 +7912,189 @@ export type components = {
             web_search_calls?: number | null;
         };
         /**
+         * BenchmarkResultSummary
+         * @description A result as the results list carries it: every score and metric, the per-rep
+         *     scalars, without the outputs and scoring breakdowns (`GET
+         *     /api/benchmarks/{id}/results/{result_id}` returns one in full).
+         */
+        BenchmarkResultSummary: {
+            /**
+             * Api Key Source
+             * @description Key source for the run: 'organization' or 'global'
+             */
+            api_key_source?: string | null;
+            /** Cache Read Tokens */
+            cache_read_tokens?: number | null;
+            /**
+             * Capabilities
+             * @description Capabilities the model exercised (web_search, reasoning, vision, pdf_input, ...)
+             */
+            capabilities?: string[];
+            /** Config Hash */
+            config_hash?: string | null;
+            /**
+             * Cost Score
+             * @description Cost vs the scenario's successful results, log-scale min-max over at least one decade (1.0 = cheapest; 0.0 = 10× dearer or worse; free results anchor at the top). sample_generation: the output-token share of the cost is rescaled to the peer-median sample size
+             */
+            cost_score?: number | null;
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /**
+             * Coverness Count
+             * @description sample_generation only: mean distinct-property count across successful reps (arrays merged). Basis of the read-time coverness ratio shown as Completeness and of the size normalization behind the speed/cost scores
+             */
+            coverness_count?: number | null;
+            /** Enrichment Record Id */
+            enrichment_record_id?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a failed result (the representative failed rep): insufficient_credits when Entity Enricher's credit gate refused the organization's call, provider_credits_exhausted when the provider account behind the key refused it — neither is the model's fault — else rate_limited, model_retired, context_length_exceeded, provider_timeout, model_output_invalid, or null when unclassified
+             */
+            error_code?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /**
+             * Has Output
+             * @description The representative run produced structured output (the result is scoreable)
+             * @default false
+             */
+            has_output: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /**
+             * Is Stale
+             * @description True when the result was produced under an older scenario config
+             * @default false
+             */
+            is_stale: boolean;
+            /** Model Composite Key */
+            model_composite_key: string;
+            /** Model Name */
+            model_name?: string | null;
+            /**
+             * Output Channel
+             * @description Structured-output channel used: native/tool/prompted/text, or 'mixed'
+             */
+            output_channel?: string | null;
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Processing Time Ms */
+            processing_time_ms?: number | null;
+            /** Provider Name */
+            provider_name?: string | null;
+            /**
+             * Quality Complete
+             * @description Completeness (recall-like): did it fill what the reference filled
+             */
+            quality_complete?: number | null;
+            /**
+             * Quality Config
+             * @description Scoring-config fingerprint (judge / scorer version) the quality was computed under
+             */
+            quality_config?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Quality Correct
+             * @description Correctness (precision-like): are filled values right
+             */
+            quality_correct?: number | null;
+            /**
+             * Quality Hallucination
+             * @description Hallucination rate: fraction of filled values with no reference basis
+             */
+            quality_hallucination?: number | null;
+            /**
+             * Quality Overall
+             * @description Weighted overall quality 0..1 (null = not scored)
+             */
+            quality_overall?: number | null;
+            /**
+             * Quality Overall Max
+             * @description Highest per-rep overall quality (consistency spread ceiling)
+             */
+            quality_overall_max?: number | null;
+            /**
+             * Quality Overall Min
+             * @description Lowest per-rep overall quality (consistency spread floor)
+             */
+            quality_overall_min?: number | null;
+            /** Quality Scored At */
+            quality_scored_at?: string | null;
+            /**
+             * Quality Scoring Ms
+             * @description Wall-clock time the judge-scoring pass took, set on every attempt (success or failure). Distinct from processing_time_ms, which times the candidate's own generation, not the judge comparing it to the reference.
+             */
+            quality_scoring_ms?: number | null;
+            /**
+             * Quality Stale
+             * @description True when scored against a reference that has since changed
+             * @default false
+             */
+            quality_stale: boolean;
+            /**
+             * Reference Hash
+             * @description Hash of the reference this result's quality was scored against
+             */
+            reference_hash?: string | null;
+            /**
+             * Retries
+             * @description Total LLM retries across the record's prompt calls (sum of attempts-1)
+             */
+            retries?: number | null;
+            /**
+             * Run Count
+             * @default 1
+             */
+            run_count: number;
+            /** Runs */
+            runs?: components["schemas"]["BenchmarkRunSummary"][];
+            /**
+             * Scenario Id
+             * Format: uuid
+             */
+            scenario_id: string;
+            /**
+             * Scoring Calls
+             * @description Judge calls the scoring pass made for this model. Questions answered from the verdict cache make none, so a re-score of an unchanged reference can be 0.
+             */
+            scoring_calls?: number | null;
+            /**
+             * Scoring Cost Usd
+             * @description Billed cost of the judge calls that scored this model (null until scored)
+             */
+            scoring_cost_usd?: number | null;
+            /**
+             * Scoring Record Id
+             * @description The benchmark_scoring record of the last scoring pass over this model: one prompts row per judge call (failed calls included), the verdict-cache hits, the outcome. Null until scored, or when the record was deleted.
+             */
+            scoring_record_id?: string | null;
+            /**
+             * Speed Score
+             * @description Wall-clock speed vs the scenario's successful results, log-scale min-max over at least one decade (1.0 = fastest; 0.0 = 10× slower or worse). sample_generation: the token-generation share of the time is rescaled to the peer-median sample size, since output size is open-ended
+             */
+            speed_score?: number | null;
+            /** Strategy Used */
+            strategy_used?: string | null;
+            /** Success */
+            success: boolean;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Web Search Calls */
+            web_search_calls?: number | null;
+        };
+        /**
          * BenchmarkRunMetric
-         * @description One repetition's metrics, stored in ``benchmark_results.runs`` for drill-down.
-         *
-         *     The result row's scalar columns hold the mean (cost/time/quality) and the
-         *     median-by-quality representative run; this is the per-rep detail behind them.
+         * @description One repetition in full, as stored in ``benchmark_results.runs``: the scalar
+         *     metrics plus the rep's output and scoring breakdown.
          */
         BenchmarkRunMetric: {
             /** Cost Usd */
@@ -7658,6 +8152,57 @@ export type components = {
             structured_output?: {
                 [key: string]: unknown;
             } | null;
+            /** Success */
+            success: boolean;
+        };
+        /**
+         * BenchmarkRunSummary
+         * @description One repetition's scalar metrics — the per-rep breakdown of a results-list row.
+         *
+         *     The result row's scalar columns hold the mean (cost/time/quality) and the
+         *     median-by-quality representative run; this is the per-rep detail behind them.
+         */
+        BenchmarkRunSummary: {
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /**
+             * Coverness Count
+             * @description sample_generation: distinct leaf properties in this rep's sample (array items merged), counted once at run time so reads never re-walk the JSON
+             */
+            coverness_count?: number | null;
+            /** Enrichment Record Id */
+            enrichment_record_id?: string | null;
+            /**
+             * Error Code
+             * @description Typed reason of a failed rep, the shared failure vocabulary (insufficient_credits, provider_credits_exhausted, rate_limited, model_retired, …); null on success or an unclassified failure
+             */
+            error_code?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Input Tokens */
+            input_tokens?: number | null;
+            /**
+             * On Topic Fraction
+             * @description sample_generation: judge-graded fraction (0-1) of this rep's properties that are entity-relevant and plausibly valid; persisted at scoring time, gates the read-time coverness basis
+             */
+            on_topic_fraction?: number | null;
+            /** Output Tokens */
+            output_tokens?: number | null;
+            /** Processing Time Ms */
+            processing_time_ms?: number | null;
+            /** Quality Complete */
+            quality_complete?: number | null;
+            /** Quality Correct */
+            quality_correct?: number | null;
+            /** Quality Hallucination */
+            quality_hallucination?: number | null;
+            /** Quality Overall */
+            quality_overall?: number | null;
+            /**
+             * Rep
+             * @description 1-based repetition index
+             */
+            rep: number;
             /** Success */
             success: boolean;
         };
@@ -7761,10 +8306,10 @@ export type components = {
             strategy: string;
         };
         /**
-         * BenchmarkScenarioDetail
-         * @description Scenario plus its persisted results.
+         * BenchmarkScenarioResponse
+         * @description A full benchmark scenario: the summary plus its documents.
          */
-        BenchmarkScenarioDetail: {
+        BenchmarkScenarioResponse: {
             /** Attachment Ids */
             attachment_ids: string[];
             /** Config Hash */
@@ -7784,10 +8329,26 @@ export type components = {
             entity_data: {
                 [key: string]: unknown;
             };
+            /**
+             * Entity Sample Count
+             * @description schema_generation only: number of input samples
+             */
+            entity_sample_count?: number | null;
+            /**
+             * Entity Sample Keys
+             * @description schema_generation only: the first input sample's top-level keys
+             */
+            entity_sample_keys?: string[];
             /** Entity Samples */
             entity_samples?: {
                 [key: string]: unknown;
             }[] | null;
+            /**
+             * Has Reference
+             * @description A gold reference output is set
+             * @default false
+             */
+            has_reference: boolean;
             /**
              * Id
              * Format: uuid
@@ -7821,8 +8382,6 @@ export type components = {
              * @default 0
              */
             result_count: number;
-            /** Results */
-            results?: components["schemas"]["BenchmarkResultResponse"][];
             sample_params?: components["schemas"]["SampleGenTaskParams"] | null;
             /**
              * Scenario Type
@@ -7859,10 +8418,12 @@ export type components = {
             updated_at: string;
         };
         /**
-         * BenchmarkScenarioResponse
-         * @description Full benchmark scenario response.
+         * BenchmarkScenarioSummary
+         * @description A benchmark scenario as the scenario list carries it: its configuration without
+         *     the bulky documents (input entity, input samples, gold reference and its automatic-
+         *     update log), which `GET /api/benchmarks/{id}` returns.
          */
-        BenchmarkScenarioResponse: {
+        BenchmarkScenarioSummary: {
             /** Attachment Ids */
             attachment_ids: string[];
             /** Config Hash */
@@ -7878,14 +8439,22 @@ export type components = {
             enable_response_schema: boolean;
             /** Enable Strict Structured Output */
             enable_strict_structured_output: boolean;
-            /** Entity Data */
-            entity_data: {
-                [key: string]: unknown;
-            };
-            /** Entity Samples */
-            entity_samples?: {
-                [key: string]: unknown;
-            }[] | null;
+            /**
+             * Entity Sample Count
+             * @description schema_generation only: number of input samples
+             */
+            entity_sample_count?: number | null;
+            /**
+             * Entity Sample Keys
+             * @description schema_generation only: the first input sample's top-level keys
+             */
+            entity_sample_keys?: string[];
+            /**
+             * Has Reference
+             * @description A gold reference output is set
+             * @default false
+             */
+            has_reference: boolean;
             /**
              * Id
              * Format: uuid
@@ -7899,11 +8468,6 @@ export type components = {
             reasoning_effort?: ("low" | "medium" | "high") | null;
             /** Reference Base Hash */
             reference_base_hash?: string | null;
-            reference_meta?: components["schemas"]["BenchmarkReferenceMeta"] | null;
-            /** Reference Output */
-            reference_output?: {
-                [key: string]: unknown;
-            } | null;
             /**
              * Reference Verified
              * @default false
@@ -9151,7 +9715,7 @@ export type components = {
              */
             cron_default: string;
             /** @description The run in flight, if any */
-            current_run?: components["schemas"]["CronRun"] | null;
+            current_run?: components["schemas"]["CronRunSummary"] | null;
             /** Description */
             description: string;
             /** Dry Run */
@@ -9160,8 +9724,8 @@ export type components = {
             enabled: boolean;
             /** Id */
             id: string;
-            /** @description The newest finished run, whatever its outcome */
-            last_run?: components["schemas"]["CronRun"] | null;
+            /** @description The newest finished run, whatever its outcome; its report is in the run history (GET /api/admin/cron/{job_id}/runs) */
+            last_run?: components["schemas"]["CronRunSummary"] | null;
             /**
              * Next Runs
              * @description The next fire times in the configured zone; empty when disabled
@@ -9207,7 +9771,7 @@ export type components = {
         };
         /**
          * CronRun
-         * @description One `cron_runs` row.
+         * @description One `cron_runs` row, report included (the run history and a manual launch).
          */
         CronRun: {
             /** Counts */
@@ -9271,6 +9835,47 @@ export type components = {
             /** Total */
             total: number;
         };
+        /**
+         * CronRunSummary
+         * @description One `cron_runs` row without its report: what a job card and its poll show.
+         */
+        CronRunSummary: {
+            /** Counts */
+            counts?: {
+                [key: string]: number;
+            };
+            /** Dry Run */
+            dry_run: boolean;
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /** Error */
+            error?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id: number;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "running" | "succeeded" | "failed" | "skipped";
+            /**
+             * Trigger
+             * @enum {string}
+             */
+            trigger: "scheduled" | "manual";
+            /** Triggered By */
+            triggered_by?: string | null;
+            /** Triggered By Email */
+            triggered_by_email?: string | null;
+        };
         /** CronSettingsResponse */
         CronSettingsResponse: {
             /** Jobs */
@@ -9295,6 +9900,96 @@ export type components = {
         CronSettingsUpdate: {
             /** Timezone */
             timezone: string;
+        };
+        /**
+         * CustomPromptRecord
+         * @description Record of a custom prompt execution.
+         */
+        CustomPromptRecord: {
+            /**
+             * Cost Usd
+             * @description Cost in USD
+             */
+            cost_usd?: number | null;
+            /**
+             * Created At
+             * @description When the record was created
+             */
+            created_at?: string | null;
+            /**
+             * Enrichment Record Id
+             * @description Link to an enrichment record if applicable
+             */
+            enrichment_record_id?: string | null;
+            /**
+             * Error Message
+             * @description Error message if failed
+             */
+            error_message?: string | null;
+            /**
+             * Id
+             * @description Record ID (assigned on save)
+             */
+            id?: string | null;
+            /**
+             * Input Tokens
+             * @description Input tokens used
+             */
+            input_tokens?: number | null;
+            /**
+             * Language
+             * @description Language code for the response
+             * @default en
+             */
+            language: string;
+            /**
+             * Model Composite Key
+             * @description Model composite key (e.g., 'anthropic::claude-sonnet-4-5')
+             */
+            model_composite_key: string;
+            /**
+             * Model Name
+             * @description Display name of the model
+             */
+            model_name: string;
+            /**
+             * Output Tokens
+             * @description Output tokens generated
+             */
+            output_tokens?: number | null;
+            /**
+             * Processing Time Ms
+             * @description Processing time in ms
+             */
+            processing_time_ms?: number | null;
+            /**
+             * Raw Response
+             * @description LLM response text
+             */
+            raw_response?: string | null;
+            /**
+             * Success
+             * @description Whether execution succeeded
+             * @default false
+             */
+            success: boolean;
+            /**
+             * System Prompt
+             * @description System prompt used
+             */
+            system_prompt?: string | null;
+            /**
+             * User Prompt
+             * @description User prompt that was executed
+             */
+            user_prompt: string;
+            /**
+             * Wire Schema
+             * @description Sample JSON / JSON Schema used to constrain structured output, if any
+             */
+            wire_schema?: {
+                [key: string]: unknown;
+            } | unknown[] | null;
         };
         /**
          * CustomPromptRequest
@@ -10495,8 +11190,26 @@ export type components = {
              */
             snapshot_required: boolean;
         };
-        /** DeltaRow */
-        DeltaRow: {
+        /** DeltaBrowseResponse */
+        DeltaBrowseResponse: {
+            /**
+             * Deltas
+             * @description Newest first
+             */
+            deltas: components["schemas"]["DeltaBrowseRow"][];
+            /**
+             * Has More
+             * @description Older rows remain: pass the last row's id as ?before= for the next page
+             * @default false
+             */
+            has_more: boolean;
+        };
+        /**
+         * DeltaBrowseRow
+         * @description One delta as the Deltas tab lists it: state and a preview, without the
+         *     full SQL and payload (`GET /databases/{id}/deltas/{delta_id}` serves those).
+         */
+        DeltaBrowseRow: {
             /**
              * Acked At
              * @description When the sync client acknowledged this delta (null on pending rows). Retained rows carry it until purge_on_ack drops them
@@ -10509,6 +11222,87 @@ export type components = {
             apply_error?: string | null;
             /** Apply Error At */
             apply_error_at?: string | null;
+            /**
+             * Batch Id
+             * @description Enrichment this delta belongs to; rows sharing a batch_id are applied in one replica transaction
+             */
+            batch_id?: string | null;
+            /**
+             * Claim Expires At
+             * @description Currently-leased pending row: expires at this instant if not acked
+             */
+            claim_expires_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Entity Key
+             * @description The first short scalar of the delta's row — a hint of which entity it concerns
+             */
+            entity_key?: string | null;
+            /** Entity Type */
+            entity_type?: string | null;
+            /** Id */
+            id: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "data" | "schema";
+            /**
+             * Op
+             * @enum {string}
+             */
+            op: "upsert" | "delete" | "migrate";
+            /**
+             * Quarantined At
+             * @description The replica refused this enrichment's SQL, so its whole batch was set aside and the feed moved on past it. Quarantined rows are never pushed and never acked — they wait for a reinjection or a deletion
+             */
+            quarantined_at?: string | null;
+            /**
+             * Record Id
+             * @description The enrichment record whose write queued this delta, resolved from the batch (records.db_sync_batch_id). Null for schema DDL rows, for rows queued before the link existed, and for rows whose record was hard-deleted
+             */
+            record_id?: string | null;
+            /** Revision */
+            revision?: number | null;
+            /**
+             * Saved Schema Id
+             * @description Linked schema whose write queued this delta (null for database-level DDL)
+             */
+            saved_schema_id?: string | null;
+            /**
+             * Sql Preview
+             * @description The first characters of the delta's SQL
+             */
+            sql_preview: string;
+            /**
+             * Sql Truncated
+             * @description Whether sql_preview is cut short
+             */
+            sql_truncated: boolean;
+        };
+        /**
+         * DeltaDetail
+         * @description The full content of one delta, loaded when a browsed row is expanded.
+         */
+        DeltaDetail: {
+            /** Id */
+            id: number;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Sql */
+            sql: string;
+        };
+        /**
+         * DeltaRow
+         * @description One delta of the sync-client feed (`GET /changes`): pending rows only.
+         */
+        DeltaRow: {
             /**
              * Batch Id
              * @description Enrichment this delta belongs to; rows sharing a batch_id are applied in one replica transaction
@@ -10542,16 +11336,6 @@ export type components = {
             payload: {
                 [key: string]: unknown;
             };
-            /**
-             * Quarantined At
-             * @description The replica refused this enrichment's SQL, so its whole batch was set aside and the feed moved on past it. Quarantined rows are never pushed and never acked — they wait for a reinjection or a deletion
-             */
-            quarantined_at?: string | null;
-            /**
-             * Record Id
-             * @description The enrichment record whose write queued this delta, resolved from the batch (records.db_sync_batch_id — the delta itself stores no record reference). Provenance for browsing, so it is filled on the read-only feed only and is always null on the claiming feed sync clients pull: a replica applies SQL and has no use for it, and the claim query cannot carry the join. Also null for schema DDL rows, for rows queued before the link existed, and for rows whose record was hard-deleted
-             */
-            record_id?: string | null;
             /** Revision */
             revision?: number | null;
             /** Sql */
@@ -10585,6 +11369,12 @@ export type components = {
              */
             first_data_id?: number | null;
             /**
+             * Leased Count
+             * @description Pending rows currently leased by a sync client
+             * @default 0
+             */
+            leased_count: number;
+            /**
              * Max Id
              * @description Highest retained delta id (null when empty)
              */
@@ -10596,10 +11386,16 @@ export type components = {
             min_id?: number | null;
             /**
              * Pending Count
-             * @description Count of retained rows with acked_at IS NULL
+             * @description Deliverable backlog: unacked rows not quarantined (the database's pending_deltas)
              * @default 0
              */
             pending_count: number;
+            /**
+             * Quarantined Count
+             * @description Rows set aside after the replica refused their batch
+             * @default 0
+             */
+            quarantined_count: number;
             /**
              * Schema Delta Count
              * @description Count of retained kind='schema' DDL rows
@@ -11569,6 +12365,33 @@ export type components = {
             composite_key?: string | null;
         };
         /**
+         * EmbeddingModelSummary
+         * @description One embedding-capable model, for the semantic-ID embedding pickers (org
+         *     default, migration target, schema pin, benchmark scenarios).
+         */
+        EmbeddingModelSummary: {
+            /**
+             * Available
+             * @description Active, and its provider has a usable key (org or global) — or is Ollama.
+             */
+            available: boolean;
+            /** Display Name */
+            display_name?: string | null;
+            /** Embedding Dimensions */
+            embedding_dimensions?: number | null;
+            /**
+             * Embedding Wired
+             * @description The backend has an embedding transport for this model's provider: a picker offers the model only when it is available and wired.
+             */
+            embedding_wired: boolean;
+            /** Is Active */
+            is_active: boolean;
+            /** Model */
+            model: string;
+            /** Provider Name */
+            provider_name: string;
+        };
+        /**
          * BatchDeleteRequest
          * @description IDs to delete in one call, capped so a mis-click cannot wipe a page of rows.
          */
@@ -11624,6 +12447,13 @@ export type components = {
              * @description Role of the API key used (for service accounts)
              */
             api_key_role?: string | null;
+            /**
+             * Benchmark Scenarios
+             * @description Names of the scoring-source scenarios behind the models' `benchmark_scores`, keyed by task type and listed once; a model's `scenarios` indexes this list
+             */
+            benchmark_scenarios?: {
+                [key: string]: string[];
+            } | null;
             /** @description Org per-task quality/speed/cost blends for benchmark overall scores */
             benchmark_score_weights?: components["schemas"]["BenchmarkScoreWeightsByType"] | null;
             /**
@@ -11700,7 +12530,9 @@ export type components = {
         };
         /**
          * EnrichmentPromptSummary
-         * @description Summary of a single LLM prompt/response within an enrichment.
+         * @description One LLM call of a record: its account and configuration. Its texts and
+         *     its own output — the bulk of a record — are read one call at a time
+         *     (EnrichmentPromptTexts, GET /api/records/{record_id}/prompts/{prompt_id}).
          */
         EnrichmentPromptSummary: {
             /**
@@ -11736,6 +12568,12 @@ export type components = {
             /** Expertise Name */
             expertise_name: string;
             /**
+             * Has Wire Output Schema
+             * @description The call's wire output schema was captured (EnrichmentPromptTexts.wire_output_schema).
+             * @default false
+             */
+            has_wire_output_schema: boolean;
+            /**
              * Id
              * Format: uuid
              */
@@ -11746,8 +12584,6 @@ export type components = {
             output_tokens?: number | null;
             /** Processing Time Ms */
             processing_time_ms?: number | null;
-            /** Raw Response */
-            raw_response?: string | null;
             /**
              * Retries
              * @description Validation retries of this prompt's LLM call (attempts - 1).
@@ -11756,19 +12592,11 @@ export type components = {
             retries: number;
             /** Sequence Order */
             sequence_order: number;
-            /** Structured Output */
-            structured_output: {
-                [key: string]: unknown;
-            };
             /**
              * Success
              * @default true
              */
             success: boolean;
-            /** System Prompt */
-            system_prompt?: string | null;
-            /** User Prompt */
-            user_prompt: string;
             /** Validation Errors */
             validation_errors?: string[];
             /**
@@ -11778,6 +12606,32 @@ export type components = {
             web_search_calls: number;
             /** Web Search Cost Usd */
             web_search_cost_usd?: number | null;
+        };
+        /**
+         * EnrichmentPromptTexts
+         * @description What one LLM call of a record sent and received. On a plan that cannot
+         *     view prompts, the texts are replaced by an upgrade message and the wire
+         *     schema by a `{"_hidden": ...}` sentinel.
+         */
+        EnrichmentPromptTexts: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Raw Response */
+            raw_response?: string | null;
+            /**
+             * Structured Output
+             * @description The call's own validated output
+             */
+            structured_output: {
+                [key: string]: unknown;
+            };
+            /** System Prompt */
+            system_prompt?: string | null;
+            /** User Prompt */
+            user_prompt: string;
             /**
              * Wire Output Schema
              * @description Structured-output schema slice as it appeared on the wire to the provider (response_format.json_schema.schema / output_config / tools[].input_schema / generationConfig.response_json_schema — provider-specific). Captured for every native/tool-channel LLM call; null for legacy rows, plain-text agents, or pre-HTTP cancellations. May contain a `_capture_error` sentinel on extraction failure.
@@ -12000,6 +12854,32 @@ export type components = {
             version: number;
         };
         /**
+         * EntityModelOutcome
+         * @description One model's outcome on a batch entity. Its output is not repeated here: it
+         *     rode that model's own `model_completed` (same `entity_index`), the full
+         *     SingleEnrichmentResponse.
+         */
+        EntityModelOutcome: {
+            /** Cost Usd */
+            cost_usd: number | null;
+            /**
+             * Error Code
+             * @description Typed reason of a failed model (the `model_completed` vocabulary)
+             */
+            error_code: string | null;
+            /** Error Message */
+            error_message: string | null;
+            /** Model */
+            model: string;
+            /**
+             * Record Id
+             * @description The model's record; null when none was saved
+             */
+            record_id: string | null;
+            /** Success */
+            success: boolean;
+        };
+        /**
          * EntityRegion
          * @description One region of the partition: a thing, or a relationship between things.
          */
@@ -12088,10 +12968,13 @@ export type components = {
             };
             /** Last Record Id */
             last_record_id?: string | null;
-            /** Payload */
-            payload: {
+            /**
+             * Payload
+             * @description Current merged payload — null in a listing unless include_payload=true; GET /api/schemas/{schema_id}/entities/{entity_id} always carries it
+             */
+            payload?: {
                 [key: string]: unknown;
-            };
+            } | null;
             /** Revision */
             revision: number;
             /** Semantic Id */
@@ -13298,6 +14181,37 @@ export type components = {
              */
             delete_organization: boolean;
         };
+        /** LinkCandidate */
+        LinkCandidate: {
+            database: components["schemas"]["DatabaseSync"];
+            validation: components["schemas"]["DatabaseSyncLinkValidationResult"];
+        };
+        /** LinkCandidatesRequest */
+        LinkCandidatesRequest: {
+            /**
+             * Database Ids
+             * @description Databases to compare the schema against; null = every database of the organization
+             */
+            database_ids?: string[] | null;
+        };
+        /**
+         * LinkCandidatesResponse
+         * @description Dry-runs of linking one schema to each candidate database, the schema read once.
+         *
+         *     Only one database per schema: when the schema already syncs somewhere, that
+         *     database is named and nothing is compared.
+         */
+        LinkCandidatesResponse: {
+            /** Candidates */
+            candidates?: components["schemas"]["LinkCandidate"][];
+            /**
+             * Linked Database Id
+             * @description The database this schema already syncs to (no candidates then)
+             */
+            linked_database_id?: string | null;
+            /** Linked Database Name */
+            linked_database_name?: string | null;
+        };
         /**
          * LinkedSchemaRef
          * @description One schema linked to a database (schema_database_links row).
@@ -13598,12 +14512,10 @@ export type components = {
             /** Quality */
             quality?: number | null;
             /**
-             * Scenario Count
-             * @default 0
+             * Scenarios
+             * @description The scoring-source scenarios the scores come from: indexes into the options response's `benchmark_scenarios[<task type>]`
              */
-            scenario_count: number;
-            /** Scenario Names */
-            scenario_names?: string[];
+            scenarios?: number[];
             /**
              * Source
              * @default organization
@@ -13768,24 +14680,6 @@ export type components = {
              * @description Number of requests
              */
             total_requests: number;
-        };
-        /**
-         * ModelCostStats
-         * @description Model-level cost statistics.
-         */
-        ModelCostStats: {
-            /** Display Name */
-            display_name: string;
-            /** Id */
-            id: number;
-            /** Name */
-            name: string;
-            /** Total Cost Usd */
-            total_cost_usd: number;
-            /** Total Input Tokens */
-            total_input_tokens: number;
-            /** Total Output Tokens */
-            total_output_tokens: number;
         };
         /**
          * ModelCreate
@@ -14099,10 +14993,6 @@ export type components = {
             benchmark_intelligence_reasoning?: number | null;
             /** Benchmark Math */
             benchmark_math?: number | null;
-            /** Benchmarks Extra */
-            benchmarks_extra?: {
-                [key: string]: number;
-            } | null;
             /** Cache Creation Price Per Million 1Hr */
             cache_creation_price_per_million_1hr?: number | null;
             /** Cache Read Price Per Million */
@@ -14116,7 +15006,7 @@ export type components = {
             canonical_key?: string | null;
             /**
              * Capabilities
-             * @description THE capability storage: route -> {capability: verdict}. Claims (sync sources, a human edit) sit under '*' and carry no endpoint; measurements sit under the route they were taken on. The flat `supports_*` fields above are the derived union across routes, kept because the API, the connectors and the import format all key on those names.
+             * @description The route-keyed capability map: route -> {capability: verdict}. Claims (sync sources, a human edit) sit under '*' and carry no endpoint; measurements sit under the route they were taken on. Sent only for a model measured on at least one route: without a measurement the map holds nothing but the '*' claims, which the flat `supports_*` fields (the union across routes) already carry.
              */
             capabilities?: {
                 [key: string]: {
@@ -14125,11 +15015,6 @@ export type components = {
             } | null;
             /** Context Length */
             context_length?: number | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
             /**
              * Deactivated At
              * @description When the model was last deactivated (NULL = never deactivated).
@@ -14150,12 +15035,6 @@ export type components = {
             display_name?: string | null;
             /** Embedding Dimensions */
             embedding_dimensions?: number | null;
-            /**
-             * Embedding Wired
-             * @description Computed: the backend has an embedding transport for this model's provider. supports_embeddings says the provider serves an embeddings API; this says the platform can call it — pickers for semantic-ID embedding models (org default, migration target, schema pin) must require both.
-             * @default false
-             */
-            embedding_wired: boolean;
             /** Id */
             id: number;
             /**
@@ -14182,11 +15061,6 @@ export type components = {
              * @description Model identifier for API
              */
             model: string;
-            /**
-             * Organization Id
-             * @description Org ID if org-scoped, null if global
-             */
-            organization_id?: string | null;
             /**
              * Output Price Billed
              * @description Output price per million with the viewer's org commission markup applied.
@@ -14266,10 +15140,6 @@ export type components = {
             tokens_per_second?: number | null;
             /** Total Cost Usd */
             total_cost_usd: number;
-            /** Total Input Tokens */
-            total_input_tokens: number;
-            /** Total Output Tokens */
-            total_output_tokens: number;
             /** Tpm */
             tpm?: number | null;
             /**
@@ -14278,8 +15148,6 @@ export type components = {
              * @enum {unknown}
              */
             unavailable_reason?: "no_api_key" | "model_not_found" | "unsupported" | null;
-            /** Updated At */
-            updated_at: string | null;
             /** Web Search Billing Unit */
             web_search_billing_unit?: string | null;
             /** Web Search Price Per Query */
@@ -15098,6 +15966,19 @@ export type components = {
             /** Website */
             website?: string | null;
         };
+        /**
+         * OrganizationName
+         * @description An organization as a picker lists it (the environment-sync target).
+         */
+        OrganizationName: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
         /** OrganizationResponse */
         OrganizationResponse: {
             /**
@@ -15703,6 +16584,61 @@ export type components = {
             delta_id?: number | null;
             /** Message */
             message: string;
+        };
+        /**
+         * PromptHistoryItem
+         * @description One playground run in the history list — enough to show the row. The
+         *     prompts, response and wire schema load with the run itself
+         *     (GET /api/custom-prompt/history/{id}).
+         */
+        PromptHistoryItem: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Model Composite Key */
+            model_composite_key: string;
+            /** Model Name */
+            model_name: string;
+            /** Success */
+            success: boolean;
+            /**
+             * User Prompt Preview
+             * @description The user prompt's first 80 characters
+             */
+            user_prompt_preview: string;
+        };
+        /**
+         * PromptHistoryModel
+         * @description A model the organization's live playground history contains.
+         */
+        PromptHistoryModel: {
+            /** Composite Key */
+            composite_key: string;
+            /** Name */
+            name: string;
+        };
+        /** PromptHistoryResponse */
+        PromptHistoryResponse: {
+            /**
+             * Models
+             * @description Every model of the organization's live history, whatever the `model` filter — the filter's options
+             */
+            models: components["schemas"]["PromptHistoryModel"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Records */
+            records: components["schemas"]["PromptHistoryItem"][];
+            /** Total */
+            total: number;
         };
         /**
          * PropertySchema
@@ -16506,6 +17442,19 @@ export type components = {
             name?: string | null;
         };
         /**
+         * ProviderName
+         * @description A provider's identity alone, for the provider pickers (API key tabs,
+         *     plan import).
+         */
+        ProviderName: {
+            /** Display Name */
+            display_name: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
+        /**
          * ProviderResponse
          * @description Response model for a provider.
          */
@@ -16636,10 +17585,6 @@ export type components = {
             specific_endpoint: string | null;
             /** Total Cost Usd */
             total_cost_usd: number;
-            /** Total Input Tokens */
-            total_input_tokens: number;
-            /** Total Output Tokens */
-            total_output_tokens: number;
             /** Updated At */
             updated_at: string | null;
         };
@@ -16984,7 +17929,10 @@ export type components = {
              * @description Capabilities exercised by this record: 'web_search', 'prompt_caching', 'reasoning', 'structured_output', 'pdf_input', 'vision', 'audio_input', 'video_input', 'binary'.
              */
             capabilities?: string[];
-            /** Confidence Score */
+            /**
+             * Confidence Score
+             * @description The output's own `confidence_score`, when its schema has one
+             */
             confidence_score?: number | null;
             /**
              * Cost Usd
@@ -16998,6 +17946,16 @@ export type components = {
             created_at: string;
             /** Created By Name */
             created_by_name?: string | null;
+            /**
+             * Db Sync Collisions
+             * @description Sibling list items this write DROPPED because a later item of the same list claimed their identity (issue #177, last wins) — the reason a 'partial' record is partial. A 'conflicting' entry lost values: the stamped key needs a discriminating property, or the model repeated one thing with noisy values; a 'duplicate' lost nothing
+             */
+            db_sync_collisions?: components["schemas"]["EntityKeyCollision"][];
+            /**
+             * Db Sync Conflicts
+             * @description Cross-parent overwrites this record's write inflicted on SHARED rows (issue #149): values another parent's enrichment had stored, rewritten by this one — reported, never blocked, because last write wins is the contract. The usual fix is marking the relationship owned (`shared: false`); an `all_fields_disagreed` entry points at the identity instead (a namesake object, not an update)
+             */
+            db_sync_conflicts?: components["schemas"]["SharedEntityConflict"][];
             /**
              * Db Sync Error
              * @description Why the write was rejected, or what a 'partial' write dropped. Null when db_sync_state is 'saved' or unset.
@@ -17105,7 +18063,7 @@ export type components = {
             prompt_count: number;
             /**
              * Prompts
-             * @description Individual prompts/responses for this enrichment
+             * @description The record's LLM calls, in order — their texts load per call (EnrichmentPromptTexts)
              */
             prompts?: components["schemas"]["EnrichmentPromptSummary"][];
             /**
@@ -17301,27 +18259,23 @@ export type components = {
         };
         /**
          * RecordStatsResponse
-         * @description Aggregated statistics for enrichment records.
+         * @description The organization's record totals (live records; LLM-call cost only).
          */
         RecordStatsResponse: {
-            /** Avg Confidence Score */
-            avg_confidence_score?: number | null;
-            /** Avg Processing Time Ms */
+            /**
+             * Avg Processing Time Ms
+             * @description Mean summed LLM time of the records that made a call
+             */
             avg_processing_time_ms?: number | null;
-            /** By Model */
-            by_model: {
-                [key: string]: {
-                    [key: string]: unknown;
-                };
-            };
-            /** By Type */
+            /**
+             * By Type
+             * @description Record count per record type
+             */
             by_type: {
                 [key: string]: number;
             };
             /** Failed Records */
             failed_records: number;
-            /** Model Costs */
-            model_costs?: components["schemas"]["ModelCostStats"][];
             /** Successful Records */
             successful_records: number;
             /** Total Cost Usd */
@@ -17337,7 +18291,7 @@ export type components = {
          * RecordSummary
          * @description Summary of an enrichment record for list views.
          *
-         *     Note: Metrics (tokens, cost, processing_time) come from record_metrics view.
+         *     Metrics (tokens, cost, processing time) are the sums of the record's LLM calls.
          */
         RecordSummary: {
             /**
@@ -17350,8 +18304,6 @@ export type components = {
              * @description Capabilities exercised by this record: 'web_search', 'prompt_caching', 'reasoning', 'structured_output', 'pdf_input', 'vision', 'audio_input', 'video_input', 'binary'.
              */
             capabilities?: string[];
-            /** Confidence Score */
-            confidence_score?: number | null;
             /**
              * Cost Usd
              * @description LLM-call cost only (sum of prompts). See embedding_cost_usd.
@@ -17550,7 +18502,9 @@ export type components = {
         };
         /**
          * RecordSyncState
-         * @description A record's full database-sync story: the gate's verdict and the replica's.
+         * @description A record's live database-sync state: the gate's verdict and the replica's.
+         *     The write's findings (shared overwrites, key collisions) never change while
+         *     the feed drains: the record detail carries them (RecordDetail.db_sync_*).
          *
          *     `state` collapses both into the one thing a list cell can show. The two
          *     halves stay separately visible because they fail for different reasons and
@@ -17565,16 +18519,6 @@ export type components = {
             batch_id?: string | null;
             /** Databases */
             databases?: components["schemas"]["RecordSyncDatabaseState"][];
-            /**
-             * Gate Collisions
-             * @description Sibling list items this write DROPPED because a later item of the same list claimed their identity (issue #177, last wins). Stored on the record (`db_sync_collisions`) — the reason a 'partial' record is partial, once the response is gone. A 'conflicting' entry lost values: the stamped key needs a discriminating property, or the model repeated one thing with noisy values; a 'duplicate' lost nothing
-             */
-            gate_collisions?: components["schemas"]["EntityKeyCollision"][];
-            /**
-             * Gate Conflicts
-             * @description Cross-parent overwrites this record's write inflicted on SHARED rows (issue #149): values another parent's enrichment had stored, rewritten by this one — reported, never blocked, because last write wins is the contract. Stored on the record (`db_sync_conflicts`) since the flap they evidence spans several enrichments. The usual fix is marking the relationship owned (`shared: false`); an `all_fields_disagreed` entry points at the identity instead (a namesake object, not an update)
-             */
-            gate_conflicts?: components["schemas"]["SharedEntityConflict"][];
             /**
              * Gate Error
              * @description Why the gate refused the write, or what a partial write dropped
@@ -18480,7 +19424,10 @@ export type components = {
             is_pinned: boolean;
             /** Name */
             name: string;
-            /** Property Count */
+            /**
+             * Property Count
+             * @description Top-level properties of the root entity
+             */
             property_count: number;
             /**
              * Publish State
@@ -18520,7 +19467,7 @@ export type components = {
             ambiguity_check_enabled: boolean;
             /**
              * Applied Repairs
-             * @description Write responses only (save / full-content update): what the save gate changed or dropped without refusing — flag conflicts normalized, unknown keywords dropped (see ignored_keywords). Absent on reads.
+             * @description Write responses only (POST /saved): what the save gate changed or dropped without refusing — flag conflicts normalized, unknown keywords dropped (see ignored_keywords). Absent on reads.
              */
             applied_repairs?: string[] | null;
             /**
@@ -18578,7 +19525,7 @@ export type components = {
             published_at?: string | null;
             /** Published By Id */
             published_by_id?: string | null;
-            /** @description The published contract enrichment and database sync run against (docs/ENTITY_LAYER.md → publish model). NULL while the schema is a draft (not linked to any database). schema_content stays the free working copy the editor autosaves. */
+            /** @description The published contract enrichment and database sync run against (docs/ENTITY_LAYER.md → publish model). NULL while the schema is a draft (not linked to any database). schema_content stays the free working copy the editor autosaves. GET /saved/{id} omits it when publish_state is 'in_sync': the contract is then schema_content. */
             published_content?: components["schemas"]["GeneratedJsonSchema-Output"] | null;
             /**
              * Reasoning Effort
@@ -18631,6 +19578,44 @@ export type components = {
             schema_content?: components["schemas"]["GeneratedJsonSchema-Input"] | null;
             /** Tags */
             tags?: string[] | null;
+        };
+        /**
+         * SavedSchemaUpdateResponse
+         * @description Acknowledgement of PATCH /saved/{id}: what the write changed about the
+         *     schema's standing, not the document — the caller already holds what it sent.
+         *     GET /saved/{id} reads the stored document back.
+         */
+        SavedSchemaUpdateResponse: {
+            /**
+             * Applied Repairs
+             * @description What the save gate changed or dropped without refusing (full-content updates only) — flag conflicts normalized, unknown keywords dropped
+             */
+            applied_repairs?: string[];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Ignored Keywords
+             * @description Keywords of the posted schema_content the parser dropped (issue #198)
+             */
+            ignored_keywords?: components["schemas"]["IgnoredKeyword"][];
+            /** Name */
+            name: string;
+            /**
+             * Publish State
+             * @description After the write: a neutral edit of a linked schema auto-publishes (in_sync); a structural one leaves it dirty until publish
+             * @enum {string}
+             */
+            publish_state: "draft" | "unpublished" | "in_sync" | "dirty";
+            /** Published At */
+            published_at?: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /**
          * SchemaAnnotateRequest
@@ -19384,7 +20369,8 @@ export type components = {
          *
          *     `id` is the group's semantic_id; `canonical_text` the canonical alias's text;
          *     `ref_count` sums usage over every alias. `aliases` lists the member surface
-         *     forms (usually one).
+         *     forms (usually one) — in a listing only when it asked for them
+         *     (`include_aliases`); `alias_count` is always filled.
          */
         SemanticConceptSummary: {
             /**
@@ -20727,9 +21713,9 @@ export type components = {
             key_source?: string | null;
             /**
              * Results
-             * @description Per-model enrichment results
+             * @description Each model's outcome, in launch order; its output rode its `model_completed`
              */
-            results: components["schemas"]["SingleEnrichmentResponse"][];
+            results: components["schemas"]["EntityModelOutcome"][];
             /**
              * Seq
              * @description Position of this event in the job's event log (1-based, contiguous). Pass the last seq you saw as `after` on GET /api/llm/stream/{job_id} (a reconnect) to receive only what you missed. Absent on the per-connection `started` event, which is not logged.
@@ -24925,6 +25911,7 @@ export type components = {
 export type AccountTypeChangeRequest = components['schemas']['AccountTypeChangeRequest'];
 export type ActAsResponse = components['schemas']['ActAsResponse'];
 export type ActingAsInfo = components['schemas']['ActingAsInfo'];
+export type AdminOrganizationRow = components['schemas']['AdminOrganizationRow'];
 export type AllocateCreditsRequest = components['schemas']['AllocateCreditsRequest'];
 export type AmbiguityCheckResponse = components['schemas']['AmbiguityCheckResponse'];
 export type AmbiguityFinding = components['schemas']['AmbiguityFinding'];
@@ -24955,10 +25942,12 @@ export type BatchJobResult = components['schemas']['BatchJobResult'];
 export type BatchRestoreRequest = components['schemas']['BatchRestoreRequest'];
 export type BenchmarkReferenceMeta = components['schemas']['BenchmarkReferenceMeta'];
 export type BenchmarkResultResponse = components['schemas']['BenchmarkResultResponse'];
+export type BenchmarkResultSummary = components['schemas']['BenchmarkResultSummary'];
 export type BenchmarkRunMetric = components['schemas']['BenchmarkRunMetric'];
+export type BenchmarkRunSummary = components['schemas']['BenchmarkRunSummary'];
 export type BenchmarkScenarioCreate = components['schemas']['BenchmarkScenarioCreate'];
-export type BenchmarkScenarioDetail = components['schemas']['BenchmarkScenarioDetail'];
 export type BenchmarkScenarioResponse = components['schemas']['BenchmarkScenarioResponse'];
+export type BenchmarkScenarioSummary = components['schemas']['BenchmarkScenarioSummary'];
 export type BenchmarkScenarioUpdate = components['schemas']['BenchmarkScenarioUpdate'];
 export type BenchmarkScoreWeights = components['schemas']['BenchmarkScoreWeights'];
 export type BenchmarkScoreWeightsByType = components['schemas']['BenchmarkScoreWeightsByType'];
@@ -25023,8 +26012,10 @@ export type CronJobUpdate = components['schemas']['CronJobUpdate'];
 export type CronRun = components['schemas']['CronRun'];
 export type CronRunRequest = components['schemas']['CronRunRequest'];
 export type CronRunsPage = components['schemas']['CronRunsPage'];
+export type CronRunSummary = components['schemas']['CronRunSummary'];
 export type CronSettingsResponse = components['schemas']['CronSettingsResponse'];
 export type CronSettingsUpdate = components['schemas']['CronSettingsUpdate'];
+export type CustomPromptRecord = components['schemas']['CustomPromptRecord'];
 export type CustomPromptRequest = components['schemas']['CustomPromptRequest'];
 export type CustomPromptResponse = components['schemas']['CustomPromptResponse'];
 export type DatabaseAccessTokenResponse = components['schemas']['DatabaseAccessTokenResponse'];
@@ -25062,6 +26053,9 @@ export type DeletedSchemaListResponse = components['schemas']['DeletedSchemaList
 export type DeltaAckRequest = components['schemas']['DeltaAckRequest'];
 export type DeltaAckResponse = components['schemas']['DeltaAckResponse'];
 export type DeltaBatchResponse = components['schemas']['DeltaBatchResponse'];
+export type DeltaBrowseResponse = components['schemas']['DeltaBrowseResponse'];
+export type DeltaBrowseRow = components['schemas']['DeltaBrowseRow'];
+export type DeltaDetail = components['schemas']['DeltaDetail'];
 export type DeltaRow = components['schemas']['DeltaRow'];
 export type DeltaSummaryResponse = components['schemas']['DeltaSummaryResponse'];
 export type DemoBootstrapResponse = components['schemas']['DemoBootstrapResponse'];
@@ -25109,16 +26103,19 @@ export type DiscoverModelsResponse = components['schemas']['DiscoverModelsRespon
 export type DuplicatePair = components['schemas']['DuplicatePair'];
 export type DuplicatePairList = components['schemas']['DuplicatePairList'];
 export type EmbeddingModelSetting = components['schemas']['EmbeddingModelSetting'];
+export type EmbeddingModelSummary = components['schemas']['EmbeddingModelSummary'];
 export type EnricherWebRoutesAdminBatchDeleteRequest = components['schemas']['enricher__web__routes__admin__BatchDeleteRequest'];
 export type EnricherWebRoutesRecordsBatchDeleteRequest = components['schemas']['enricher__web__routes__records__BatchDeleteRequest'];
 export type EnrichmentInputContract = components['schemas']['EnrichmentInputContract'];
 export type EnrichmentOptionsResponse = components['schemas']['EnrichmentOptionsResponse'];
 export type EnrichmentPromptSummary = components['schemas']['EnrichmentPromptSummary'];
+export type EnrichmentPromptTexts = components['schemas']['EnrichmentPromptTexts'];
 export type EntityDefinitionInput = components['schemas']['EntityDefinition-Input'];
 export type EntityDefinitionOutput = components['schemas']['EntityDefinition-Output'];
 export type EntityIndexSpec = components['schemas']['EntityIndexSpec'];
 export type EntityKeyCollision = components['schemas']['EntityKeyCollision'];
 export type EntityMap = components['schemas']['EntityMap'];
+export type EntityModelOutcome = components['schemas']['EntityModelOutcome'];
 export type EntityRegion = components['schemas']['EntityRegion'];
 export type EntityStateListResponse = components['schemas']['EntityStateListResponse'];
 export type EntityStateRow = components['schemas']['EntityStateRow'];
@@ -25165,6 +26162,9 @@ export type JoinOrganizationRequest = components['schemas']['JoinOrganizationReq
 export type JoinOrganizationResponse = components['schemas']['JoinOrganizationResponse'];
 export type KeyHealthCheckResponse = components['schemas']['KeyHealthCheckResponse'];
 export type LeaveOrganizationRequest = components['schemas']['LeaveOrganizationRequest'];
+export type LinkCandidate = components['schemas']['LinkCandidate'];
+export type LinkCandidatesRequest = components['schemas']['LinkCandidatesRequest'];
+export type LinkCandidatesResponse = components['schemas']['LinkCandidatesResponse'];
 export type LinkedSchemaRef = components['schemas']['LinkedSchemaRef'];
 export type LinkUpdateRequest = components['schemas']['LinkUpdateRequest'];
 export type LinkWebhookRequest = components['schemas']['LinkWebhookRequest'];
@@ -25181,7 +26181,6 @@ export type ModelBenchmarkScores = components['schemas']['ModelBenchmarkScores']
 export type ModelCapabilityProbeResult = components['schemas']['ModelCapabilityProbeResult'];
 export type ModelChange = components['schemas']['ModelChange'];
 export type ModelCostRow = components['schemas']['ModelCostRow'];
-export type ModelCostStats = components['schemas']['ModelCostStats'];
 export type ModelCreate = components['schemas']['ModelCreate'];
 export type ModelExport = components['schemas']['ModelExport'];
 export type ModelOverrideBaseSnapshot = components['schemas']['ModelOverrideBaseSnapshot'];
@@ -25209,6 +26208,7 @@ export type NestRegionRequest = components['schemas']['NestRegionRequest'];
 export type NestRegionResponse = components['schemas']['NestRegionResponse'];
 export type OAuthGrantListItem = components['schemas']['OAuthGrantListItem'];
 export type OrganizationDetailResponse = components['schemas']['OrganizationDetailResponse'];
+export type OrganizationName = components['schemas']['OrganizationName'];
 export type OrganizationResponse = components['schemas']['OrganizationResponse'];
 export type OrganizationSearchResult = components['schemas']['OrganizationSearchResult'];
 export type OrganizationSubscription = components['schemas']['OrganizationSubscription'];
@@ -25231,6 +26231,9 @@ export type PricingSyncSummary = components['schemas']['PricingSyncSummary'];
 export type ProjectedConcept = components['schemas']['ProjectedConcept'];
 export type ProjectionMigrationRequest = components['schemas']['ProjectionMigrationRequest'];
 export type ProjectionMigrationResponse = components['schemas']['ProjectionMigrationResponse'];
+export type PromptHistoryItem = components['schemas']['PromptHistoryItem'];
+export type PromptHistoryModel = components['schemas']['PromptHistoryModel'];
+export type PromptHistoryResponse = components['schemas']['PromptHistoryResponse'];
 export type PropertySchemaInput = components['schemas']['PropertySchema-Input'];
 export type PropertySchemaOutput = components['schemas']['PropertySchema-Output'];
 export type ProviderChange = components['schemas']['ProviderChange'];
@@ -25241,6 +26244,7 @@ export type ProviderKeyLimitResponse = components['schemas']['ProviderKeyLimitRe
 export type ProviderKeyLimitsResponse = components['schemas']['ProviderKeyLimitsResponse'];
 export type ProviderKeyResponse = components['schemas']['ProviderKeyResponse'];
 export type ProviderKeyUpdate = components['schemas']['ProviderKeyUpdate'];
+export type ProviderName = components['schemas']['ProviderName'];
 export type ProviderResponse = components['schemas']['ProviderResponse'];
 export type ProviderUpdate = components['schemas']['ProviderUpdate'];
 export type PublishTableChange = components['schemas']['PublishTableChange'];
@@ -25298,6 +26302,7 @@ export type SavedSchemaListItem = components['schemas']['SavedSchemaListItem'];
 export type SavedSchemaListResponse = components['schemas']['SavedSchemaListResponse'];
 export type SavedSchemaResponse = components['schemas']['SavedSchemaResponse'];
 export type SavedSchemaUpdate = components['schemas']['SavedSchemaUpdate'];
+export type SavedSchemaUpdateResponse = components['schemas']['SavedSchemaUpdateResponse'];
 export type SchemaAnnotateRequest = components['schemas']['SchemaAnnotateRequest'];
 export type SchemaAnnotationResult = components['schemas']['SchemaAnnotationResult'];
 export type SchemaAnnotationScopeRequest = components['schemas']['SchemaAnnotationScopeRequest'];
@@ -26515,7 +27520,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["AdminOrganizationRow"][];
                 };
             };
             /** @description Validation Error */
@@ -26671,6 +27676,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BatchDeleteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_organization_names_api_admin_organizations_names_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationName"][];
                 };
             };
             /** @description Validation Error */
@@ -28214,7 +29254,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BenchmarkScenarioResponse"][];
+                    "application/json": components["schemas"]["BenchmarkScenarioSummary"][];
                 };
             };
             /** @description Validation Error */
@@ -28290,7 +29330,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BenchmarkScenarioDetail"];
+                    "application/json": components["schemas"]["BenchmarkScenarioResponse"];
                 };
             };
             /** @description Validation Error */
@@ -28528,7 +29568,45 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BenchmarkResultResponse"][];
+                    "application/json": components["schemas"]["BenchmarkResultSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_result_api_benchmarks__scenario_id__results__result_id__get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                result_id: string;
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkResultResponse"];
                 };
             };
             /** @description Validation Error */
@@ -28570,6 +29648,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeleteBenchmarkResultsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_results_api_benchmarks__scenario_id__results_export_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                scenario_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkResultResponse"][];
                 };
             };
             /** @description Validation Error */
@@ -29706,7 +30821,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["PromptHistoryResponse"];
                 };
             };
             /** @description Validation Error */
@@ -29742,6 +30857,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClearPromptHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_prompt_history_run_api_custom_prompt_history__record_id__get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                record_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomPromptRecord"];
                 };
             };
             /** @description Validation Error */
@@ -30234,16 +31386,10 @@ export interface operations {
     fetch_changes_api_databases__database_id__changes_get: {
         parameters: {
             query?: {
-                /** @description Desc-mode cursor: return rows with id < before. Ignored in asc mode. Omit for the newest window. */
-                before?: number | null;
                 claim?: boolean;
                 format?: string;
-                /** @description Row set: 'pending' (default) = unacked FIFO feed for sync clients; 'acked' = already-acknowledged rows retained by purge_on_ack=false; 'all' = everything still in the outbox. Non-pending modes never lease (claim is ignored) and skip the batch-boundary invariant since they are UI browses, not applied windows. */
-                include?: "pending" | "acked" | "all";
                 lease_s?: number;
                 limit?: number | null;
-                /** @description Cursor direction. 'asc' (default) walks ids forward with `since` (id > since) — the sync-client contract, so external callers that omit this see no change. 'desc' walks ids backward with `before` (id < before, or the newest window when omitted) — the UI Deltas tab uses it so the newest deltas render at the top of the list and infinite scroll pages back into older history. `claim` is ignored in desc mode: a lease would be useless for a browse. */
-                order?: "asc" | "desc";
                 since?: number;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
@@ -30450,6 +31596,86 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    browse_deltas_api_databases__database_id__deltas_get: {
+        parameters: {
+            query?: {
+                /** @description Return rows with id < before; omit for the newest window */
+                before?: number | null;
+                /** @description 'pending' = deliverable backlog; 'acked' = acknowledged rows retained by the purge policy; 'all' = everything still in the outbox */
+                include?: "pending" | "acked" | "all";
+                limit?: number;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeltaBrowseResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_delta_api_databases__database_id__deltas__delta_id__get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                database_id: string;
+                delta_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeltaDetail"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -30933,44 +32159,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    validate_schema_link_api_databases__database_id__schemas__schema_id__validate_post: {
-        parameters: {
-            query?: {
-                /** @description JWT token for SSE (EventSource doesn't support headers) */
-                token?: string | null;
-            };
-            header?: {
-                authorization?: string | null;
-                "X-API-Key"?: string | null;
-            };
-            path: {
-                database_id: string;
-                schema_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DatabaseSyncLinkValidationResult"];
-                };
             };
             /** @description Validation Error */
             422: {
@@ -32169,6 +33357,8 @@ export interface operations {
     stream_monitored_jobs_api_monitor_stream_get: {
         parameters: {
             query?: {
+                /** @description Replay cursors of a reconnecting client, one `<job_id>:<seq>` per job it already follows: the last seq it saw of that job. Each such job replays only what came after — even when it ended during the gap — every other running job its whole log. */
+                after?: string[] | null;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
@@ -33920,6 +35110,7 @@ export interface operations {
         parameters: {
             query?: {
                 include_inactive?: boolean;
+                model_ids?: number[] | null;
                 scope_org_id?: string | null;
                 split_sources?: boolean;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
@@ -34149,6 +35340,41 @@ export interface operations {
             };
         };
     };
+    list_embedding_models_api_providers_models_embeddings_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmbeddingModelSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_model_overrides_endpoint_api_providers_models_overrides_get: {
         parameters: {
             query?: {
@@ -34171,6 +35397,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelOverrideListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_plan_catalog_api_providers_models_plan_catalog_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LLMModel"][];
                 };
             };
             /** @description Validation Error */
@@ -34210,6 +35471,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelUsageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_provider_names_api_providers_names_get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderName"][];
                 };
             };
             /** @description Validation Error */
@@ -34393,6 +35689,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecordDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_record_prompt_api_records__record_id__prompts__prompt_id__get: {
+        parameters: {
+            query?: {
+                /** @description List across all organizations (admin only) */
+                all_orgs?: boolean;
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                prompt_id: string;
+                record_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrichmentPromptTexts"];
                 };
             };
             /** @description Validation Error */
@@ -35188,7 +36524,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SavedSchemaResponse"];
+                    "application/json": components["schemas"]["SavedSchemaUpdateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -36148,6 +37484,47 @@ export interface operations {
             };
         };
     };
+    link_candidates_api_schemas__schema_id__databases_link_candidates_post: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkCandidatesRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkCandidatesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     validate_schema_for_database_api_schemas__schema_id__databases_validate_post: {
         parameters: {
             query?: {
@@ -36189,6 +37566,8 @@ export interface operations {
         parameters: {
             query?: {
                 entity_type?: string | null;
+                /** @description Carry each row's payload (a page can then weigh up to a megabyte) */
+                include_payload?: boolean;
                 limit?: number;
                 offset?: number;
                 sort_by?: string;
@@ -36214,6 +37593,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EntityStateListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_schema_entity_api_schemas__schema_id__entities__entity_id__get: {
+        parameters: {
+            query?: {
+                /** @description JWT token for SSE (EventSource doesn't support headers) */
+                token?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                entity_id: string;
+                schema_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntityStateRow"];
                 };
             };
             /** @description Validation Error */
@@ -36270,6 +37687,8 @@ export interface operations {
                 concept_types?: string[] | null;
                 created_after?: string | null;
                 created_before?: string | null;
+                /** @description Fill each concept's surface forms (otherwise empty; see alias_count) */
+                include_aliases?: boolean;
                 limit?: number;
                 min_ref_count?: number | null;
                 offset?: number;
@@ -37244,6 +38663,8 @@ export interface operations {
     list_all_conversations_api_support_admin_conversations_get: {
         parameters: {
             query?: {
+                /** @description Most recent threads returned */
+                limit?: number;
                 /** @description JWT token for SSE (EventSource doesn't support headers) */
                 token?: string | null;
             };
