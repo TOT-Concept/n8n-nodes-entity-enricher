@@ -51,35 +51,15 @@ jobs:
       - name: Lint (source-level, same rules as the n8n community-node verification portal)
         run: npm run lint
 
-      - name: Scan sources with @n8n/scan-community-package@beta (blocking)
-        # The scanner CLI only accepts *published* npm package names, so it can't
-        # be pointed at the checkout directly. Its scanner module, however,
-        # exports analyzePackage() — the exact ESLint config the portal runs —
-        # and SOURCE_FILE_PATTERNS, the same pattern set the published-package
-        # scan applies to its provenance source leg. Run that against the
-        # checkout so portal violations block the PR instead of surfacing after
-        # publish.
-        run: |
-          SCAN_DIR="$RUNNER_TEMP/n8n-scan"
-          mkdir -p "$SCAN_DIR"
-          ( cd "$SCAN_DIR" && npm init -y > /dev/null && npm install --no-audit --no-fund @n8n/scan-community-package@beta )
-          SCANNER="$SCAN_DIR/node_modules/@n8n/scan-community-package/dist/scanner.js" \
-          PACKAGE_DIR="$PWD" \
-          node --input-type=module -e '
-            const { pathToFileURL } = await import("node:url");
-            const { analyzePackage, SOURCE_FILE_PATTERNS } = await import(pathToFileURL(process.env.SCANNER).href);
-            const result = await analyzePackage(process.env.PACKAGE_DIR, SOURCE_FILE_PATTERNS);
-            if (result.passed) {
-              console.log("Source scan passed (@n8n/scan-community-package@beta rules)");
-            } else {
-              console.error("Source scan failed: " + result.message);
-              if (result.details) console.error(result.details);
-              process.exit(1);
-            }
-          '
-
       - name: Build
         run: npm run build
+
+      - name: Scan the package with @n8n/scan-community-package@beta (blocking)
+        # The scanner's local mode (a path argument) runs the portal's ESLint
+        # rules on the sources and on the compiled files npm would publish, so
+        # it runs after the build. Provenance and the attested source exist only
+        # once published; the post-publish step below checks those.
+        run: npx --yes @n8n/scan-community-package@beta .
 
       - name: Verify dist contents
         run: |
